@@ -91,12 +91,13 @@ never a single number.
 | Tier | Example sites | Max residents | Build slots | Unlock requirements (all must be met) |
 |------|---------------|---------------|-------------|----------------------------|
 | 1 | Petrol station, farmhouse | 6 | small plot | Prologue complete |
-| 2 | Village school, river mill | 12 | medium plot | 6 residents, Colony Level 2, €8k, 1 Tier-2 site scouted |
-| 3 | Industrial yard, supermarket block | 24 | large plot | 12 residents, Colony Level 3, €25k, power + water Tier 2 |
-| 4 | Hospital wing, fortified town quarter | 40 | very large plot | 24 residents, Colony Level 4, €60k, faction ally, defence rating ≥ X |
-| 5 | Castle / military depot (endgame) | 60+ | huge, multi-zone | 40 residents, Colony Level 5, €150k, two faction allies |
+| 2 | Village school, river mill | 12 | medium plot | 6 residents, Colony Level 2, stockpile 8k TV, 1 Tier-2 site scouted |
+| 3 | Industrial yard, supermarket block | 24 | large plot | 12 residents, Colony Level 3, stockpile 25k TV, power + water Tier 2 |
+| 4 | Hospital wing, fortified town quarter | 40 | very large plot | 24 residents, Colony Level 4, stockpile 60k TV, faction ally, defence rating ≥ X |
+| 5 | Castle / military depot (endgame) | 60+ | huge, multi-zone | 40 residents, Colony Level 5, stockpile 150k TV, two faction allies |
 
-**Choice matters:** at each tier the player is offered **2–3 candidate sites**, each with different
+**Choice matters:** at each tier the player is offered **2–3 candidate sites**, **drawn per run** from
+a larger handcrafted pool, so no two runs offer the same ladder of homes. Each site differs in
 stats — slot count, natural defensibility (wall %, chokepoints), existing infrastructure (pre-built
 well, generator, greenhouse), terrain fertility, noise exposure, and distance to regions/trade. A
 castle is defensible but far from loot; an industrial yard has a free workshop but terrible walls.
@@ -143,14 +144,38 @@ A claimed site is a grid-based editable space. Buildings are placed freely on bu
   to work, fights, desertion. High morale → work speed bonus, occasional bonus events.
 - **Health & disease**: injuries (bleeding, fracture, infection), illnesses (flu, dysentery,
   pneumonia in winter), and the **Bite** — bites have a chance of infection; amputation within a time
-  window is the only cure, otherwise the survivor turns inside the base.
+  window is the only cure, otherwise the survivor turns inside the base. **Survivors only** — the MC
+  cannot be bitten or turn (see §9).
 - **Jobs**: each survivor is assigned to a building/role with a priority list (Farmer, Crafter,
   Guard, Medic, Builder, Hauler, Cook, Engineer). Skill improves with work. Idle survivors wander and
   lose morale.
 
 ### 4.4 Colony Level
-A derived level (1–5) from population, building tiers, total skill, defence rating and stored wealth.
-It gates base tier unlocks, faction attention and — crucially — **wave scaling**.
+A derived level (1–5) from population, building tiers, total skill, defence rating and stockpile
+value (TV). It gates base tier unlocks, faction attention and — crucially — **wave scaling**.
+
+### 4.5 Losing a base — the Exodus
+A base is never a soft reset. When a wave or raid overruns the site, the colony does not restart at
+Tier 1 with a clean slate — it flees as a broken group and has to claw its way back.
+
+- **The pick:** the player chooses **4 survivors** (the MC always escapes on top of those) who get
+  out with the squad. They keep what they personally carry — carry weight is suddenly the most
+  important stat in the game.
+- **The left behind:** every other resident stays in the world as a **scattered survivor**, not a
+  corpse and not a save-game entry that quietly disappears. Each gets a hidden fate roll over the
+  following days, weighted by their Survival and Stealth skills, their health when the base fell, and
+  how deep into the fall they were abandoned.
+- **Reunions:** a scattered survivor may later **find the new base on their own** and show up at the
+  gate, be discovered as a rescue objective on a mission, turn up in a faction's camp (buy them back,
+  or earn them), or simply never be seen again. Some arrive wounded, traumatised or carrying a bite.
+- **The cost is real:** grief debuffs for friends left behind, a morale floor until the colony is
+  housed again, and the loss of every building. Materials are **not** refunded — this is a rout, not
+  a move.
+- **Refugee state:** until a new site is claimed, the group travels light with no base layer at all.
+  There is a grace period before the first wave targets them again, scaled by difficulty.
+
+This makes an overrun base a story beat instead of a game over, and gives the player a reason to go
+looking for their own people later.
 
 ---
 
@@ -186,7 +211,8 @@ Base Noise = Σ building noise (running generators, workshops, radio tower, floo
 - Defence is played in real time at the base: the player controls their squad on the walls, while
   assigned **Guards** hold positions automatically. Traps and turrets fire on their own.
 - Losing: zombies breaching walls destroy buildings, kill or wound residents, eat food stores. A
-  catastrophic breach can force an **evacuation** — flee with what you can carry, lose the base.
+  catastrophic breach can force an **evacuation** — flee with what you can carry, lose the base. This
+  is the Exodus: see §4.5 for who gets out and what happens to everyone left behind.
 
 **Zombie types:**
 | Type | Role |
@@ -251,6 +277,10 @@ as DLC-style content without touching the core design.)
 - The MC is always the controlled character. Up to **3 companions** follow as AI; they cannot be
   switched to. The player gives them **simple orders** via a radial menu: *Follow / Hold here /
   Focus target / Stealth / Fall back / Use item*.
+- **The MC cannot be bitten and cannot turn.** Zombies wound the MC like any other threat, but the
+  infection line is closed for the player character — turning is a fate reserved for survivors and
+  companions (see §4.3). This keeps the Exodus (§4.5) and difficulty-mode MC rules (§3.4) the only
+  ways a run can end, instead of a silent timer after one unlucky hit.
 - Combat is **real-time twin-stick**: WASD move, mouse aim/fire, gamepad dual-stick. Dodge roll,
   sprint (loud, drains stamina), crouch (quiet, slower, smaller detection cone).
 - Weapons: melee (bat, axe, crowbar, machete — quiet, stamina-based, durability) and firearms
@@ -287,11 +317,16 @@ Named groups with territory, demands and attitudes. Reputation per faction (−1
 | **Restbataillon** | Remnant army, disciplined, authoritarian | Fuel, order, conscripts | Military weapons, ammo, armour |
 | **Genesis** | Medical/aid convoy, idealistic | Medicine, safe passage, rescued civilians | Medicine, doctors, disease cures |
 | **The Yard** | Scavenger guild, pragmatic | Scrap, machine parts | Vehicles, workshop blueprints, repairs |
-| **Die Börse** | Black market cartel | Money, contraband, silence | Anything, at a price; information |
+| **Die Börse** | Black market cartel | Cash, metals, contraband, silence | Anything, at a price; information |
 | **Raider clans** | Hostile, opportunistic | Nothing | Loot (by force), base raids |
 
-- **Trade**: barter and cash (€). Prices shift by region, season, scarcity and reputation. Caravans
-  can be sent out from the base with assigned survivors (risk of ambush).
+- **Trade is barter.** Cash died with the state; nobody outside a vault takes euros. Goods are valued
+  in an abstract **Trade Value (TV)** that the UI shows on both sides of a deal — ammo, fuel, meds,
+  batteries and liquor are the hard currencies. Prices shift by region, season, scarcity and
+  reputation, and every faction over- and undervalues what it needs (see the table above). **Die Börse
+  is the one exception**: the cartel still deals in cash and precious metals, which is exactly what
+  makes it sinister — it is betting on a world that comes back. Caravans can be sent out from the
+  base with assigned survivors (risk of ambush).
 - **Consequences**: helping one faction angers another. High reputation unlocks allied reinforcements
   during waves, exclusive tech and better base candidates. Hostile reputation triggers **human raids**
   on the base — a different defence challenge than zombies (they use cover, guns and fire).
@@ -300,8 +335,17 @@ Named groups with territory, demands and attitudes. Reputation per faction (−1
 
 ## 12. Time, weather & seasons
 
-- **Day/night cycle** (~24 min real-time per in-game day, configurable). Night: zombie senses sharper,
-  vision cone shorter, runners more active, stealth easier, light sources = noise/visibility beacons.
+- **The base layer is turn-based by day.** Base time only advances when the player **confirms the end
+  of the day** from the base HUD. Nothing ticks while the player is laying out buildings, assigning
+  jobs or reading reports — jobs, production, farm growth, healing, construction, food spoilage and
+  the wave countdown all resolve in the **end-of-day step**, which reports back as a morning digest.
+  Missions, travel encounters and wave defence are the opposite: **fully real-time** while the player
+  is in a zone. Confirming a day is therefore the game's one deliberate heartbeat, and the moment the
+  player chooses to stop preparing.
+- **Day/night cycle** (~24 min real-time per in-game day, configurable) — this clock runs **while the
+  player is in a zone**: missions, travel and wave defence. The base layer jumps straight to the next
+  morning when the day is confirmed. Night: zombie senses sharper, vision cone shorter, runners more
+  active, stealth easier, light sources = noise/visibility beacons.
 - **Weather**: clear, rain (dampens noise, hurts visibility, fills water tanks), fog (strong stealth,
   surprise encounters), storm (power damage to solar/wind, travel blocked), snow.
 - **Seasons** (each ~15–20 in-game days): Spring (planting), Summer (peak yield, drought risk),
@@ -343,10 +387,17 @@ generation beyond template dressing, a scripted ending campaign.
 
 ---
 
-## 15. Open questions (to revisit)
+## 15. Settled decisions
 
-- How punishing should base loss be — full restart at Tier 1, or a "refugee" state with a grace period?
-- Should the MC be able to be bitten and turn, or is that reserved for survivors?
-- Real-time base management, or does base time only advance when the player confirms a day?
-- Fixed base candidate sites per tier, or a pool randomised per run (replayability vs. handcrafting)?
-- Is cash (€) credible this far into a collapse, or should barter fully replace it outside Die Börse?
+These were the open questions of the first draft. All five are now decided and written into the
+sections above; they are recorded here so the reasoning is not lost.
+
+| Question | Decision | Written into |
+|----------|----------|--------------|
+| How punishing should base loss be? | Neither a full Tier-1 restart nor a free pass: **the Exodus** — pick 4 survivors to escape with the MC, everyone else becomes a scattered survivor who may return, be rescued, be bought back, or be lost | §4.5, §6 |
+| Can the MC be bitten and turn? | **No.** The MC can be wounded but never infected; turning belongs to survivors and companions | §9, §4.3 |
+| Real-time base management or day confirmation? | **Day confirmation.** The base layer is turn-based and resolves in an end-of-day step; zones stay fully real-time | §12 |
+| Fixed or randomised base candidate sites? | **Randomised per run**, drawn from a larger handcrafted pool | §4.1 |
+| Is cash (€) still credible? | **No — barter replaces it.** Goods are priced in abstract Trade Value (TV); Die Börse is the one faction still dealing in cash and metals | §11, §4.1 |
+
+New open questions go here as they come up — this section should never be empty for long.
