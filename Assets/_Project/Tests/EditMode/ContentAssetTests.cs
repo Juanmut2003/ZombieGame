@@ -234,6 +234,22 @@ namespace ZombieGame.Tests.EditMode
             Assert.That(zombie.Senses.ListenSeconds, Is.GreaterThan(0.5f));
         }
 
+        [TestCaseSource(nameof(EveryZombie))]
+        public void AZombieCanBeEscapedButNotTrivially(string path)
+        {
+            ZombieDefinition zombie = Load<ZombieDefinition>(path);
+            ZombieInstincts instincts = zombie.Instincts;
+
+            // Both halves matter. Giving up instantly makes any corner a guaranteed escape;
+            // never giving up makes hiding pointless and the zone a chase for ever.
+            Assert.That(instincts.GiveUpSeconds, Is.InRange(1f, 30f));
+
+            // An undisturbed zone has to look undisturbed, or the player cannot tell at a glance
+            // whether they have been noticed.
+            Assert.That(instincts.WanderSpeedFactor, Is.LessThan(1f));
+            Assert.That(instincts.WanderRadius, Is.GreaterThanOrEqualTo(0f));
+        }
+
         [Test]
         public void TheCrowdCellIsWideEnoughForTheWidestZombie()
         {

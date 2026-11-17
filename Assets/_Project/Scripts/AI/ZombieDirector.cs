@@ -206,7 +206,10 @@ namespace ZombieGame.AI
                 // Perception first, movement second: looking at where the target was last frame
                 // would show a zombie reacting to a position the player has already left.
                 _manager.Perceive(_target.position, _targetRadius, _lineOfSight);
-                _manager.SetDestinationForAll(_target.position);
+
+                // Perceive answers 'can it see you'; Decide turns that into what it does about
+                // it. Both before the tick, which only walks towards whatever was decided.
+                _manager.Decide(_target.position, Time.fixedDeltaTime);
             }
 
             _manager.Tick(Time.fixedDeltaTime);
@@ -249,7 +252,10 @@ namespace ZombieGame.AI
                 ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
                 _active[i].Show(
                     states[i].Position,
-                    type.SpriteFor(states[i].SkinId, states[i].Facing, states[i].SeesTarget),
+                    type.SpriteFor(
+                        states[i].SkinId,
+                        states[i].Facing,
+                        states[i].Behaviour == ZombieBehaviour.Chasing),
                     states[i].HitFlash > 0f);
             }
         }

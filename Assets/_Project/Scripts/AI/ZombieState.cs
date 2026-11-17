@@ -49,6 +49,27 @@ namespace ZombieGame.AI
         /// </summary>
         public Vector2 Look;
 
+        /// <summary>What it is doing about the world.</summary>
+        public ZombieBehaviour Behaviour;
+
+        /// <summary>
+        /// Seconds left of the current behaviour before it is reconsidered. What it means depends
+        /// on the behaviour: a pause while resting, a patience while chasing.
+        /// </summary>
+        public float BehaviourTimer;
+
+        /// <summary>Where it was put down. Wandering happens around this, not around the player.</summary>
+        public Vector2 Home;
+
+        /// <summary>The last place it saw or heard something worth walking to.</summary>
+        public Vector2 LastKnown;
+
+        /// <summary>
+        /// What its top speed is multiplied by right now. Undisturbed zombies shuffle; a chase is
+        /// the only time a body moves at the speed written on its asset.
+        /// </summary>
+        public float SpeedFactor;
+
         /// <summary>Where the last noise it heard came from.</summary>
         public Vector2 HeardAt;
 

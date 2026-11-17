@@ -24,6 +24,7 @@ namespace ZombieGame.AI
         private readonly ZombieState[] _states;
         private readonly DamageResistances[] _resistances;
         private readonly ZombieSenses[] _senses;
+        private readonly ZombieInstincts[] _instincts;
         private readonly EventBus? _bus;
         private readonly CrowdSettings _crowd;
         private readonly System.Random _random;
@@ -61,6 +62,7 @@ namespace ZombieGame.AI
             _states = new ZombieState[capacity];
             _resistances = new DamageResistances[capacity];
             _senses = new ZombieSenses[capacity];
+            _instincts = new ZombieInstincts[capacity];
             _nextInCell = new int[capacity];
             _bus = bus;
 
@@ -142,12 +144,23 @@ namespace ZombieGame.AI
                 // Looking the way the art shows it: at the camera, which in a top-down view is
                 // down the screen. Without this a fresh zombie looks at (0,0) and sees nothing.
                 Look = Vector2.down,
+
+                // Resting with no time left on the clock, so the first decision it makes is to
+                // pick somewhere to shuffle off to rather than to stand through a pause it never
+                // started. Full speed until something decides otherwise, so anything driving the
+                // horde by hand — tests, a scripted set piece — gets the speed on the asset.
+                Behaviour = ZombieBehaviour.Resting,
+                BehaviourTimer = 0f,
+                Home = position,
+                LastKnown = position,
+                SpeedFactor = 1f,
                 TypeId = typeId,
                 SkinId = skin,
                 Id = id,
             };
             _resistances[index] = definition.Resistances;
             _senses[index] = definition.Senses;
+            _instincts[index] = definition.Instincts;
 
             return id;
         }
@@ -338,6 +351,141 @@ namespace ZombieGame.AI
         }
 
         /// <summary>
+        /// Lets every zombie decide what to do, and where to walk while doing it.
+        /// </summary>
+        /// <remarks>
+        /// The state machine the whole stealth layer hangs off, and it is deliberately one pass
+        /// over one array rather than a component per zombie: three hundred of these run every
+        /// physics step.
+        /// Sight wins over everything. A zombie that can see the target is chasing it, whatever
+        /// it was doing a moment ago, and its memory of where the target is refreshes every step
+        /// — so breaking line of sight leaves it walking at a place you have already left, which
+        /// is what makes a corner worth running round.
+        /// Call it after <see cref="Perceive"/> and before <see cref="Tick"/>: it reads what was
+        /// perceived and writes the destinations that the tick then walks towards.
+        /// </remarks>
+        /// <param name="target">Where the thing they hunt is right now.</param>
+        /// <param name="deltaSeconds">How much time has passed.</param>
+        /// <returns>How many are chasing.</returns>
+        public int Decide(Vector2 target, float deltaSeconds)
+        {
+            int chasing = 0;
+
+            for (int i = 0; i < Count; i++)
+            {
+                ref ZombieState zombie = ref _states[i];
+                ZombieInstincts instincts = _instincts[i];
+
+                if (zombie.SeesTarget)
+                {
+                    zombie.Behaviour = ZombieBehaviour.Chasing;
+                    zombie.BehaviourTimer = instincts.GiveUpSeconds;
+                    zombie.LastKnown = target;
+                    zombie.Destination = target;
+                    zombie.SpeedFactor = 1f;
+                    chasing++;
+                    continue;
+                }
+
+                zombie.BehaviourTimer -= deltaSeconds;
+                bool arrived = (zombie.Destination - zombie.Position).sqrMagnitude
+                               <= instincts.ArriveDistance * instincts.ArriveDistance;
+
+                switch (zombie.Behaviour)
+                {
+                    case ZombieBehaviour.Chasing:
+                        // Lost sight of it. Keep going to where it was last seen — giving up the
+                        // instant a wall interrupts would make every pillar in the zone a
+                        // guaranteed escape.
+                        zombie.Destination = zombie.LastKnown;
+                        zombie.SpeedFactor = 1f;
+                        if (zombie.BehaviourTimer <= 0f || arrived)
+                        {
+                            GiveUp(ref zombie, instincts);
+                        }
+
+                        break;
+
+                    case ZombieBehaviour.Investigating:
+                        zombie.Destination = zombie.LastKnown;
+                        zombie.SpeedFactor = 1f;
+                        if (zombie.BehaviourTimer <= 0f || arrived)
+                        {
+                            GiveUp(ref zombie, instincts);
+                        }
+
+                        break;
+
+                    case ZombieBehaviour.Wandering:
+                        zombie.SpeedFactor = instincts.WanderSpeedFactor;
+                        if (zombie.BehaviourTimer <= 0f || arrived)
+                        {
+                            Rest(ref zombie, instincts);
+                        }
+
+                        break;
+
+                    default:
+                        zombie.Destination = zombie.Position;
+                        zombie.SpeedFactor = instincts.WanderSpeedFactor;
+                        if (zombie.BehaviourTimer <= 0f)
+                        {
+                            Wander(ref zombie, instincts);
+                        }
+
+                        break;
+                }
+            }
+
+            return chasing;
+        }
+
+        /// <summary>Stops chasing or investigating and goes back to standing about.</summary>
+        private static void GiveUp(ref ZombieState zombie, in ZombieInstincts instincts)
+        {
+            // Resting where it gave up, not where it started: a zombie drawn across the zone by a
+            // noise stays drawn across the zone, which is what makes a thrown bottle worth using.
+            zombie.Home = zombie.Position;
+            Rest(ref zombie, instincts);
+        }
+
+        /// <summary>Stands still for a while.</summary>
+        private static void Rest(ref ZombieState zombie, in ZombieInstincts instincts)
+        {
+            zombie.Behaviour = ZombieBehaviour.Resting;
+            zombie.BehaviourTimer = instincts.WanderPauseSeconds;
+            zombie.Destination = zombie.Position;
+            zombie.SpeedFactor = instincts.WanderSpeedFactor;
+        }
+
+        /// <summary>Picks somewhere near home and shuffles off to it.</summary>
+        private void Wander(ref ZombieState zombie, in ZombieInstincts instincts)
+        {
+            zombie.Behaviour = ZombieBehaviour.Wandering;
+            zombie.SpeedFactor = instincts.WanderSpeedFactor;
+
+            if (instincts.WanderRadius <= 0f)
+            {
+                // A kind that does not stray stands where it was put, for as long as the zone
+                // lasts. Guards and penned zombies will want exactly this.
+                zombie.Destination = zombie.Home;
+                zombie.BehaviourTimer = instincts.WanderPauseSeconds;
+                return;
+            }
+
+            double angle = _random.NextDouble() * Math.PI * 2d;
+            double distance = _random.NextDouble() * instincts.WanderRadius;
+            zombie.Destination = zombie.Home + new Vector2(
+                (float)(Math.Cos(angle) * distance),
+                (float)(Math.Sin(angle) * distance));
+
+            // A generous budget rather than an estimate: the timer is here so that a zombie stuck
+            // against a wall eventually picks somewhere else, not to time the walk.
+            float reach = Mathf.Max(0.01f, zombie.Speed * instincts.WanderSpeedFactor);
+            zombie.BehaviourTimer = (instincts.WanderRadius * 2f / reach) + instincts.WanderPauseSeconds;
+        }
+
+        /// <summary>
         /// Lets a noise reach the horde. Whoever hears it turns to look that way.
         /// </summary>
         /// <remarks>
@@ -367,6 +515,15 @@ namespace ZombieGame.AI
                 heard++;
                 zombie.HeardAt = origin;
                 zombie.ListenTimer = _senses[i].ListenSeconds;
+
+                // A noise is worth walking over to look at — unless it is already chasing
+                // something it can see, in which case the thing it can see is the better lead.
+                if (zombie.Behaviour != ZombieBehaviour.Chasing)
+                {
+                    zombie.Behaviour = ZombieBehaviour.Investigating;
+                    zombie.BehaviourTimer = _instincts[i].GiveUpSeconds;
+                    zombie.LastKnown = origin;
+                }
 
                 Vector2 towards = origin - zombie.Position;
                 if (towards.sqrMagnitude > 0.000001f)
@@ -420,7 +577,11 @@ namespace ZombieGame.AI
 
                 Vector2 toTarget = zombie.Destination - zombie.Position;
                 float distance = toTarget.magnitude;
-                float step = zombie.Speed * deltaSeconds;
+
+                // What this one can do right now: its own top speed, scaled by whatever its
+                // behaviour allows. A shuffling zombie and a charging one are the same body.
+                float speed = zombie.Speed * zombie.SpeedFactor;
+                float step = speed * deltaSeconds;
 
                 Vector2 push = separating ? SeparationFor(i) : Vector2.zero;
 
@@ -441,14 +602,14 @@ namespace ZombieGame.AI
                 }
                 else
                 {
-                    Vector2 desired = (direction * zombie.Speed) +
-                                      (push * zombie.Speed * _crowd.SeparationStrength);
+                    Vector2 desired = (direction * speed) +
+                                      (push * speed * _crowd.SeparationStrength);
 
                     // Clamped to walking speed, so being crowded never makes a zombie faster than
                     // it is supposed to be able to move.
-                    if (desired.sqrMagnitude > zombie.Speed * zombie.Speed)
+                    if (desired.sqrMagnitude > speed * speed)
                     {
-                        desired = desired.normalized * zombie.Speed;
+                        desired = desired.normalized * speed;
                     }
 
                     zombie.Velocity = desired;
@@ -590,6 +751,7 @@ namespace ZombieGame.AI
                 _states[index] = _states[last];
                 _resistances[index] = _resistances[last];
                 _senses[index] = _senses[last];
+                _instincts[index] = _instincts[last];
             }
         }
 

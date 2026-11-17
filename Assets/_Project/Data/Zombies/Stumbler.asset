@@ -21,6 +21,10 @@ MonoBehaviour:
   _viewHalfAngleDegrees: 60
   _hearingRadius: 6.5
   _listenSeconds: 2.5
+  _wanderRadius: 4
+  _wanderPauseSeconds: 2.5
+  _giveUpSeconds: 4
+  _wanderSpeedFactor: 0.55
   _blunt: 1
   _sharp: 1
   _ballistic: 1

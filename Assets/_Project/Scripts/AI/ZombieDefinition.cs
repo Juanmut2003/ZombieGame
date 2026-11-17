@@ -62,6 +62,27 @@ namespace ZombieGame.AI
         [Min(0f)]
         private float _listenSeconds = 2f;
 
+        [Header("Behaviour")]
+        [Tooltip("How far from where it was put down it shuffles about.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _wanderRadius = 3f;
+
+        [Tooltip("How long it stands still between short walks.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _wanderPauseSeconds = 2.5f;
+
+        [Tooltip("How long it keeps after something it has lost sight of.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _giveUpSeconds = 5f;
+
+        [Tooltip("What it multiplies its speed by while it has noticed nothing.")]
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _wanderSpeedFactor = 0.55f;
+
         [Header("Resistances")]
         [Tooltip("Damage multiplier per type: blunt, sharp, ballistic, fire, toxic. 1 is full.")]
         [SerializeField]
@@ -126,6 +147,10 @@ namespace ZombieGame.AI
             ZombieSkin? skin = _skins[(uint)index < (uint)_skins.Length ? index : 0];
             return skin != null ? skin : null;
         }
+
+        /// <summary>How this kind behaves when it has not noticed anything.</summary>
+        public ZombieInstincts Instincts =>
+            new(_wanderRadius, _wanderPauseSeconds, _giveUpSeconds, _wanderSpeedFactor);
 
         /// <summary>The sprite for one individual, by the look it was given at spawn.</summary>
         public Sprite? SpriteFor(int skinIndex, ZombieFacing facing, bool alerted = false) =>

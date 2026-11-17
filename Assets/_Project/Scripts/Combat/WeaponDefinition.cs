@@ -48,7 +48,7 @@ namespace ZombieGame.Combat
         [Tooltip("Stamina per swing.")]
         [SerializeField]
         [Min(0f)]
-        private float _staminaCost = 14f;
+        private float _staminaCost = 6f;
 
         [Tooltip("Seconds before it can swing again.")]
         [SerializeField]

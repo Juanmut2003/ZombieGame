@@ -6,12 +6,15 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using ZombieGame.AI;
 using ZombieGame.Combat;
+using ZombieGame.Core;
+using ZombieGame.Core.Events;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Tests.PlayMode
 {
     /// <summary>
     /// Checks the horde in the real scene: that the director put zombies down, gave them bodies,
-    /// and that they come after the player.
+    /// and that they come after the player once something gives them a reason to.
     /// </summary>
     /// <remarks>
     /// The manager's rules are covered by edit-mode tests. What only play mode can show is that
@@ -61,7 +64,7 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TheHordeClosesInOnThePlayer()
+        public IEnumerator ANoiseBringsTheHordeCloser()
         {
             yield return null;
 
@@ -71,10 +74,44 @@ namespace ZombieGame.Tests.PlayMode
             var target = (Vector2)player.transform.position;
             float before = AverageDistanceTo(target);
 
+            // They no longer walk at the player because he exists; something has to give them a
+            // reason. A loud noise where he stands is the reason.
+            Assert.That(GameServices.TryGet(out EventBus? bus), Is.True);
+            bus!.Publish(new NoiseEvent(target, loudness: 6f));
+
             yield return RunFor(1.5f);
 
             float after = AverageDistanceTo(target);
             Assert.That(after, Is.LessThan(before), "they should have closed the gap");
+        }
+
+        [UnityTest]
+        public IEnumerator BeingSeenTurnsAnInvestigationIntoAChase()
+        {
+            yield return null;
+
+            GameObject player = GameObject.Find("MC");
+            Assert.That(player, Is.Not.Null);
+
+            Assert.That(GameServices.TryGet(out EventBus? bus), Is.True);
+            bus!.Publish(new NoiseEvent((Vector2)player.transform.position, loudness: 6f));
+
+            yield return RunFor(3f);
+
+            int chasing = 0;
+            System.ReadOnlySpan<ZombieState> states = _director.Manager.States;
+            for (int i = 0; i < states.Length; i++)
+            {
+                if (states[i].Behaviour == ZombieBehaviour.Chasing)
+                {
+                    chasing++;
+                }
+            }
+
+            Assert.That(
+                chasing,
+                Is.GreaterThan(0),
+                "walking towards a noise should put the player in somebody's view cone");
         }
 
         [UnityTest]

@@ -18,6 +18,6 @@ MonoBehaviour:
   _range: 1.1
   _halfAngleDegrees: 60
   _maxTargets: 3
-  _staminaCost: 14
+  _staminaCost: 6
   _cooldownSeconds: 0.45
   _noise: 1
