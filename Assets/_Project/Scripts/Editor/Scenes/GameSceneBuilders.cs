@@ -24,7 +24,6 @@ namespace ZombieGame.Editor.Scenes
     {
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
 
-        private static readonly Color Background = new(0.06f, 0.07f, 0.08f, 1f);
         private static readonly Color Ink = new(0.84f, 0.85f, 0.83f, 1f);
         private static readonly Color Muted = new(0.45f, 0.47f, 0.45f, 1f);
         private static readonly Color ButtonFill = new(0.17f, 0.19f, 0.19f, 1f);
@@ -49,7 +48,7 @@ namespace ZombieGame.Editor.Scenes
 
             SceneBuilder.Build(ProjectScenes.Boot, scene =>
             {
-                CreateCamera(scene);
+                CameraRigBuilder.Create(scene);
 
                 GameObject bootstrapObject = SceneBuilder.CreateObject(scene, "Game Bootstrap");
                 GameBootstrap bootstrap = bootstrapObject.AddComponent<GameBootstrap>();
@@ -71,7 +70,7 @@ namespace ZombieGame.Editor.Scenes
         {
             SceneBuilder.Build(ProjectScenes.MainMenu, scene =>
             {
-                Camera camera = CreateCamera(scene);
+                Camera camera = CameraRigBuilder.Create(scene);
                 UiSceneParts.CreateEventSystem(scene);
 
                 Canvas canvas = UiSceneParts.CreateCanvas(scene, camera);
@@ -140,20 +139,6 @@ namespace ZombieGame.Editor.Scenes
 
             EditorBuildSettings.scenes = scenes.ToArray();
             Debug.Log($"[Scenes] {scenes.Count} scene(s) in the build settings.");
-        }
-
-        private static Camera CreateCamera(Scene scene)
-        {
-            GameObject cameraObject = SceneBuilder.CreateObject(scene, "Main Camera");
-            cameraObject.tag = "MainCamera";
-            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
-
-            Camera camera = cameraObject.AddComponent<Camera>();
-            camera.orthographic = true;
-            camera.orthographicSize = 270f / 2f / 32f;
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = Background;
-            return camera;
         }
 
         private static BalanceConfig GetOrCreateBalanceConfig()

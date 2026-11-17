@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using UnityEngine;
+using ZombieGame.Core.Rendering;
 
 namespace ZombieGame.Editor.Importing
 {
@@ -14,8 +15,12 @@ namespace ZombieGame.Editor.Importing
     /// </remarks>
     public static class PixelArtRules
     {
-        /// <summary>Every sprite in the project is authored and rendered at this scale.</summary>
-        public const int PixelsPerUnit = 32;
+        /// <summary>
+        /// Every sprite in the project is authored and rendered at this scale. Mirrors
+        /// <see cref="PixelPerfectSettings.PixelsPerUnit"/>, so the importer and the camera can
+        /// never drift apart.
+        /// </summary>
+        public const int PixelsPerUnit = PixelPerfectSettings.PixelsPerUnit;
 
         /// <summary>The folder these rules apply to. Anything outside is left alone.</summary>
         public const string SpriteRoot = "Assets/_Project/Art/Sprites/";

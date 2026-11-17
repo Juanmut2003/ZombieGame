@@ -28,16 +28,6 @@ namespace ZombieGame.Editor.Scenes
         private const int FloorWidth = 12;
         private const int FloorHeight = 6;
 
-        /// <summary>
-        /// The vertical half-size a camera needs to show exactly the reference resolution at the
-        /// project's pixels-per-unit: 270 px tall at 32 px per unit.
-        /// </summary>
-        /// <remarks>
-        /// A plain orthographic camera for now. The Pixel Perfect Camera component replaces this
-        /// once the camera rig exists; until then this at least frames the scene correctly.
-        /// </remarks>
-        private const float CameraHalfHeight = 270f / 2f / PixelArtRules.PixelsPerUnit;
-
         private const string FloorSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_floor.png";
         private const string WallSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_wall.png";
         private const string PlayerSprite = "Assets/_Project/Art/Sprites/Characters/placeholder_mc.png";
@@ -51,28 +41,16 @@ namespace ZombieGame.Editor.Scenes
 
             SceneBuilder.Build(ProjectScenes.Sandbox, scene =>
             {
-                CreateCamera(scene);
                 CreateGlobalLight(scene);
                 CreateFloor(scene);
-                CreateActors(scene);
+
+                // Actors first: the camera is built around what it follows, and snapping it onto
+                // a target that does not exist yet would just park it at the origin.
+                Transform? player = CreateActors(scene);
+                CameraRigBuilder.Create(scene, player);
             });
 
             Debug.Log($"[Sandbox] built {ProjectScenes.Sandbox}");
-        }
-
-        private static void CreateCamera(Scene scene)
-        {
-            GameObject cameraObject = SceneBuilder.CreateObject(scene, "Main Camera");
-            cameraObject.tag = "MainCamera";
-            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
-
-            Camera camera = cameraObject.AddComponent<Camera>();
-            camera.orthographic = true;
-            camera.orthographicSize = CameraHalfHeight;
-            camera.backgroundColor = new Color(0.06f, 0.07f, 0.08f, 1f);
-            camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.nearClipPlane = 0.1f;
-            camera.farClipPlane = 100f;
         }
 
         private static void CreateGlobalLight(Scene scene)
@@ -144,19 +122,23 @@ namespace ZombieGame.Editor.Scenes
             return tilemap;
         }
 
-        private static void CreateActors(Scene scene)
+        /// <summary>Places the stand-in actors and returns the player, for the camera to follow.</summary>
+        private static Transform? CreateActors(Scene scene)
         {
-            AddActor(scene, "MC (placeholder)", PlayerSprite, new Vector3(-1.5f, 0f, 0f));
+            Transform? player = AddActor(
+                scene, "MC (placeholder)", PlayerSprite, new Vector3(-1.5f, 0f, 0f));
             AddActor(scene, "Walker (placeholder)", ZombieSprite, new Vector3(2.5f, 1f, 0f));
+            return player;
         }
 
-        private static void AddActor(Scene scene, string name, string spritePath, Vector3 position)
+        private static Transform? AddActor(
+            Scene scene, string name, string spritePath, Vector3 position)
         {
             Sprite? sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
             if (sprite is null)
             {
-                Debug.LogWarning($"[Sandbox] '{spritePath}' is missing; skipping {name}.");
-                return;
+                Debug.LogWarning($"[Sandbox] no sprite at '{spritePath}'; skipping {name}.");
+                return null;
             }
 
             GameObject actor = SceneBuilder.CreateObject(scene, name);
@@ -168,6 +150,8 @@ namespace ZombieGame.Editor.Scenes
             // Everything that stands on the floor sorts by how far down the screen it is, so a
             // figure lower in the scene draws in front of one further back.
             renderer.sortingOrder = 10;
+
+            return actor.transform;
         }
     }
 }
