@@ -4,6 +4,7 @@
     "references": [
         "ZombieGame.Core",
         "ZombieGame.Editor",
+        "ZombieGame.Characters",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

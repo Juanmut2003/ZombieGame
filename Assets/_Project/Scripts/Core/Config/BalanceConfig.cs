@@ -27,8 +27,33 @@ namespace ZombieGame.Core.Config
         [Range(0f, 0.999f)]
         private float _dayStartNormalized = 0.25f;
 
+        [Header("Movement")]
+        [Tooltip("How fast a character walks, in world units per second.")]
+        [SerializeField]
+        [Min(0.1f)]
+        private float _walkSpeed = 3.5f;
+
+        [Tooltip("What sprinting multiplies the walking speed by.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _sprintMultiplier = 1.8f;
+
+        [Tooltip("How quickly a character reaches full speed, in units per second squared.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _acceleration = 40f;
+
         /// <summary>Real-time seconds for a full in-game day in a zone.</summary>
         public float SecondsPerDay => _secondsPerDay;
+
+        /// <summary>Walking speed in world units per second.</summary>
+        public float WalkSpeed => _walkSpeed;
+
+        /// <summary>What sprinting multiplies walking speed by.</summary>
+        public float SprintMultiplier => _sprintMultiplier;
+
+        /// <summary>How quickly a character reaches full speed.</summary>
+        public float Acceleration => _acceleration;
 
         /// <summary>The point in the day a confirmed day jumps to.</summary>
         public float DayStartNormalized => _dayStartNormalized;

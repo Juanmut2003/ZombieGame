@@ -1,11 +1,14 @@
 #nullable enable
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
+using ZombieGame.Characters;
+using ZombieGame.Core.Config;
 using ZombieGame.Editor.Art;
-using ZombieGame.Editor.Importing;
+using ZombieGame.Editor.Input;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -67,7 +70,7 @@ namespace ZombieGame.Editor.Scenes
         private static void CreateFloor(Scene scene)
         {
             Tile? floor = TileAssetFactory.GetOrCreate(FloorSprite, Tile.ColliderType.None);
-            Tile? wall = TileAssetFactory.GetOrCreate(WallSprite, Tile.ColliderType.Sprite);
+            Tile? wall = TileAssetFactory.GetOrCreate(WallSprite, Tile.ColliderType.Grid);
             if (floor is null || wall is null)
             {
                 Debug.LogWarning("[Sandbox] tile placeholders are missing; the floor stays empty.");
@@ -109,6 +112,36 @@ namespace ZombieGame.Editor.Scenes
                     }
                 }
             }
+
+            AddWallCollision(wallMap.gameObject);
+        }
+
+        /// <summary>
+        /// Gives the wall layer its physics shape. Must run <b>after</b> the tiles are painted.
+        /// </summary>
+        /// <remarks>
+        /// A TilemapCollider2D builds its shapes from the tiles present at the time, and outside a
+        /// running editor loop it never recomputes. Added to an empty tilemap it reports zero
+        /// shapes for good, the walls stop nothing, and nothing in the scene looks wrong — the
+        /// tiles still render. This cost an afternoon; the order is the whole trick.
+        /// </remarks>
+        private static void AddWallCollision(GameObject wallObject)
+        {
+            var body = wallObject.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Static;
+
+            // The composite has to exist before the tilemap collider is told to merge into it,
+            // for the same reason: a collider handing its shapes to a composite that is not there
+            // hands them nowhere.
+            CompositeCollider2D composite = wallObject.AddComponent<CompositeCollider2D>();
+            composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+
+            TilemapCollider2D tilemapCollider = wallObject.AddComponent<TilemapCollider2D>();
+            tilemapCollider.compositeOperation = Collider2D.CompositeOperation.Merge;
+
+            // Merging the per-tile boxes into a few outlines is faster, and removes the hairline
+            // seams between neighbouring boxes that characters otherwise snag on.
+            composite.GenerateGeometry();
         }
 
         private static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
@@ -127,8 +160,58 @@ namespace ZombieGame.Editor.Scenes
         {
             Transform? player = AddActor(
                 scene, "MC (placeholder)", PlayerSprite, new Vector3(-1.5f, 0f, 0f));
+            if (player is not null)
+            {
+                MakePlayable(player.gameObject);
+            }
+
             AddActor(scene, "Walker (placeholder)", ZombieSprite, new Vector3(2.5f, 1f, 0f));
             return player;
+        }
+
+        /// <summary>
+        /// Turns the MC placeholder into something that can be steered and that walls can stop.
+        /// </summary>
+        private static void MakePlayable(GameObject player)
+        {
+            var body = player.AddComponent<Rigidbody2D>();
+
+            // Dynamic, because only a dynamic body is pushed out of walls by the solver. There is
+            // no gravity in a top-down world, and rotation is frozen so a shove against a corner
+            // cannot spin the character.
+            body.bodyType = RigidbodyType2D.Dynamic;
+            body.gravityScale = 0f;
+            body.freezeRotation = true;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+
+            // A capsule roughly the size of the feet and body, sitting just above the pivot: the
+            // sprite's head should be able to overlap a wall above it without the body snagging.
+            var collider = player.AddComponent<CapsuleCollider2D>();
+            collider.direction = CapsuleDirection2D.Vertical;
+            collider.size = new Vector2(0.5f, 0.6f);
+            collider.offset = new Vector2(0f, 0.3f);
+
+            PlayerInputReader input = player.AddComponent<PlayerInputReader>();
+            var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(
+                InputActionsGenerator.AssetPath);
+            if (actions is null)
+            {
+                Debug.LogWarning("[Sandbox] no input actions asset; the MC will not move.");
+            }
+
+            var serializedInput = new SerializedObject(input);
+            serializedInput.FindProperty("_actions").objectReferenceValue = actions;
+            serializedInput.FindProperty("_mapName").stringValue = InputActionsGenerator.GameplayMap;
+            serializedInput.ApplyModifiedPropertiesWithoutUndo();
+
+            CharacterMovement movement = player.AddComponent<CharacterMovement>();
+            var serializedMovement = new SerializedObject(movement);
+            serializedMovement.FindProperty("_balance").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<BalanceConfig>(
+                    "Assets/_Project/Data/BalanceConfig.asset");
+            serializedMovement.FindProperty("_input").objectReferenceValue = input;
+            serializedMovement.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Transform? AddActor(

@@ -1,0 +1,17 @@
+{
+    "name": "ZombieGame.Characters",
+    "rootNamespace": "ZombieGame.Characters",
+    "references": [
+        "ZombieGame.Core",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
