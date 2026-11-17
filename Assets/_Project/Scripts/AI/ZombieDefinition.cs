@@ -41,6 +41,22 @@ namespace ZombieGame.AI
         [Min(0.05f)]
         private float _bodyRadius = 0.3f;
 
+        [Header("Senses")]
+        [Tooltip("How far it can see, in world units.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _viewDistance = 7f;
+
+        [Tooltip("Half the width of its view cone, in degrees. 90 is everything in front of it.")]
+        [SerializeField]
+        [Range(0f, 180f)]
+        private float _viewHalfAngleDegrees = 55f;
+
+        [Tooltip("How far an ordinary noise carries to it. A louder noise reaches further.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _hearingRadius = 6f;
+
         [Header("Resistances")]
         [Tooltip("Damage multiplier per type: blunt, sharp, ballistic, fire, toxic. 1 is full.")]
         [SerializeField]
@@ -71,6 +87,19 @@ namespace ZombieGame.AI
         [SerializeField]
         private Sprite? _right;
 
+        [Header("Look — alerted")]
+        [Tooltip("Facing the camera, arms up. Shown while it has noticed someone.")]
+        [SerializeField]
+        private Sprite? _frontAlert;
+
+        [Tooltip("Lunging to the left.")]
+        [SerializeField]
+        private Sprite? _leftAlert;
+
+        [Tooltip("Lunging to the right.")]
+        [SerializeField]
+        private Sprite? _rightAlert;
+
         /// <summary>Shown in the bestiary and debug overlays.</summary>
         public string DisplayName => _displayName;
 
@@ -90,6 +119,10 @@ namespace ZombieGame.AI
         public DamageResistances Resistances =>
             new(_blunt, _sharp, _ballistic, _fire, _toxic);
 
+        /// <summary>What this kind can see and hear.</summary>
+        public ZombieSenses Senses =>
+            new(_viewDistance, _viewHalfAngleDegrees, _hearingRadius);
+
         /// <summary>The sprite for a facing, falling back to the front view.</summary>
         public Sprite? SpriteFor(ZombieFacing facing) => facing switch
         {
@@ -97,5 +130,31 @@ namespace ZombieGame.AI
             ZombieFacing.Right => _right != null ? _right : _front,
             _ => _front,
         };
+
+        /// <summary>
+        /// The sprite for a facing, in the pose that matches whether it has noticed anyone.
+        /// </summary>
+        /// <remarks>
+        /// An alerted zombie showing a different pose is the only way a player can tell they have
+        /// been seen. Without it, perception is invisible: the first sign of being noticed would
+        /// be a zombie arriving, which is far too late to do anything about.
+        /// Falls back to the calm pose, so a kind without alert art simply never changes.
+        /// </remarks>
+        public Sprite? SpriteFor(ZombieFacing facing, bool alerted)
+        {
+            if (!alerted)
+            {
+                return SpriteFor(facing);
+            }
+
+            Sprite? alert = facing switch
+            {
+                ZombieFacing.Left => _leftAlert != null ? _leftAlert : _frontAlert,
+                ZombieFacing.Right => _rightAlert != null ? _rightAlert : _frontAlert,
+                _ => _frontAlert,
+            };
+
+            return alert != null ? alert : SpriteFor(facing);
+        }
     }
 }

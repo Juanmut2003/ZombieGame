@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5c38cb9390a6a142a3564840b95e7f1, type: 3}
+  m_Name: Nurse
+  m_EditorClassIdentifier: ZombieGame.AI::ZombieGame.AI.ZombieDefinition
+  _displayName: Nurse
+  _maxHealth: 26
+  _moveSpeed: 1.75
+  _speedVariance: 0.3
+  _bodyRadius: 0.24
+  _viewDistance: 9
+  _viewHalfAngleDegrees: 65
+  _hearingRadius: 7.5
+  _blunt: 1
+  _sharp: 1
+  _ballistic: 1
+  _fire: 1
+  _toxic: 1
+  _front: {fileID: 21300000, guid: 9981d1b6306aba64399460fca8036514, type: 3}
+  _left: {fileID: 21300000, guid: 7fe1f56cedcdbbc4da03a404e4b6e46b, type: 3}
+  _right: {fileID: 21300000, guid: 6031dc2413c01d44f9f385bbd6d0e3b7, type: 3}
+  _frontAlert: {fileID: 21300000, guid: 9634b7d7bd9d2e042a39d6dc38243ccf, type: 3}
+  _leftAlert: {fileID: 21300000, guid: 1abad6a6c263e1a47adf1f5b380c58c5, type: 3}
+  _rightAlert: {fileID: 21300000, guid: f6f60fba8d758f84599062ab4b61b79b, type: 3}

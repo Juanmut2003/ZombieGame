@@ -50,9 +50,19 @@ namespace ZombieGame.AI
         [SerializeField]
         private int _seed = 1337;
 
+        [Tooltip("The layers that block sight. Usually the walls.")]
+        [SerializeField]
+        private LayerMask _sightBlockers;
+
+        [Tooltip("How wide the thing they are watching is, for the edge-of-body sight test.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _targetRadius = 0.25f;
+
         private ZombieManager _manager = null!;
         private EventBus? _bus;
         private ObjectPool<ZombieView> _views = null!;
+        private ILineOfSight _lineOfSight = OpenLineOfSight.Instance;
         private readonly List<ZombieView> _active = new();
 
         /// <summary>The horde itself, for tests and for whatever shoots at it.</summary>
@@ -76,6 +86,17 @@ namespace ZombieGame.AI
                 _seed);
 
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
+
+            // With no layers named, nothing blocks sight — and a zombie that sees through walls
+            // would be a long afternoon of wondering why. Say so instead.
+            if (_sightBlockers.value == 0)
+            {
+                Debug.LogWarning($"[Zombies] {name} has no sight blockers; they see through walls.");
+            }
+            else
+            {
+                _lineOfSight = new Physics2DLineOfSight(_sightBlockers, _target);
+            }
         }
 
         private void OnEnable() => _bus?.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
@@ -113,6 +134,9 @@ namespace ZombieGame.AI
         {
             if (_target is not null)
             {
+                // Perception first, movement second: looking at where the target was last frame
+                // would show a zombie reacting to a position the player has already left.
+                _manager.Perceive(_target.position, _targetRadius, _lineOfSight);
                 _manager.SetDestinationForAll(_target.position);
             }
 
@@ -156,10 +180,56 @@ namespace ZombieGame.AI
                 ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
                 _active[i].Show(
                     states[i].Position,
-                    type.SpriteFor(states[i].Facing),
+                    type.SpriteFor(states[i].Facing, states[i].SeesTarget),
                     states[i].HitFlash > 0f);
             }
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Draws what the horde can see, so perception can be looked at instead of guessed at.
+        /// </summary>
+        /// <remarks>
+        /// Only while the director is selected and only in the editor: this walks the whole horde
+        /// and would be a waste in a build, where nobody can see a gizmo anyway.
+        /// </remarks>
+        private void OnDrawGizmosSelected()
+        {
+            if (_manager is null || !Application.isPlaying)
+            {
+                return;
+            }
+
+            System.ReadOnlySpan<ZombieState> states = _manager.States;
+            for (int i = 0; i < states.Length; i++)
+            {
+                ZombieSenses senses = _manager.SensesOf(i);
+                if (senses.ViewDistance <= 0f)
+                {
+                    continue;
+                }
+
+                Gizmos.color = states[i].SeesTarget
+                    ? new Color(0.85f, 0.3f, 0.25f, 0.9f)
+                    : new Color(0.5f, 0.55f, 0.5f, 0.35f);
+
+                var eye = new Vector3(states[i].Position.x, states[i].Position.y, 0f);
+                Vector2 look = states[i].Look.sqrMagnitude > 0.0001f
+                    ? states[i].Look.normalized
+                    : Vector2.down;
+
+                DrawConeEdge(eye, look, senses, +senses.ViewHalfAngleDegrees);
+                DrawConeEdge(eye, look, senses, -senses.ViewHalfAngleDegrees);
+            }
+        }
+
+        private static void DrawConeEdge(
+            Vector3 eye, Vector2 look, in ZombieSenses senses, float degrees)
+        {
+            Vector2 edge = Quaternion.Euler(0f, 0f, degrees) * look;
+            Gizmos.DrawLine(eye, eye + (new Vector3(edge.x, edge.y, 0f) * senses.ViewDistance));
+        }
+#endif
 
         private ZombieView CreateView()
         {

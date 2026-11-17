@@ -31,8 +31,17 @@ namespace ZombieGame.AI
         /// <summary>Which definition it was spawned from, as the spawner numbered them.</summary>
         public int TypeId;
 
-        /// <summary>Which way it is facing.</summary>
+        /// <summary>Which way it is facing, as the three poses the art has.</summary>
         public ZombieFacing Facing;
+
+        /// <summary>
+        /// Which way it is actually looking, as a direction. Kept apart from
+        /// <see cref="Facing"/> because the art has three poses and perception has 360 degrees.
+        /// </summary>
+        public Vector2 Look;
+
+        /// <summary>True while it can see what it is hunting.</summary>
+        public bool SeesTarget;
 
         /// <summary>
         /// Identifies this zombie across its life, even as it moves around in the array. Starts

@@ -34,8 +34,29 @@ namespace ZombieGame.Tests.EditMode
             return asset!;
         }
 
-        [TestCase(WalkerPath)]
-        [TestCase(StumblerPath)]
+        /// <summary>
+        /// Every zombie asset in the project, found rather than listed.
+        /// </summary>
+        /// <remarks>
+        /// A list would have to be kept up to date by whoever adds a kind, which is exactly the
+        /// moment an untuned asset slips through. Finding them means a new kind is tested from
+        /// the minute it exists.
+        /// </remarks>
+        private static string[] EveryZombie()
+        {
+            string[] guids = AssetDatabase.FindAssets(
+                "t:ZombieDefinition", new[] { "Assets/_Project/Data/Zombies" });
+            var paths = new string[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+            {
+                paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
+            }
+
+            Assert.That(paths, Is.Not.Empty, "a game with no zombies in it");
+            return paths;
+        }
+
+        [TestCaseSource(nameof(EveryZombie))]
         public void AZombieAssetIsFilledIn(string path)
         {
             ZombieDefinition zombie = Load<ZombieDefinition>(path);
@@ -49,8 +70,36 @@ namespace ZombieGame.Tests.EditMode
             Assert.That(zombie.SpriteFor(ZombieFacing.Right), Is.Not.Null);
         }
 
-        [TestCase(WalkerPath)]
-        [TestCase(StumblerPath)]
+        [TestCaseSource(nameof(EveryZombie))]
+        public void AZombieCanNoticeSomething(string path)
+        {
+            ZombieDefinition zombie = Load<ZombieDefinition>(path);
+            ZombieSenses senses = zombie.Senses;
+
+            Assert.That(senses.ViewDistance, Is.GreaterThan(0f), "a blind zombie never reacts");
+            Assert.That(senses.ViewHalfAngleDegrees, Is.GreaterThan(0f));
+            Assert.That(
+                senses.ViewHalfAngleDegrees,
+                Is.LessThan(180f),
+                "eyes in the back of its head would make sneaking pointless");
+            Assert.That(senses.HearingRadius, Is.GreaterThan(0f));
+        }
+
+        [TestCaseSource(nameof(EveryZombie))]
+        public void AZombieLooksDifferentOnceItHasNoticedYou(string path)
+        {
+            ZombieDefinition zombie = Load<ZombieDefinition>(path);
+
+            // Being seen has to be visible, or the first sign of it is a zombie arriving.
+            Assert.That(
+                zombie.SpriteFor(ZombieFacing.Front, alerted: true),
+                Is.Not.EqualTo(zombie.SpriteFor(ZombieFacing.Front, alerted: false)));
+            Assert.That(
+                zombie.SpriteFor(ZombieFacing.Right, alerted: true),
+                Is.Not.EqualTo(zombie.SpriteFor(ZombieFacing.Right, alerted: false)));
+        }
+
+        [TestCaseSource(nameof(EveryZombie))]
         public void AZombieIsSlowerThanTheCharacterCanWalk(string path)
         {
             ZombieDefinition zombie = Load<ZombieDefinition>(path);
@@ -99,8 +148,7 @@ namespace ZombieGame.Tests.EditMode
                 "a rested character should manage more than one swing");
         }
 
-        [TestCase(WalkerPath)]
-        [TestCase(StumblerPath)]
+        [TestCaseSource(nameof(EveryZombie))]
         public void TheBatKillsAZombieInAFewSwings(string path)
         {
             WeaponDefinition bat = Load<WeaponDefinition>(BatPath);
@@ -123,9 +171,12 @@ namespace ZombieGame.Tests.EditMode
         public void TheCrowdCellIsWideEnoughForTheWidestZombie()
         {
             BalanceConfig balance = Load<BalanceConfig>(BalancePath);
-            float widest = Mathf.Max(
-                Load<ZombieDefinition>(WalkerPath).BodyRadius,
-                Load<ZombieDefinition>(StumblerPath).BodyRadius);
+
+            float widest = 0f;
+            foreach (string path in EveryZombie())
+            {
+                widest = Mathf.Max(widest, Load<ZombieDefinition>(path).BodyRadius);
+            }
 
             // A bucket narrower than a body lets a neighbour sit outside the nine cells the
             // separation search looks at, and the crowd starts merging again in exactly the way

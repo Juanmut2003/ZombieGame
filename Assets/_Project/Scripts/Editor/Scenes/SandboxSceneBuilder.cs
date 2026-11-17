@@ -41,24 +41,10 @@ namespace ZombieGame.Editor.Scenes
         private const string WallSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_wall.png";
         private const string PlayerSprite =
             "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
-        private const string ZombieSprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie_front_walk.png";
-        private const string ZombieLeftSprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie_side_left_walk.png";
-        private const string ZombieRightSprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie_side_right_walk.png";
-
-        private const string Zombie2Sprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie2_front_walk.png";
-        private const string Zombie2LeftSprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie2_side_left_walk.png";
-        private const string Zombie2RightSprite =
-            "Assets/_Project/Art/Sprites/Zombies/zombie2_side_right_walk.png";
+        private const string ZombieSpriteFolder = "Assets/_Project/Art/Sprites/Zombies";
 
         private const string SwingArcSprite = "Assets/_Project/Art/Sprites/FX/swing_arc.png";
 
-        private const string WalkerDefinitionPath = "Assets/_Project/Data/Zombies/Walker.asset";
-        private const string StumblerDefinitionPath = "Assets/_Project/Data/Zombies/Stumbler.asset";
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
         private const string BatWeaponPath = "Assets/_Project/Data/Weapons/Bat.asset";
 
@@ -71,6 +57,23 @@ namespace ZombieGame.Editor.Scenes
         // few enough that the sandbox stays readable.
         private const int HordeCapacity = 300;
         private const int HordeOnStart = 26;
+
+        /// <summary>
+        /// The kinds of zombie the sandbox puts out, as asset name and sprite prefix.
+        /// </summary>
+        /// <remarks>
+        /// Four silhouettes rather than one. A crowd of the same figure repeated reads as a
+        /// rendering fault even when every one of them walks its own way, and telling two kinds
+        /// apart at a glance is what lets a player decide whether to fight or leave.
+        /// No numbers here on purpose: they live in the assets, see <see cref="RequireDefinition"/>.
+        /// </remarks>
+        private static readonly (string Name, string Prefix)[] ZombieKinds =
+        {
+            ("Walker", "zombie"),
+            ("Stumbler", "zombie2"),
+            ("Bloater", "zombie3"),
+            ("Nurse", "zombie4"),
+        };
 
         // Dim enough to read as part of the world rather than a web page laid over it.
         private static readonly Color HudTrack = new(0.09f, 0.1f, 0.1f, 0.78f);
@@ -291,21 +294,11 @@ namespace ZombieGame.Editor.Scenes
         {
             // Two kinds, so a crowd reads as a crowd. One silhouette repeated eighteen times looks
             // like a rendering bug even when every one of them is walking its own way.
-            ZombieDefinition[] kinds =
+            var kinds = new ZombieDefinition[ZombieKinds.Length];
+            for (int i = 0; i < ZombieKinds.Length; i++)
             {
-                RequireDefinition(
-                    WalkerDefinitionPath,
-                    displayName: "Walker",
-                    front: ZombieSprite,
-                    left: ZombieLeftSprite,
-                    right: ZombieRightSprite),
-                RequireDefinition(
-                    StumblerDefinitionPath,
-                    displayName: "Stumbler",
-                    front: Zombie2Sprite,
-                    left: Zombie2LeftSprite,
-                    right: Zombie2RightSprite),
-            };
+                kinds[i] = RequireDefinition(ZombieKinds[i].Name, ZombieKinds[i].Prefix);
+            }
 
             GameObject directorObject = SceneBuilder.CreateObject(scene, "Zombie Director");
             directorObject.transform.position = new Vector3(3f, 1f, 0f);
@@ -325,6 +318,11 @@ namespace ZombieGame.Editor.Scenes
             serialized.FindProperty("_capacity").intValue = HordeCapacity;
             serialized.FindProperty("_spawnOnStart").intValue = HordeOnStart;
             serialized.FindProperty("_spawnArea").vector2Value = new Vector2(3.5f, 2f);
+
+            // The walls are on the default layer, and the character being watched is excluded by
+            // object rather than by layer — see Physics2DLineOfSight. A dedicated Walls layer
+            // would be cleaner, but adding one is a project-settings change.
+            serialized.FindProperty("_sightBlockers").intValue = 1 << 0;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -340,31 +338,57 @@ namespace ZombieGame.Editor.Scenes
         /// A fresh asset therefore comes out at the definition's own declared defaults, with a
         /// warning saying so.
         /// </remarks>
-        private static ZombieDefinition RequireDefinition(
-            string assetPath, string displayName, string front, string left, string right)
+        private static ZombieDefinition RequireDefinition(string displayName, string spritePrefix)
         {
+            string assetPath = $"Assets/_Project/Data/Zombies/{displayName}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(assetPath);
-            if (existing is not null)
-            {
-                return existing;
-            }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
-            ZombieDefinition definition = ScriptableObject.CreateInstance<ZombieDefinition>();
+            // The art is rewired even on an existing asset: new poses arrive with new packs, and
+            // an asset that kept pointing at only the sprites it was born with would quietly stay
+            // half-dressed. Numbers are never touched.
+            ZombieDefinition definition = existing is not null
+                ? existing
+                : ScriptableObject.CreateInstance<ZombieDefinition>();
 
             var serialized = new SerializedObject(definition);
             serialized.FindProperty("_displayName").stringValue = displayName;
-            serialized.FindProperty("_front").objectReferenceValue = LoadSprite(front);
-            serialized.FindProperty("_left").objectReferenceValue = LoadSprite(left);
-            serialized.FindProperty("_right").objectReferenceValue = LoadSprite(right);
+            WireSprite(serialized, "_front", spritePrefix, "front_walk");
+            WireSprite(serialized, "_left", spritePrefix, "side_left_walk");
+            WireSprite(serialized, "_right", spritePrefix, "side_right_walk");
+            WireSprite(serialized, "_frontAlert", spritePrefix, "front_attack");
+            WireSprite(serialized, "_leftAlert", spritePrefix, "side_left_attack");
+            WireSprite(serialized, "_rightAlert", spritePrefix, "side_right_attack");
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+            if (existing is not null)
+            {
+                EditorUtility.SetDirty(definition);
+                AssetDatabase.SaveAssets();
+                return definition;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
             AssetDatabase.CreateAsset(definition, assetPath);
             AssetDatabase.SaveAssets();
             Debug.LogWarning(
                 $"[Sandbox] {assetPath} was missing and has been created untuned. "
                 + "Its numbers are the definition's defaults until someone sets them.");
             return definition;
+        }
+
+        /// <summary>Points one sprite field at <c>{prefix}_{pose}.png</c>, if that file exists.</summary>
+        private static void WireSprite(
+            SerializedObject definition, string field, string prefix, string pose)
+        {
+            string path = $"{ZombieSpriteFolder}/{prefix}_{pose}.png";
+            Sprite? sprite = LoadSprite(path);
+            if (sprite is null)
+            {
+                Debug.LogWarning($"[Sandbox] no sprite at '{path}'.");
+                return;
+            }
+
+            definition.FindProperty(field).objectReferenceValue = sprite;
         }
 
         /// <summary>

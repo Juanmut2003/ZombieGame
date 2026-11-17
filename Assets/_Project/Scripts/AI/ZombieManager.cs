@@ -23,6 +23,7 @@ namespace ZombieGame.AI
     {
         private readonly ZombieState[] _states;
         private readonly DamageResistances[] _resistances;
+        private readonly ZombieSenses[] _senses;
         private readonly EventBus? _bus;
         private readonly CrowdSettings _crowd;
         private readonly System.Random _random;
@@ -59,6 +60,7 @@ namespace ZombieGame.AI
             Capacity = capacity;
             _states = new ZombieState[capacity];
             _resistances = new DamageResistances[capacity];
+            _senses = new ZombieSenses[capacity];
             _nextInCell = new int[capacity];
             _bus = bus;
 
@@ -131,10 +133,15 @@ namespace ZombieGame.AI
                 Speed = Mathf.Max(0f, definition.MoveSpeed * factor),
                 Radius = definition.BodyRadius,
                 Facing = ZombieFacing.Front,
+
+                // Looking the way the art shows it: at the camera, which in a top-down view is
+                // down the screen. Without this a fresh zombie looks at (0,0) and sees nothing.
+                Look = Vector2.down,
                 TypeId = typeId,
                 Id = id,
             };
             _resistances[index] = definition.Resistances;
+            _senses[index] = definition.Senses;
 
             return id;
         }
@@ -259,6 +266,71 @@ namespace ZombieGame.AI
             return true;
         }
 
+        /// <summary>What one zombie can see and hear. For tests and for drawing the cones.</summary>
+        public ZombieSenses SensesOf(int index)
+        {
+            ThrowIfNotLive(index);
+            return _senses[index];
+        }
+
+        /// <summary>
+        /// Works out which zombies can see the target right now.
+        /// </summary>
+        /// <remarks>
+        /// Sight is two cheap tests and one expensive one, in that order: the cone is geometry,
+        /// the wall check is a physics query. Asking physics only about the zombies that already
+        /// have the target in their cone keeps a horde of three hundred from firing three hundred
+        /// linecasts a tick for an answer the geometry had already given.
+        /// Nothing acts on the result yet — chasing, investigating and giving up are the next
+        /// step. This only answers the question.
+        /// </remarks>
+        /// <param name="target">Where the target is.</param>
+        /// <param name="targetRadius">How wide the target is.</param>
+        /// <param name="lineOfSight">What blocks sight. Null means nothing does.</param>
+        /// <returns>How many zombies can see it.</returns>
+        public int Perceive(Vector2 target, float targetRadius, ILineOfSight? lineOfSight = null)
+        {
+            ILineOfSight sight = lineOfSight ?? OpenLineOfSight.Instance;
+            int seen = 0;
+
+            for (int i = 0; i < Count; i++)
+            {
+                ref ZombieState zombie = ref _states[i];
+
+                bool sees = PerceptionMath.InViewCone(
+                                zombie.Position, zombie.Look, target, targetRadius, _senses[i])
+                            && sight.IsClear(zombie.Position, target);
+
+                zombie.SeesTarget = sees;
+                if (sees)
+                {
+                    seen++;
+                }
+            }
+
+            return seen;
+        }
+
+        /// <summary>
+        /// Which zombies could hear a noise, as a count. Who reacts is the next step's problem.
+        /// </summary>
+        /// <param name="origin">Where the noise came from.</param>
+        /// <param name="loudness">How loud it was. 1 is an ordinary noise.</param>
+        public int CountHearing(Vector2 origin, float loudness)
+        {
+            int heard = 0;
+            for (int i = 0; i < Count; i++)
+            {
+                if (PerceptionMath.CanHear(
+                        _states[i].Position, origin, loudness, _senses[i].HearingRadius))
+                {
+                    heard++;
+                }
+            }
+
+            return heard;
+        }
+
         /// <summary>
         /// Moves every zombie one step towards its destination.
         /// </summary>
@@ -328,6 +400,14 @@ namespace ZombieGame.AI
                     zombie.Velocity = desired;
                     zombie.Position += desired * deltaSeconds;
                     direction = desired.sqrMagnitude > 0.000001f ? desired.normalized : direction;
+                }
+
+                // A zombie looks where it is going. Kept only while it is actually moving, so one
+                // that has stopped keeps staring where it last walked instead of snapping to a
+                // zero vector and going blind.
+                if (direction.sqrMagnitude > 0.000001f)
+                {
+                    zombie.Look = direction;
                 }
 
                 // Only sideways movement flips the sprite; walking straight up or down keeps the
@@ -454,6 +534,7 @@ namespace ZombieGame.AI
             {
                 _states[index] = _states[last];
                 _resistances[index] = _resistances[last];
+                _senses[index] = _senses[last];
             }
         }
 
