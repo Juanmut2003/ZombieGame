@@ -1,10 +1,12 @@
 #nullable enable
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
+using ZombieGame.AI;
 using ZombieGame.Characters;
 using ZombieGame.Core.Config;
 using ZombieGame.Editor.Art;
@@ -37,6 +39,17 @@ namespace ZombieGame.Editor.Scenes
             "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
         private const string ZombieSprite =
             "Assets/_Project/Art/Sprites/Zombies/zombie_front_walk.png";
+        private const string ZombieLeftSprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie_side_left_walk.png";
+        private const string ZombieRightSprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie_side_right_walk.png";
+
+        private const string WalkerDefinitionPath = "Assets/_Project/Data/Zombies/Walker.asset";
+
+        // Room for a real horde, but only a handful put down: enough to watch them come at you,
+        // few enough that the sandbox stays readable.
+        private const int HordeCapacity = 300;
+        private const int HordeOnStart = 18;
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -53,6 +66,7 @@ namespace ZombieGame.Editor.Scenes
                 // a target that does not exist yet would just park it at the origin.
                 Transform? player = CreateActors(scene);
                 CameraRigBuilder.Create(scene, player);
+                CreateHorde(scene, player);
             });
 
             Debug.Log($"[Sandbox] built {ProjectScenes.Sandbox}");
@@ -146,6 +160,63 @@ namespace ZombieGame.Editor.Scenes
             composite.GenerateGeometry();
         }
 
+        /// <summary>
+        /// Puts a small horde in the room, driven by one director rather than by itself.
+        /// </summary>
+        private static void CreateHorde(Scene scene, Transform? target)
+        {
+            ZombieDefinition walker = GetOrCreateWalkerDefinition();
+
+            GameObject directorObject = SceneBuilder.CreateObject(scene, "Zombie Director");
+            directorObject.transform.position = new Vector3(3f, 1f, 0f);
+            ZombieDirector director = directorObject.AddComponent<ZombieDirector>();
+
+            var serialized = new SerializedObject(director);
+            serialized.FindProperty("_definition").objectReferenceValue = walker;
+            serialized.FindProperty("_target").objectReferenceValue = target;
+            serialized.FindProperty("_capacity").intValue = HordeCapacity;
+            serialized.FindProperty("_spawnOnStart").intValue = HordeOnStart;
+            serialized.FindProperty("_spawnArea").vector2Value = new Vector2(3.5f, 2f);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Gets the walker asset, creating it from the zombie pack art if it is not there yet.
+        /// </summary>
+        /// <remarks>
+        /// The numbers are a first guess and belong to the designer from here on: the asset is
+        /// only ever created, never overwritten, so tuning it survives a rebuild of the scene.
+        /// </remarks>
+        private static ZombieDefinition GetOrCreateWalkerDefinition()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(WalkerDefinitionPath);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(WalkerDefinitionPath)!);
+            ZombieDefinition walker = ScriptableObject.CreateInstance<ZombieDefinition>();
+
+            var serialized = new SerializedObject(walker);
+            serialized.FindProperty("_displayName").stringValue = "Walker";
+            serialized.FindProperty("_maxHealth").floatValue = 40f;
+
+            // Slower than the MC's 3.5: a walker is only dangerous in numbers or in a corner.
+            serialized.FindProperty("_moveSpeed").floatValue = 1.2f;
+            serialized.FindProperty("_front").objectReferenceValue = LoadSprite(ZombieSprite);
+            serialized.FindProperty("_left").objectReferenceValue = LoadSprite(ZombieLeftSprite);
+            serialized.FindProperty("_right").objectReferenceValue = LoadSprite(ZombieRightSprite);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            AssetDatabase.CreateAsset(walker, WalkerDefinitionPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Sandbox] created {WalkerDefinitionPath}");
+            return walker;
+        }
+
+        private static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
+
         private static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
         {
             var layer = new GameObject(name);
@@ -167,7 +238,6 @@ namespace ZombieGame.Editor.Scenes
                 MakePlayable(player.gameObject);
             }
 
-            AddActor(scene, "Walker", ZombieSprite, new Vector3(2.5f, 1f, 0f));
             return player;
         }
 

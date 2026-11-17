@@ -1,0 +1,17 @@
+{
+    "name": "ZombieGame.AI",
+    "rootNamespace": "ZombieGame.AI",
+    "references": [
+        "ZombieGame.Core",
+        "ZombieGame.Combat"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
