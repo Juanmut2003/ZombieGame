@@ -1,0 +1,16 @@
+{
+    "name": "ZombieGame.Combat",
+    "rootNamespace": "ZombieGame.Combat",
+    "references": [
+        "ZombieGame.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

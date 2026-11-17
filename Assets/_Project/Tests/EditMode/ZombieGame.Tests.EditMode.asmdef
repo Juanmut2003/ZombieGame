@@ -5,6 +5,7 @@
         "ZombieGame.Core",
         "ZombieGame.Editor",
         "ZombieGame.Characters",
+        "ZombieGame.Combat",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
