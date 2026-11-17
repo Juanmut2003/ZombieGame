@@ -28,6 +28,7 @@ namespace ZombieGame.Characters
 
         private InputAction? _move;
         private InputAction? _sprint;
+        private InputAction? _attack;
         private bool _overridden;
 
         /// <summary>Where the player wants to go, already in the −1..1 range per axis.</summary>
@@ -35,6 +36,9 @@ namespace ZombieGame.Characters
 
         /// <summary>Whether the sprint input is held.</summary>
         public bool SprintHeld { get; private set; }
+
+        /// <summary>True on the frame the attack input was pressed. Swinging is not a hold.</summary>
+        public bool AttackPressed { get; private set; }
 
         /// <summary>
         /// Takes the controls away from the devices and drives the character from code. Used by
@@ -44,11 +48,12 @@ namespace ZombieGame.Characters
         /// The override holds until <see cref="ClearInputOverride"/>; without that, the next
         /// <c>Update</c> would read the idle devices and wipe the values straight away.
         /// </remarks>
-        public void SetInputOverride(Vector2 move, bool sprint)
+        public void SetInputOverride(Vector2 move, bool sprint, bool attack = false)
         {
             _overridden = true;
             MoveInput = move;
             SprintHeld = sprint;
+            AttackPressed = attack;
         }
 
         /// <summary>Hands control back to the player's devices.</summary>
@@ -71,6 +76,7 @@ namespace ZombieGame.Characters
 
             _move = map.FindAction("Move", throwIfNotFound: false);
             _sprint = map.FindAction("Sprint", throwIfNotFound: false);
+            _attack = map.FindAction("Attack", throwIfNotFound: false);
         }
 
         private void OnEnable()
@@ -102,6 +108,11 @@ namespace ZombieGame.Characters
             if (_sprint is not null)
             {
                 SprintHeld = _sprint.IsPressed();
+            }
+
+            if (_attack is not null)
+            {
+                AttackPressed = _attack.WasPressedThisFrame();
             }
         }
     }

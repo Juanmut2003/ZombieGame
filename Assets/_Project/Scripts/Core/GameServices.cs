@@ -76,8 +76,15 @@ namespace ZombieGame.Core
             return (T)service;
         }
 
-        /// <summary>Resolves a service without throwing. Returns false when it is not registered.</summary>
-        public static bool TryGet<T>(out T service) where T : class
+        /// <summary>
+        /// Resolves a service without throwing. Returns false when it is not registered, and sets
+        /// the service to null.
+        /// </summary>
+        /// <remarks>
+        /// The result is nullable on purpose, so a component may pass its own nullable field
+        /// straight in without having to lie about it with a null-forgiving operator.
+        /// </remarks>
+        public static bool TryGet<T>(out T? service) where T : class
         {
             if (Registered.TryGetValue(typeof(T), out object? found))
             {
@@ -85,7 +92,7 @@ namespace ZombieGame.Core
                 return true;
             }
 
-            service = null!;
+            service = null;
             return false;
         }
 

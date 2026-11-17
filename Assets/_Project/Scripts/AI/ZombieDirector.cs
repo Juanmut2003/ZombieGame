@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ZombieGame.Core;
+using ZombieGame.Combat;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
 using ZombieGame.Core.Pooling;
@@ -50,6 +51,7 @@ namespace ZombieGame.AI
         private int _seed = 1337;
 
         private ZombieManager _manager = null!;
+        private EventBus? _bus;
         private ObjectPool<ZombieView> _views = null!;
         private readonly List<ZombieView> _active = new();
 
@@ -58,7 +60,8 @@ namespace ZombieGame.AI
 
         private void Awake()
         {
-            GameServices.TryGet(out EventBus bus);
+            GameServices.TryGet(out EventBus? bus);
+            _bus = bus;
 
             float separation = _balance is null ? 1.6f : _balance.ZombieSeparationStrength;
             _manager = new ZombieManager(
@@ -66,6 +69,15 @@ namespace ZombieGame.AI
 
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
         }
+
+        private void OnEnable() => _bus?.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
+
+        private void OnDisable() => _bus?.Unsubscribe<MeleeSwungEvent>(OnMeleeSwung);
+
+        /// <summary>
+        /// Resolves a swing against the horde. The attacker never touches the array itself.
+        /// </summary>
+        private void OnMeleeSwung(MeleeSwungEvent swing) => _manager.ApplySwing(swing);
 
         private void Start()
         {

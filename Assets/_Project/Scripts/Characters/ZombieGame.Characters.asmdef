@@ -3,6 +3,7 @@
     "rootNamespace": "ZombieGame.Characters",
     "references": [
         "ZombieGame.Core",
+        "ZombieGame.Combat",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

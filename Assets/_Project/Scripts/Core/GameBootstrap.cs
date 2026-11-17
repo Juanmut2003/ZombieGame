@@ -89,7 +89,7 @@ namespace ZombieGame.Core
             // Only the instance that registered the services clears them; a duplicate that
             // destroyed itself in Awake must not pull the real one's services out from under it.
             if (_sceneLoader is null
-                || !GameServices.TryGet(out SceneLoader registered)
+                || !GameServices.TryGet(out SceneLoader? registered)
                 || !ReferenceEquals(registered, _sceneLoader))
             {
                 return;

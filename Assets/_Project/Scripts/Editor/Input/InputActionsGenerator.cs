@@ -62,6 +62,10 @@ namespace ZombieGame.Editor.Input
                 .With("Right", "<Keyboard>/rightArrow");
             move.AddBinding("<Gamepad>/leftStick");
 
+            InputAction attack = gameplay.AddAction("Attack", InputActionType.Button);
+            attack.AddBinding("<Mouse>/leftButton");
+            attack.AddBinding("<Gamepad>/buttonWest");
+
             InputAction sprint = gameplay.AddAction("Sprint", InputActionType.Button);
             sprint.AddBinding("<Keyboard>/leftShift");
             sprint.AddBinding("<Gamepad>/leftStickPress");

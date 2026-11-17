@@ -40,7 +40,7 @@ namespace ZombieGame.Core.Rendering
             set => _target = value;
         }
 
-        private void Awake() => GameServices.TryGet(out _clock!);
+        private void Awake() => GameServices.TryGet(out _clock);
 
         private void LateUpdate()
         {

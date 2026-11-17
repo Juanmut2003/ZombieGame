@@ -75,7 +75,7 @@ namespace ZombieGame.Tests.EditMode
         [Test]
         public void TryGet_ReportsMissingServiceWithoutThrowing()
         {
-            Assert.That(GameServices.TryGet(out DummyService _), Is.False);
+            Assert.That(GameServices.TryGet(out DummyService? _), Is.False);
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace ZombieGame.Tests.EditMode
             var service = new DummyService();
             GameServices.Register(service);
 
-            Assert.That(GameServices.TryGet(out DummyService found), Is.True);
+            Assert.That(GameServices.TryGet(out DummyService? found), Is.True);
             Assert.That(found, Is.SameAs(service));
         }
 

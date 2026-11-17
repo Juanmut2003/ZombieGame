@@ -8,6 +8,7 @@
         "Unity.RenderPipelines.Core.Runtime",
         "ZombieGame.UI",
         "ZombieGame.Characters",
+        "ZombieGame.Combat",
         "ZombieGame.AI",
         "UnityEngine.UI",
         "Unity.InputSystem"

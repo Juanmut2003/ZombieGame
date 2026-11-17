@@ -38,7 +38,7 @@ namespace ZombieGame.UI
             // The menu can be opened on its own while working in the editor, without Boot ever
             // having run. Then there is no loader, and the button simply says so instead of
             // throwing a null reference at whoever pressed it.
-            GameServices.TryGet(out _sceneLoader!);
+            GameServices.TryGet(out _sceneLoader);
 
             if (_newRunButton is not null)
             {

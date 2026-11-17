@@ -43,6 +43,27 @@ namespace ZombieGame.Core.Config
         [Min(1f)]
         private float _acceleration = 40f;
 
+        [Header("Stamina")]
+        [Tooltip("Full stamina.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _staminaMax = 100f;
+
+        [Tooltip("How fast stamina comes back, per second.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _staminaRegenPerSecond = 18f;
+
+        [Tooltip("Seconds after spending before stamina starts coming back.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _staminaRegenDelay = 0.8f;
+
+        [Tooltip("Stamina spent per second of sprinting.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _sprintStaminaPerSecond = 16f;
+
         [Header("Crowds")]
         [Tooltip("How hard zombies standing in each other push apart, relative to walking speed.")]
         [SerializeField]
@@ -64,10 +85,23 @@ namespace ZombieGame.Core.Config
         /// <summary>How hard crowded zombies push each other apart.</summary>
         public float ZombieSeparationStrength => _zombieSeparationStrength;
 
+        /// <summary>Stamina spent per second of sprinting.</summary>
+        public float SprintStaminaPerSecond => _sprintStaminaPerSecond;
+
+        /// <summary>Full stamina.</summary>
+        public float StaminaMax => _staminaMax;
+
+        /// <summary>How fast stamina comes back, per second.</summary>
+        public float StaminaRegenPerSecond => _staminaRegenPerSecond;
+
+        /// <summary>Seconds after spending before stamina recovers.</summary>
+        public float StaminaRegenDelay => _staminaRegenDelay;
+
         /// <summary>The point in the day a confirmed day jumps to.</summary>
         public float DayStartNormalized => _dayStartNormalized;
 
         /// <summary>Builds the settings the <see cref="GameClock"/> runs on.</summary>
         public ClockSettings CreateClockSettings() => new(_secondsPerDay, _dayStartNormalized);
+
     }
 }

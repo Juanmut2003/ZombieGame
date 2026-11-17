@@ -25,8 +25,13 @@ namespace ZombieGame.Characters
         [SerializeField]
         private PlayerInputReader? _input;
 
+        [Tooltip("What sprinting is paid for with. Without one, sprinting is free.")]
+        [SerializeField]
+        private CharacterStamina? _stamina;
+
         private Rigidbody2D _body = null!;
         private MovementSettings _settings;
+        private float _sprintCostPerSecond;
 
         /// <summary>How fast the character is actually going.</summary>
         public Vector2 Velocity => _body.linearVelocity;
@@ -42,6 +47,8 @@ namespace ZombieGame.Characters
                 : new MovementSettings(
                     _balance.WalkSpeed, _balance.SprintMultiplier, _balance.Acceleration);
 
+            _sprintCostPerSecond = _balance is null ? 16f : _balance.SprintStaminaPerSecond;
+
             if (_balance is null)
             {
                 Debug.LogWarning($"[Movement] {name} has no BalanceConfig; using fallback speeds.");
@@ -51,7 +58,15 @@ namespace ZombieGame.Characters
         private void FixedUpdate()
         {
             Vector2 input = _input is null ? Vector2.zero : _input.MoveInput;
-            bool sprinting = _input is not null && _input.SprintHeld;
+            bool wantsToSprint = _input is not null && _input.SprintHeld && input != Vector2.zero;
+
+            // Sprinting is only sprinting while it is being paid for. Running out mid-stride drops
+            // the character back to a walk rather than refusing the step.
+            bool sprinting = wantsToSprint;
+            if (wantsToSprint && _stamina is not null)
+            {
+                sprinting = _stamina.Drain(_sprintCostPerSecond, Time.fixedDeltaTime) > 0f;
+            }
 
             _body.linearVelocity = MovementMath.Advance(
                 _body.linearVelocity, input, sprinting, _settings, Time.fixedDeltaTime);

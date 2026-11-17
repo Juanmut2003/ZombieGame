@@ -155,6 +155,19 @@ namespace ZombieGame.AI
             return -1;
         }
 
+        /// <summary>
+        /// Puts a zombie somewhere directly, without walking it there.
+        /// </summary>
+        /// <remarks>
+        /// For spawning, for a zone setting up its opening state, and for tests that need a
+        /// situation rather than a journey. Not for anything the zombie itself decides.
+        /// </remarks>
+        public void Teleport(int index, Vector2 position)
+        {
+            ThrowIfNotLive(index);
+            _states[index].Position = position;
+        }
+
         /// <summary>Points a zombie at somewhere to walk.</summary>
         public void SetDestination(int index, Vector2 destination)
         {
@@ -193,6 +206,38 @@ namespace ZombieGame.AI
 
             KillAt(index, damage);
             return applied;
+        }
+
+        /// <summary>
+        /// Works out who a swing caught and hurts them.
+        /// </summary>
+        /// <remarks>
+        /// Walked backwards because a killed zombie is replaced by the one from the end of the
+        /// array: going down means the slot that gets overwritten has already been considered.
+        /// </remarks>
+        /// <returns>How many were hit.</returns>
+        public int ApplySwing(in MeleeSwungEvent swing)
+        {
+            int hits = 0;
+
+            for (int i = Count - 1; i >= 0 && hits < swing.MaxTargets; i--)
+            {
+                if (!MeleeArc.Covers(
+                        swing.Origin,
+                        swing.Facing,
+                        _states[i].Position,
+                        _states[i].Radius,
+                        swing.Range,
+                        swing.HalfAngleDegrees))
+                {
+                    continue;
+                }
+
+                Damage(i, swing.Damage);
+                hits++;
+            }
+
+            return hits;
         }
 
         /// <summary>Removes a zombie outright, raising its death.</summary>

@@ -8,6 +8,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using ZombieGame.AI;
 using ZombieGame.Characters;
+using ZombieGame.Combat;
+using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Input;
@@ -54,6 +56,12 @@ namespace ZombieGame.Editor.Scenes
         private const string WalkerDefinitionPath = "Assets/_Project/Data/Zombies/Walker.asset";
         private const string StumblerDefinitionPath = "Assets/_Project/Data/Zombies/Stumbler.asset";
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
+        private const string BatWeaponPath = "Assets/_Project/Data/Weapons/Bat.asset";
+
+        private const string PlayerLeftSprite =
+            "Assets/_Project/Art/Sprites/Characters/archer_side_left_walk.png";
+        private const string PlayerRightSprite =
+            "Assets/_Project/Art/Sprites/Characters/archer_side_right_walk.png";
 
         // Room for a real horde, but only a handful put down: enough to watch them come at you,
         // few enough that the sandbox stays readable.
@@ -68,6 +76,7 @@ namespace ZombieGame.Editor.Scenes
 
             SceneBuilder.Build(ProjectScenes.Sandbox, scene =>
             {
+                CreateStandaloneBootstrap(scene);
                 CreateGlobalLight(scene);
                 CreateFloor(scene);
 
@@ -79,6 +88,31 @@ namespace ZombieGame.Editor.Scenes
             });
 
             Debug.Log($"[Sandbox] built {ProjectScenes.Sandbox}");
+        }
+
+        /// <summary>
+        /// Gives the zone its own bootstrap, so it can be opened and played on its own.
+        /// </summary>
+        /// <remarks>
+        /// Without this, opening a zone scene directly leaves the services unregistered: there is
+        /// no event bus, so a swing is published to nobody and melee silently does nothing. That
+        /// is a miserable thing to debug, and it is exactly what a developer does all day —
+        /// open the scene they are working on and press play.
+        /// Arriving from Boot is still the normal path; the bootstrap destroys itself when the
+        /// services are already up, so the two never fight.
+        /// </remarks>
+        private static void CreateStandaloneBootstrap(Scene scene)
+        {
+            GameObject bootstrapObject = SceneBuilder.CreateObject(scene, "Zone Bootstrap");
+            GameBootstrap bootstrap = bootstrapObject.AddComponent<GameBootstrap>();
+
+            var serialized = new SerializedObject(bootstrap);
+            serialized.FindProperty("_balance").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
+
+            // No scene to hand over to: this one is already the zone.
+            serialized.FindProperty("_firstScene").stringValue = string.Empty;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void CreateGlobalLight(Scene scene)
@@ -265,6 +299,39 @@ namespace ZombieGame.Editor.Scenes
             return definition;
         }
 
+        /// <summary>
+        /// Gets the bat asset, creating it with a first guess at its numbers if it is missing.
+        /// </summary>
+        private static WeaponDefinition GetOrCreateBat()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BatWeaponPath);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(BatWeaponPath)!);
+            WeaponDefinition bat = ScriptableObject.CreateInstance<WeaponDefinition>();
+
+            var serialized = new SerializedObject(bat);
+            serialized.FindProperty("_displayName").stringValue = "Bat";
+
+            // Three swings for a walker, four for nothing: enough that a crowd is a problem.
+            serialized.FindProperty("_damage").floatValue = 14f;
+            serialized.FindProperty("_damageType").enumValueIndex = (int)DamageType.Blunt;
+            serialized.FindProperty("_range").floatValue = 1.1f;
+            serialized.FindProperty("_halfAngleDegrees").floatValue = 60f;
+            serialized.FindProperty("_maxTargets").intValue = 3;
+            serialized.FindProperty("_staminaCost").floatValue = 14f;
+            serialized.FindProperty("_cooldownSeconds").floatValue = 0.45f;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            AssetDatabase.CreateAsset(bat, BatWeaponPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Sandbox] created {BatWeaponPath}");
+            return bat;
+        }
+
         private static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
 
         private static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
@@ -329,13 +396,36 @@ namespace ZombieGame.Editor.Scenes
             serializedInput.FindProperty("_mapName").stringValue = InputActionsGenerator.GameplayMap;
             serializedInput.ApplyModifiedPropertiesWithoutUndo();
 
+            var balance = AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
+
+            CharacterStamina stamina = player.AddComponent<CharacterStamina>();
+            var serializedStamina = new SerializedObject(stamina);
+            serializedStamina.FindProperty("_balance").objectReferenceValue = balance;
+            serializedStamina.ApplyModifiedPropertiesWithoutUndo();
+
             CharacterMovement movement = player.AddComponent<CharacterMovement>();
             var serializedMovement = new SerializedObject(movement);
-            serializedMovement.FindProperty("_balance").objectReferenceValue =
-                AssetDatabase.LoadAssetAtPath<BalanceConfig>(
-                    "Assets/_Project/Data/BalanceConfig.asset");
+            serializedMovement.FindProperty("_balance").objectReferenceValue = balance;
             serializedMovement.FindProperty("_input").objectReferenceValue = input;
+            serializedMovement.FindProperty("_stamina").objectReferenceValue = stamina;
             serializedMovement.ApplyModifiedPropertiesWithoutUndo();
+
+            // Three poses, picked from the direction of travel. Not a walk cycle — the packs ship
+            // one frame per direction, so there is nothing to animate yet.
+            CharacterFacing facing = player.AddComponent<CharacterFacing>();
+            var serializedFacing = new SerializedObject(facing);
+            serializedFacing.FindProperty("_front").objectReferenceValue = LoadSprite(PlayerSprite);
+            serializedFacing.FindProperty("_left").objectReferenceValue = LoadSprite(PlayerLeftSprite);
+            serializedFacing.FindProperty("_right").objectReferenceValue =
+                LoadSprite(PlayerRightSprite);
+            serializedFacing.ApplyModifiedPropertiesWithoutUndo();
+
+            PlayerMelee melee = player.AddComponent<PlayerMelee>();
+            var serializedMelee = new SerializedObject(melee);
+            serializedMelee.FindProperty("_weapon").objectReferenceValue = GetOrCreateBat();
+            serializedMelee.FindProperty("_input").objectReferenceValue = input;
+            serializedMelee.FindProperty("_stamina").objectReferenceValue = stamina;
+            serializedMelee.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Transform? AddActor(
