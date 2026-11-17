@@ -3,6 +3,7 @@
     "rootNamespace": "ZombieGame.Tests.EditMode",
     "references": [
         "ZombieGame.Core",
+        "ZombieGame.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
