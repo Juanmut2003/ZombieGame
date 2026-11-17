@@ -14,3 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: ZombieGame.Core::ZombieGame.Core.Config.BalanceConfig
   _secondsPerDay: 1440
   _dayStartNormalized: 0.25
+  _walkSpeed: 3.5
+  _sprintMultiplier: 1.8
+  _acceleration: 40
+  _staminaMax: 100
+  _staminaRegenPerSecond: 18
+  _staminaRegenDelay: 0.8
+  _sprintStaminaPerSecond: 16
+  _zombieSeparationStrength: 1.6
+  _zombieCrowdCellSize: 1
