@@ -146,7 +146,10 @@ namespace ZombieGame.AI
             for (int i = 0; i < live; i++)
             {
                 ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
-                _active[i].Show(states[i].Position, type.SpriteFor(states[i].Facing));
+                _active[i].Show(
+                    states[i].Position,
+                    type.SpriteFor(states[i].Facing),
+                    states[i].HitFlash > 0f);
             }
         }
 

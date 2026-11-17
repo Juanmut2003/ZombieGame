@@ -94,6 +94,28 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TheSwingIsVisible()
+        {
+            GameObject? arcObject = GameObject.Find("Arc");
+            Assert.That(arcObject, Is.Not.Null, "the scene should carry a swing arc");
+
+            var arc = arcObject!.GetComponent<SpriteRenderer>();
+            Assert.That(arc.sprite, Is.Not.Null, "and it needs a sprite to show");
+            Assert.That(arc.enabled, Is.False, "nothing should be drawn before a swing");
+
+            _facing.Face(Vector2.right);
+            Assert.That(_melee.TrySwing(), Is.True);
+            yield return null;
+
+            Assert.That(arc.enabled, Is.True, "a swing the player cannot see is a swing that failed");
+
+            // Well past the flash, which is a fraction of a second.
+            yield return new WaitForSeconds(0.5f);
+
+            Assert.That(arc.enabled, Is.False, "and it should not linger");
+        }
+
+        [UnityTest]
         public IEnumerator SwingingCostsStamina()
         {
             float before = _stamina.Current;

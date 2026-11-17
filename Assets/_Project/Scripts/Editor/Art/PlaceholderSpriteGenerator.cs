@@ -30,6 +30,10 @@ namespace ZombieGame.Editor.Art
         private static readonly Color32 FloorAccent = new(92, 90, 84, 255);
         private static readonly Color32 WallBody = new(96, 92, 86, 255);
         private static readonly Color32 WallAccent = new(66, 63, 59, 255);
+        // Pale and slightly warm, so a swing reads against both the floor and a zombie without
+        // looking like a light source.
+        private static readonly Color32 SwingBody = new(214, 208, 190, 150);
+        private static readonly Color32 SwingAccent = new(246, 243, 232, 220);
         private static readonly Color32 CrateBody = new(126, 104, 74, 255);
         private static readonly Color32 CrateAccent = new(80, 64, 44, 255);
 
@@ -50,6 +54,8 @@ namespace ZombieGame.Editor.Art
                     "placeholder_floor", 64, 64, PlaceholderShape.Tile, FloorBody, FloorAccent)),
                 ("Tiles", new PlaceholderSpriteSpec(
                     "placeholder_wall", 64, 64, PlaceholderShape.Tile, WallBody, WallAccent)),
+                ("FX", new PlaceholderSpriteSpec(
+                    "swing_arc", 128, 128, PlaceholderShape.SwingArc, SwingBody, SwingAccent)),
                 ("Items", new PlaceholderSpriteSpec(
                     "placeholder_crate", 64, 64, PlaceholderShape.Box, CrateBody, CrateAccent)),
             };

@@ -55,6 +55,8 @@ namespace ZombieGame.Editor.Scenes
         private const string Zombie2RightSprite =
             "Assets/_Project/Art/Sprites/Zombies/zombie2_side_right_walk.png";
 
+        private const string SwingArcSprite = "Assets/_Project/Art/Sprites/FX/swing_arc.png";
+
         private const string WalkerDefinitionPath = "Assets/_Project/Data/Zombies/Walker.asset";
         private const string StumblerDefinitionPath = "Assets/_Project/Data/Zombies/Stumbler.asset";
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
@@ -92,6 +94,7 @@ namespace ZombieGame.Editor.Scenes
                 Transform? player = CreateActors(scene);
                 Camera camera = CameraRigBuilder.Create(scene, player);
                 CreateHorde(scene, player);
+                CreateSwingFlash(scene);
                 CreateHud(scene, camera);
             });
 
@@ -120,6 +123,35 @@ namespace ZombieGame.Editor.Scenes
 
             // No scene to hand over to: this one is already the zone.
             serialized.FindProperty("_firstScene").stringValue = string.Empty;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Puts the swing arc in the scene, listening for anyone swinging anything.
+        /// </summary>
+        private static void CreateSwingFlash(Scene scene)
+        {
+            GameObject flashObject = SceneBuilder.CreateObject(scene, "Swing Flash");
+            SwingFlashView view = flashObject.AddComponent<SwingFlashView>();
+
+            var spriteObject = new GameObject("Arc", typeof(SpriteRenderer));
+            spriteObject.transform.SetParent(flashObject.transform, worldPositionStays: false);
+
+            SpriteRenderer renderer = spriteObject.GetComponent<SpriteRenderer>();
+            renderer.sprite = LoadSprite(SwingArcSprite);
+            renderer.enabled = false;
+
+            // Above every body on the floor: a swing that disappears behind the zombie it just
+            // hit is worse than no swing at all.
+            renderer.sortingOrder = 500;
+
+            if (renderer.sprite is null)
+            {
+                Debug.LogWarning($"[Sandbox] no sprite at '{SwingArcSprite}'; swings stay invisible.");
+            }
+
+            var serialized = new SerializedObject(view);
+            serialized.FindProperty("_renderer").objectReferenceValue = renderer;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

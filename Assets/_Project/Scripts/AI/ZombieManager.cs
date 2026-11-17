@@ -69,6 +69,9 @@ namespace ZombieGame.AI
         }
 
         /// <summary>The most zombies that can be alive at once.</summary>
+        /// <summary>How long a zombie flashes after taking a hit.</summary>
+        public const float HitFlashSeconds = 0.12f;
+
         public int Capacity { get; }
 
         /// <summary>How many are alive right now.</summary>
@@ -201,6 +204,9 @@ namespace ZombieGame.AI
             _states[index].Health -= applied;
             if (_states[index].Health > 0f)
             {
+                // Not a balance number: how long a body flashes is how the hit is read on screen,
+                // and it has no effect on what the hit does.
+                _states[index].HitFlash = HitFlashSeconds;
                 return applied;
             }
 
@@ -278,6 +284,13 @@ namespace ZombieGame.AI
             for (int i = 0; i < Count; i++)
             {
                 ref ZombieState zombie = ref _states[i];
+
+                // Before any of the early exits below: a zombie standing still still has to stop
+                // flashing.
+                if (zombie.HitFlash > 0f)
+                {
+                    zombie.HitFlash = Math.Max(0f, zombie.HitFlash - deltaSeconds);
+                }
 
                 Vector2 toTarget = zombie.Destination - zombie.Position;
                 float distance = toTarget.magnitude;

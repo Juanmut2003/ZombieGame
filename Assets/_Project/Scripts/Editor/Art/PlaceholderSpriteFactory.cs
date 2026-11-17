@@ -15,6 +15,12 @@ namespace ZombieGame.Editor.Art
 
         /// <summary>A bordered box for props, crates and buildings.</summary>
         Box,
+
+        /// <summary>
+        /// The trail of a melee swing: a crescent opening to the right, apex in the middle of the
+        /// texture, so it can be rotated around the character who swung it.
+        /// </summary>
+        SwingArc,
     }
 
     /// <summary>What one placeholder sprite should look like.</summary>
@@ -98,6 +104,9 @@ namespace ZombieGame.Editor.Art
                 case PlaceholderShape.Box:
                     DrawBox(pixels, spec);
                     break;
+                case PlaceholderShape.SwingArc:
+                    DrawSwingArc(pixels, spec);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(spec), spec.Shape, "Unknown placeholder shape.");
@@ -158,6 +167,56 @@ namespace ZombieGame.Editor.Art
             {
                 Set(pixels, spec, 0, y, spec.Accent);
                 Set(pixels, spec, spec.Width - 1, y, spec.Accent);
+            }
+        }
+
+        /// <summary>
+        /// Draws the crescent a swing leaves behind: a band near the far end of the reach,
+        /// spanning the width of the wedge, with its apex at the centre of the texture.
+        /// </summary>
+        /// <remarks>
+        /// Only the outer part of the wedge is drawn. A filled pie slice reads as a shield or a
+        /// torch beam; what a swing looks like is the far edge of it moving. The spec's half-angle
+        /// and inner radius are fixed here rather than taken from the weapon, because this is one
+        /// sprite rotated and scaled to whatever weapon swung it.
+        /// </remarks>
+        private static void DrawSwingArc(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            const float halfAngleDegrees = 55f;
+            const float innerFraction = 0.62f;
+
+            float centreX = (spec.Width - 1) * 0.5f;
+            float centreY = (spec.Height - 1) * 0.5f;
+            float outerRadius = Math.Min(centreX, centreY);
+            float innerRadius = outerRadius * innerFraction;
+            float cosLimit = (float)Math.Cos(halfAngleDegrees * Math.PI / 180.0);
+
+            for (int y = 0; y < spec.Height; y++)
+            {
+                for (int x = 0; x < spec.Width; x++)
+                {
+                    float dx = x - centreX;
+                    float dy = y - centreY;
+                    float distance = (float)Math.Sqrt((dx * dx) + (dy * dy));
+
+                    if (distance < innerRadius || distance > outerRadius || distance <= 0.001f)
+                    {
+                        continue;
+                    }
+
+                    // The wedge opens towards +x, so the cosine of the angle to that axis is
+                    // simply the normalised x — no trigonometry per pixel needed.
+                    if (dx / distance < cosLimit)
+                    {
+                        continue;
+                    }
+
+                    // Brightest at the leading edge and fading inwards, which is what sells it as
+                    // a trail rather than a painted shape.
+                    float depth = (distance - innerRadius) / (outerRadius - innerRadius);
+                    Color32 colour = depth > 0.72f ? spec.Accent : spec.Body;
+                    Set(pixels, spec, x, y, colour);
+                }
             }
         }
 

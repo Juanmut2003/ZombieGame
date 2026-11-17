@@ -39,5 +39,15 @@ namespace ZombieGame.AI
         /// at one; zero means nobody.
         /// </summary>
         public int Id;
+
+        /// <summary>
+        /// Seconds left of the flash that says this one was just hit. Zero means unhurt.
+        /// </summary>
+        /// <remarks>
+        /// Presentation kept in the state rather than in the view, because the view is a pooled
+        /// shell that may be handed to a different zombie at any time — the flash belongs to the
+        /// zombie, not to the body currently drawing it.
+        /// </remarks>
+        public float HitFlash;
     }
 }

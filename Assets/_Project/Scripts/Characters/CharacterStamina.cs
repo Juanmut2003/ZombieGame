@@ -76,7 +76,12 @@ namespace ZombieGame.Characters
             // Looked up again when it was missing: the bootstrap that registers the bus lives in
             // the same scene, and Awake order between two scene objects is not something to rely
             // on. By the first Update it is certainly up.
-            if (_bus is null && !GameServices.TryGet(out _bus))
+            if (_bus is null)
+            {
+                GameServices.TryGet(out _bus);
+            }
+
+            if (_bus is null)
             {
                 return;
             }

@@ -24,14 +24,25 @@ namespace ZombieGame.AI
             _transform = transform;
         }
 
-        /// <summary>Moves the body and shows the right pose.</summary>
-        public void Show(Vector2 position, Sprite? sprite)
+        /// <summary>The tint of a body that was just hit. Pale, not a cartoon flash of red.</summary>
+        private static readonly Color HitTint = new(1f, 0.62f, 0.58f, 1f);
+
+        /// <summary>Moves the body, shows the right pose, and tints it while it is reeling.</summary>
+        public void Show(Vector2 position, Sprite? sprite, bool hit = false)
         {
             _transform.position = new Vector3(position.x, position.y, 0f);
 
             if (sprite != null && _renderer.sprite != sprite)
             {
                 _renderer.sprite = sprite;
+            }
+
+            // Only written when it changes: assigning a renderer's colour dirties its material
+            // block, and this runs for every zombie every frame.
+            Color tint = hit ? HitTint : Color.white;
+            if (_renderer.color != tint)
+            {
+                _renderer.color = tint;
             }
 
             // Sorted by how far down the screen it stands, so a zombie in front of another

@@ -53,7 +53,8 @@ namespace ZombieGame.UI
         {
             // Subscribed in Start, not Awake: the bus is registered by the bootstrap's Awake, and
             // every Awake has run by the time the first Start does.
-            if (!GameServices.TryGet(out _bus))
+            GameServices.TryGet(out _bus);
+            if (_bus is null)
             {
                 Debug.LogWarning("[HUD] no event bus; the stamina bar will not move.");
                 return;
