@@ -25,6 +25,10 @@ namespace ZombieGame.Tests.EditMode
             serialized.FindProperty("_maxHealth").floatValue = 40f;
             serialized.FindProperty("_moveSpeed").floatValue = 2f;
             serialized.FindProperty("_ballistic").floatValue = 0.5f;
+
+            // No speed variation here: these tests are about the mechanics, and a varied speed
+            // would turn every distance assertion into a guess.
+            serialized.FindProperty("_speedVariance").floatValue = 0f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

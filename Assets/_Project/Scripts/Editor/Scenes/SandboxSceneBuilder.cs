@@ -44,12 +44,21 @@ namespace ZombieGame.Editor.Scenes
         private const string ZombieRightSprite =
             "Assets/_Project/Art/Sprites/Zombies/zombie_side_right_walk.png";
 
+        private const string Zombie2Sprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie2_front_walk.png";
+        private const string Zombie2LeftSprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie2_side_left_walk.png";
+        private const string Zombie2RightSprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie2_side_right_walk.png";
+
         private const string WalkerDefinitionPath = "Assets/_Project/Data/Zombies/Walker.asset";
+        private const string StumblerDefinitionPath = "Assets/_Project/Data/Zombies/Stumbler.asset";
+        private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
 
         // Room for a real horde, but only a handful put down: enough to watch them come at you,
         // few enough that the sandbox stays readable.
         private const int HordeCapacity = 300;
-        private const int HordeOnStart = 18;
+        private const int HordeOnStart = 26;
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -165,14 +174,48 @@ namespace ZombieGame.Editor.Scenes
         /// </summary>
         private static void CreateHorde(Scene scene, Transform? target)
         {
-            ZombieDefinition walker = GetOrCreateWalkerDefinition();
+            // Two kinds, so a crowd reads as a crowd. One silhouette repeated eighteen times looks
+            // like a rendering bug even when every one of them is walking its own way.
+            ZombieDefinition[] kinds =
+            {
+                GetOrCreateDefinition(
+                    WalkerDefinitionPath,
+                    displayName: "Walker",
+                    maxHealth: 40f,
+
+                    // Slower than the MC's 3.5: dangerous in numbers or in a corner, not alone.
+                    moveSpeed: 1.2f,
+                    bodyRadius: 0.3f,
+                    front: ZombieSprite,
+                    left: ZombieLeftSprite,
+                    right: ZombieRightSprite),
+                GetOrCreateDefinition(
+                    StumblerDefinitionPath,
+                    displayName: "Stumbler",
+
+                    // Gaunt and bent: less to chew through, but it keeps coming a little faster.
+                    maxHealth: 30f,
+                    moveSpeed: 1.45f,
+                    bodyRadius: 0.26f,
+                    front: Zombie2Sprite,
+                    left: Zombie2LeftSprite,
+                    right: Zombie2RightSprite),
+            };
 
             GameObject directorObject = SceneBuilder.CreateObject(scene, "Zombie Director");
             directorObject.transform.position = new Vector3(3f, 1f, 0f);
             ZombieDirector director = directorObject.AddComponent<ZombieDirector>();
 
             var serialized = new SerializedObject(director);
-            serialized.FindProperty("_definition").objectReferenceValue = walker;
+            SerializedProperty definitions = serialized.FindProperty("_definitions");
+            definitions.arraySize = kinds.Length;
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                definitions.GetArrayElementAtIndex(i).objectReferenceValue = kinds[i];
+            }
+
+            serialized.FindProperty("_balance").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
             serialized.FindProperty("_target").objectReferenceValue = target;
             serialized.FindProperty("_capacity").intValue = HordeCapacity;
             serialized.FindProperty("_spawnOnStart").intValue = HordeOnStart;
@@ -181,38 +224,45 @@ namespace ZombieGame.Editor.Scenes
         }
 
         /// <summary>
-        /// Gets the walker asset, creating it from the zombie pack art if it is not there yet.
+        /// Gets a zombie asset, creating it from the pack art if it is not there yet.
         /// </summary>
         /// <remarks>
-        /// The numbers are a first guess and belong to the designer from here on: the asset is
-        /// only ever created, never overwritten, so tuning it survives a rebuild of the scene.
+        /// The numbers are a first guess and belong to the designer from here on: an existing
+        /// asset is returned untouched, so tuning it survives a rebuild of the scene.
         /// </remarks>
-        private static ZombieDefinition GetOrCreateWalkerDefinition()
+        private static ZombieDefinition GetOrCreateDefinition(
+            string assetPath,
+            string displayName,
+            float maxHealth,
+            float moveSpeed,
+            float bodyRadius,
+            string front,
+            string left,
+            string right)
         {
-            var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(WalkerDefinitionPath);
+            var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(assetPath);
             if (existing is not null)
             {
                 return existing;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(WalkerDefinitionPath)!);
-            ZombieDefinition walker = ScriptableObject.CreateInstance<ZombieDefinition>();
+            Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
+            ZombieDefinition definition = ScriptableObject.CreateInstance<ZombieDefinition>();
 
-            var serialized = new SerializedObject(walker);
-            serialized.FindProperty("_displayName").stringValue = "Walker";
-            serialized.FindProperty("_maxHealth").floatValue = 40f;
-
-            // Slower than the MC's 3.5: a walker is only dangerous in numbers or in a corner.
-            serialized.FindProperty("_moveSpeed").floatValue = 1.2f;
-            serialized.FindProperty("_front").objectReferenceValue = LoadSprite(ZombieSprite);
-            serialized.FindProperty("_left").objectReferenceValue = LoadSprite(ZombieLeftSprite);
-            serialized.FindProperty("_right").objectReferenceValue = LoadSprite(ZombieRightSprite);
+            var serialized = new SerializedObject(definition);
+            serialized.FindProperty("_displayName").stringValue = displayName;
+            serialized.FindProperty("_maxHealth").floatValue = maxHealth;
+            serialized.FindProperty("_moveSpeed").floatValue = moveSpeed;
+            serialized.FindProperty("_bodyRadius").floatValue = bodyRadius;
+            serialized.FindProperty("_front").objectReferenceValue = LoadSprite(front);
+            serialized.FindProperty("_left").objectReferenceValue = LoadSprite(left);
+            serialized.FindProperty("_right").objectReferenceValue = LoadSprite(right);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            AssetDatabase.CreateAsset(walker, WalkerDefinitionPath);
+            AssetDatabase.CreateAsset(definition, assetPath);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Sandbox] created {WalkerDefinitionPath}");
-            return walker;
+            Debug.Log($"[Sandbox] created {assetPath}");
+            return definition;
         }
 
         private static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);

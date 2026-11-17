@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using ZombieGame.Combat;
 using ZombieGame.Core.Events;
@@ -23,6 +24,14 @@ namespace ZombieGame.AI
         private readonly ZombieState[] _states;
         private readonly DamageResistances[] _resistances;
         private readonly EventBus? _bus;
+        private readonly CrowdSettings _crowd;
+        private readonly System.Random _random;
+
+        // Neighbour search, allocated once. The dictionary is cleared rather than replaced each
+        // tick, which keeps its buckets and so allocates nothing after the first few frames.
+        private readonly Dictionary<long, int> _cellHeads = new();
+        private readonly int[] _nextInCell;
+
         private int _nextId = 1;
 
         /// <param name="capacity">
@@ -30,7 +39,16 @@ namespace ZombieGame.AI
         /// once, and a zone that wants more has a design problem, not a memory problem.
         /// </param>
         /// <param name="bus">Optional; deaths are published on it.</param>
-        public ZombieManager(int capacity, EventBus? bus = null)
+        /// <param name="crowd">How hard they push each other apart.</param>
+        /// <param name="seed">
+        /// Drives the per-zombie speed variation. Fixed by default so a zone behaves the same way
+        /// every run, which is what makes a bug in a horde reproducible.
+        /// </param>
+        public ZombieManager(
+            int capacity,
+            EventBus? bus = null,
+            CrowdSettings crowd = default,
+            int seed = 20261117)
         {
             if (capacity <= 0)
             {
@@ -41,7 +59,13 @@ namespace ZombieGame.AI
             Capacity = capacity;
             _states = new ZombieState[capacity];
             _resistances = new DamageResistances[capacity];
+            _nextInCell = new int[capacity];
             _bus = bus;
+
+            // A default-constructed CrowdSettings has a cell size of zero, which is nobody asking
+            // for "no separation" — it is nobody having said anything.
+            _crowd = crowd.CellSize > 0f ? crowd : CrowdSettings.Default;
+            _random = new System.Random(seed);
         }
 
         /// <summary>The most zombies that can be alive at once.</summary>
@@ -74,7 +98,7 @@ namespace ZombieGame.AI
         /// Adds a zombie at <paramref name="position"/>.
         /// </summary>
         /// <returns>Its id, or zero when the horde is already at capacity.</returns>
-        public int Spawn(ZombieDefinition definition, Vector2 position)
+        public int Spawn(ZombieDefinition definition, Vector2 position, int typeId = 0)
         {
             if (definition is null)
             {
@@ -89,14 +113,22 @@ namespace ZombieGame.AI
             int index = Count++;
             int id = _nextId++;
 
+            // Every zombie gets its own walking speed within the type's spread. Identical speeds
+            // are the other half of why a horde collapses into one body: they stay in lockstep
+            // forever, however far they walk.
+            float spread = definition.SpeedVariance;
+            float factor = 1f + (((float)_random.NextDouble() * 2f) - 1f) * spread;
+
             _states[index] = new ZombieState
             {
                 Position = position,
                 Destination = position,
                 Velocity = Vector2.zero,
                 Health = definition.MaxHealth,
-                Speed = definition.MoveSpeed,
+                Speed = Mathf.Max(0f, definition.MoveSpeed * factor),
+                Radius = definition.BodyRadius,
                 Facing = ZombieFacing.Front,
+                TypeId = typeId,
                 Id = id,
             };
             _resistances[index] = definition.Resistances;
@@ -180,16 +212,22 @@ namespace ZombieGame.AI
         /// Moves every zombie one step towards its destination.
         /// </summary>
         /// <remarks>
-        /// Deliberately dumb for now: straight-line seek, no perception, no avoidance, no states.
+        /// Still dumb about where to go: straight-line seek, no perception, no states.
         /// Investigating a noise, chasing and losing interest arrive with the senses in a later
         /// step; this is the integration loop they will drive.
-        /// TODO: no separation between zombies yet, so a horde stacks on one point.
+        /// What it is no longer dumb about is each other — see <see cref="CrowdSettings"/>.
         /// </remarks>
         public void Tick(float deltaSeconds)
         {
             if (deltaSeconds <= 0f)
             {
                 return;
+            }
+
+            bool separating = _crowd.SeparationStrength > 0f && Count > 1;
+            if (separating)
+            {
+                BuildNeighbourGrid();
             }
 
             for (int i = 0; i < Count; i++)
@@ -200,22 +238,38 @@ namespace ZombieGame.AI
                 float distance = toTarget.magnitude;
                 float step = zombie.Speed * deltaSeconds;
 
-                if (distance <= 0.0001f || step <= 0f)
+                Vector2 push = separating ? SeparationFor(i) : Vector2.zero;
+
+                if ((distance <= 0.0001f || step <= 0f) && push == Vector2.zero)
                 {
                     zombie.Velocity = Vector2.zero;
                     continue;
                 }
 
-                Vector2 direction = toTarget / distance;
-                if (step >= distance)
+                Vector2 direction = distance > 0.0001f ? toTarget / distance : Vector2.zero;
+
+                // Arrival only counts when nothing is shoving: a zombie standing on its
+                // destination still has to give way to the one walking into it.
+                if (push == Vector2.zero && step >= distance)
                 {
                     zombie.Position = zombie.Destination;
                     zombie.Velocity = Vector2.zero;
                 }
                 else
                 {
-                    zombie.Velocity = direction * zombie.Speed;
-                    zombie.Position += zombie.Velocity * deltaSeconds;
+                    Vector2 desired = (direction * zombie.Speed) +
+                                      (push * zombie.Speed * _crowd.SeparationStrength);
+
+                    // Clamped to walking speed, so being crowded never makes a zombie faster than
+                    // it is supposed to be able to move.
+                    if (desired.sqrMagnitude > zombie.Speed * zombie.Speed)
+                    {
+                        desired = desired.normalized * zombie.Speed;
+                    }
+
+                    zombie.Velocity = desired;
+                    zombie.Position += desired * deltaSeconds;
+                    direction = desired.sqrMagnitude > 0.000001f ? desired.normalized : direction;
                 }
 
                 // Only sideways movement flips the sprite; walking straight up or down keeps the
@@ -237,6 +291,97 @@ namespace ZombieGame.AI
 
         /// <summary>Empties the horde without raising anything. For tearing a zone down.</summary>
         public void Clear() => Count = 0;
+
+        /// <summary>
+        /// Buckets every zombie by the cell it stands in, so the neighbour search only has to look
+        /// at the nine cells around one instead of at the whole horde.
+        /// </summary>
+        /// <remarks>
+        /// Comparing everyone with everyone is 90,000 distance checks at 300 zombies, every tick.
+        /// The grid turns that into a handful per zombie, which is the difference between
+        /// separation being free and separation being the most expensive thing in the frame.
+        /// </remarks>
+        private void BuildNeighbourGrid()
+        {
+            _cellHeads.Clear();
+
+            for (int i = 0; i < Count; i++)
+            {
+                long key = CellKey(_states[i].Position);
+                _nextInCell[i] = _cellHeads.TryGetValue(key, out int head) ? head : -1;
+                _cellHeads[key] = i;
+            }
+        }
+
+        /// <summary>
+        /// The push away from everyone standing too close, as a direction of length at most one.
+        /// </summary>
+        private Vector2 SeparationFor(int index)
+        {
+            ZombieState self = _states[index];
+            var push = Vector2.zero;
+
+            int cellX = Mathf.FloorToInt(self.Position.x / _crowd.CellSize);
+            int cellY = Mathf.FloorToInt(self.Position.y / _crowd.CellSize);
+
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    long key = CellKey(cellX + dx, cellY + dy);
+                    if (!_cellHeads.TryGetValue(key, out int other))
+                    {
+                        continue;
+                    }
+
+                    while (other >= 0)
+                    {
+                        if (other != index)
+                        {
+                            push += PushAwayFrom(self, _states[other]);
+                        }
+
+                        other = _nextInCell[other];
+                    }
+                }
+            }
+
+            return push.sqrMagnitude > 1f ? push.normalized : push;
+        }
+
+        /// <summary>
+        /// How hard one body shoves another, growing as they overlap and vanishing once they do not.
+        /// </summary>
+        private static Vector2 PushAwayFrom(ZombieState self, ZombieState other)
+        {
+            Vector2 away = self.Position - other.Position;
+            float gap = self.Radius + other.Radius;
+            float distanceSquared = away.sqrMagnitude;
+
+            if (distanceSquared >= gap * gap || gap <= 0f)
+            {
+                return Vector2.zero;
+            }
+
+            // Two bodies on exactly the same spot have no direction to part in. Nudging by the
+            // difference in their ids keeps it deterministic and gets them unstuck.
+            if (distanceSquared < 0.000001f)
+            {
+                int sign = self.Id > other.Id ? 1 : -1;
+                return new Vector2(0.01f * sign, 0.01f * sign);
+            }
+
+            float distance = Mathf.Sqrt(distanceSquared);
+            float overlap = (gap - distance) / gap;
+            return away / distance * overlap;
+        }
+
+        private long CellKey(Vector2 position) =>
+            CellKey(
+                Mathf.FloorToInt(position.x / _crowd.CellSize),
+                Mathf.FloorToInt(position.y / _crowd.CellSize));
+
+        private static long CellKey(int x, int y) => ((long)x << 32) ^ (uint)y;
 
         private void KillAt(int index, DamageInfo killingBlow)
         {

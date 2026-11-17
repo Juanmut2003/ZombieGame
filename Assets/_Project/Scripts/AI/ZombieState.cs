@@ -22,8 +22,14 @@ namespace ZombieGame.AI
         /// <summary>Health left.</summary>
         public float Health;
 
-        /// <summary>Top speed, copied from the definition at spawn.</summary>
+        /// <summary>Top speed for this individual, varied from the definition at spawn.</summary>
         public float Speed;
+
+        /// <summary>How much room it takes up, for keeping the crowd apart.</summary>
+        public float Radius;
+
+        /// <summary>Which definition it was spawned from, as the spawner numbered them.</summary>
+        public int TypeId;
 
         /// <summary>Which way it is facing.</summary>
         public ZombieFacing Facing;

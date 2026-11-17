@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ZombieGame.Core;
+using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
 using ZombieGame.Core.Pooling;
 
@@ -18,9 +19,13 @@ namespace ZombieGame.AI
     [DisallowMultipleComponent]
     public sealed class ZombieDirector : MonoBehaviour
     {
-        [Tooltip("Which zombie to spawn. One definition for now; a zone will mix several.")]
+        [Tooltip("The kinds of zombie this zone puts out. Spawns are drawn from these at random.")]
         [SerializeField]
-        private ZombieDefinition? _definition;
+        private ZombieDefinition[] _definitions = System.Array.Empty<ZombieDefinition>();
+
+        [Tooltip("Where the crowd numbers come from.")]
+        [SerializeField]
+        private BalanceConfig? _balance;
 
         [Tooltip("The most zombies that can be alive at once in this zone.")]
         [SerializeField]
@@ -54,16 +59,19 @@ namespace ZombieGame.AI
         private void Awake()
         {
             GameServices.TryGet(out EventBus bus);
-            _manager = new ZombieManager(_capacity, bus);
+
+            float separation = _balance is null ? 1.6f : _balance.ZombieSeparationStrength;
+            _manager = new ZombieManager(
+                _capacity, bus, new CrowdSettings(separation, cellSize: 1f), _seed);
 
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
         }
 
         private void Start()
         {
-            if (_definition is null)
+            if (_definitions.Length == 0)
             {
-                Debug.LogWarning($"[Zombies] {name} has no definition; the zone stays empty.");
+                Debug.LogWarning($"[Zombies] {name} has no definitions; the zone stays empty.");
                 return;
             }
 
@@ -74,7 +82,8 @@ namespace ZombieGame.AI
                     (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.x,
                     (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.y);
 
-                _manager.Spawn(_definition, (Vector2)transform.position + offset);
+                int type = random.Next(_definitions.Length);
+                _manager.Spawn(_definitions[type], (Vector2)transform.position + offset, type);
             }
 
             SyncViews();
@@ -102,7 +111,7 @@ namespace ZombieGame.AI
         /// </remarks>
         private void SyncViews()
         {
-            if (_definition is null)
+            if (_definitions.Length == 0)
             {
                 return;
             }
@@ -124,7 +133,8 @@ namespace ZombieGame.AI
             System.ReadOnlySpan<ZombieState> states = _manager.States;
             for (int i = 0; i < live; i++)
             {
-                _active[i].Show(states[i].Position, _definition.SpriteFor(states[i].Facing));
+                ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
+                _active[i].Show(states[i].Position, type.SpriteFor(states[i].Facing));
             }
         }
 

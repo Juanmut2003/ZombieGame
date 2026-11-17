@@ -43,6 +43,12 @@ namespace ZombieGame.Core.Config
         [Min(1f)]
         private float _acceleration = 40f;
 
+        [Header("Crowds")]
+        [Tooltip("How hard zombies standing in each other push apart, relative to walking speed.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _zombieSeparationStrength = 1.6f;
+
         /// <summary>Real-time seconds for a full in-game day in a zone.</summary>
         public float SecondsPerDay => _secondsPerDay;
 
@@ -54,6 +60,9 @@ namespace ZombieGame.Core.Config
 
         /// <summary>How quickly a character reaches full speed.</summary>
         public float Acceleration => _acceleration;
+
+        /// <summary>How hard crowded zombies push each other apart.</summary>
+        public float ZombieSeparationStrength => _zombieSeparationStrength;
 
         /// <summary>The point in the day a confirmed day jumps to.</summary>
         public float DayStartNormalized => _dayStartNormalized;
