@@ -20,7 +20,7 @@ namespace ZombieGame.Tests.PlayMode
     public sealed class CharacterMovementPlayTests
     {
         private const string SandboxScene = "Sandbox";
-        private const string PlayerName = "MC (placeholder)";
+        private const string PlayerName = "MC";
 
         private PlayerInputReader _input = null!;
         private Transform _player = null!;

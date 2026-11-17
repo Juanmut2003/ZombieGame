@@ -33,8 +33,10 @@ namespace ZombieGame.Editor.Scenes
 
         private const string FloorSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_floor.png";
         private const string WallSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_wall.png";
-        private const string PlayerSprite = "Assets/_Project/Art/Sprites/Characters/placeholder_mc.png";
-        private const string ZombieSprite = "Assets/_Project/Art/Sprites/Zombies/placeholder_walker.png";
+        private const string PlayerSprite =
+            "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
+        private const string ZombieSprite =
+            "Assets/_Project/Art/Sprites/Zombies/zombie_front_walk.png";
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -159,13 +161,13 @@ namespace ZombieGame.Editor.Scenes
         private static Transform? CreateActors(Scene scene)
         {
             Transform? player = AddActor(
-                scene, "MC (placeholder)", PlayerSprite, new Vector3(-1.5f, 0f, 0f));
+                scene, "MC", PlayerSprite, new Vector3(-1.5f, 0f, 0f));
             if (player is not null)
             {
                 MakePlayable(player.gameObject);
             }
 
-            AddActor(scene, "Walker (placeholder)", ZombieSprite, new Vector3(2.5f, 1f, 0f));
+            AddActor(scene, "Walker", ZombieSprite, new Vector3(2.5f, 1f, 0f));
             return player;
         }
 
@@ -185,12 +187,14 @@ namespace ZombieGame.Editor.Scenes
             body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
 
-            // A capsule roughly the size of the feet and body, sitting just above the pivot: the
-            // sprite's head should be able to overlap a wall above it without the body snagging.
+            // Only the feet collide, not the whole figure. In a top-down view the sprite is drawn
+            // standing up but occupies a small patch of floor, so the body is free to overlap a
+            // wall it is standing in front of. The art is 58 px tall at 32 pixels per unit, so
+            // the figure is about 1.8 units — the collider stays a fraction of that.
             var collider = player.AddComponent<CapsuleCollider2D>();
-            collider.direction = CapsuleDirection2D.Vertical;
-            collider.size = new Vector2(0.5f, 0.6f);
-            collider.offset = new Vector2(0f, 0.3f);
+            collider.direction = CapsuleDirection2D.Horizontal;
+            collider.size = new Vector2(0.7f, 0.4f);
+            collider.offset = new Vector2(0f, 0.2f);
 
             PlayerInputReader input = player.AddComponent<PlayerInputReader>();
             var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(
