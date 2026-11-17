@@ -101,6 +101,58 @@ namespace ZombieGame.Editor.Scenes
             return text;
         }
 
+        /// <summary>
+        /// Creates a bar pinned to the bottom-left corner and returns the part that fills it.
+        /// </summary>
+        /// <remarks>
+        /// Anchored to the corner rather than positioned by hand, so it stays where it belongs at
+        /// any window size. The fill is a plain image resized by its anchors; see
+        /// <c>StaminaBarPresenter</c> for why it is not a filled image.
+        /// </remarks>
+        /// <param name="parent">The canvas the bar belongs to.</param>
+        /// <param name="name">Name of the bar's root object.</param>
+        /// <param name="size">Width and height of the bar in reference pixels.</param>
+        /// <param name="margin">Distance from the bottom-left corner of the screen.</param>
+        /// <param name="trackColour">The empty bar behind the fill.</param>
+        /// <param name="fillColour">Starting colour of the fill.</param>
+        public static Image CreateCornerBar(
+            Transform parent,
+            string name,
+            Vector2 size,
+            Vector2 margin,
+            Color trackColour,
+            Color fillColour)
+        {
+            var barObject = new GameObject(name, typeof(RectTransform));
+            barObject.transform.SetParent(parent, worldPositionStays: false);
+
+            var rect = (RectTransform)barObject.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = Vector2.zero;
+            rect.anchoredPosition = margin;
+            rect.sizeDelta = size;
+
+            Image track = barObject.AddComponent<Image>();
+            track.color = trackColour;
+            track.raycastTarget = false;
+
+            var fillObject = new GameObject($"{name} Fill", typeof(RectTransform));
+            fillObject.transform.SetParent(barObject.transform, worldPositionStays: false);
+
+            var fillRect = (RectTransform)fillObject.transform;
+            fillRect.anchorMin = Vector2.zero;
+            fillRect.anchorMax = Vector2.one;
+            fillRect.pivot = Vector2.zero;
+            fillRect.offsetMin = Vector2.zero;
+            fillRect.offsetMax = Vector2.zero;
+
+            Image fill = fillObject.AddComponent<Image>();
+            fill.color = fillColour;
+            fill.raycastTarget = false;
+            return fill;
+        }
+
         /// <summary>Creates a button with a centred label and returns it.</summary>
         public static Button CreateButton(
             Transform parent,

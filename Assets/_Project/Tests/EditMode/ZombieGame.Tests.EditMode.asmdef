@@ -7,6 +7,7 @@
         "ZombieGame.Characters",
         "ZombieGame.Combat",
         "ZombieGame.AI",
+        "Unity.InputSystem",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

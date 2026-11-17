@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
 using ZombieGame.AI;
 using ZombieGame.Characters;
 using ZombieGame.Combat;
@@ -13,6 +14,7 @@ using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Input;
+using ZombieGame.UI;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -68,6 +70,11 @@ namespace ZombieGame.Editor.Scenes
         private const int HordeCapacity = 300;
         private const int HordeOnStart = 26;
 
+        // Dim enough to read as part of the world rather than a web page laid over it.
+        private static readonly Color HudTrack = new(0.09f, 0.1f, 0.1f, 0.78f);
+        private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
+        private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
+
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
         public static void Build()
@@ -83,8 +90,9 @@ namespace ZombieGame.Editor.Scenes
                 // Actors first: the camera is built around what it follows, and snapping it onto
                 // a target that does not exist yet would just park it at the origin.
                 Transform? player = CreateActors(scene);
-                CameraRigBuilder.Create(scene, player);
+                Camera camera = CameraRigBuilder.Create(scene, player);
                 CreateHorde(scene, player);
+                CreateHud(scene, camera);
             });
 
             Debug.Log($"[Sandbox] built {ProjectScenes.Sandbox}");
@@ -112,6 +120,47 @@ namespace ZombieGame.Editor.Scenes
 
             // No scene to hand over to: this one is already the zone.
             serialized.FindProperty("_firstScene").stringValue = string.Empty;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Builds the in-game HUD: for now the stamina bar and nothing else.
+        /// </summary>
+        /// <remarks>
+        /// Stamina is the one number the player has to watch while playing — sprinting away and
+        /// swinging come out of the same pool, so an invisible pool means being caught mid-stride
+        /// with no warning. Health gets its bar when the MC can be hurt.
+        /// TODO: placeholder framing. The diegetic HUD from PROJECT.md 13 comes with the UX pass.
+        /// </remarks>
+        private static void CreateHud(Scene scene, Camera camera)
+        {
+            Canvas canvas = UiSceneParts.CreateCanvas(scene, camera, "HUD Canvas");
+
+            UiSceneParts.CreateLabel(
+                canvas.transform,
+                "Stamina Label",
+                "STAMINA",
+                anchoredPosition: new Vector2(-404f, -222f),
+                size: new Vector2(120f, 18f),
+                fontSize: 12,
+                colour: HudMuted,
+                alignment: TextAnchor.MiddleLeft);
+
+            Image fill = UiSceneParts.CreateCornerBar(
+                canvas.transform,
+                "Stamina Bar",
+                size: new Vector2(180f, 10f),
+                margin: new Vector2(24f, 24f),
+                trackColour: HudTrack,
+                fillColour: HudStamina);
+
+            var presenterObject = new GameObject("Stamina Bar Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            StaminaBarPresenter presenter =
+                presenterObject.AddComponent<StaminaBarPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_fill").objectReferenceValue = fill;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

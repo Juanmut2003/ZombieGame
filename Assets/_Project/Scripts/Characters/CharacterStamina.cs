@@ -1,7 +1,9 @@
 #nullable enable
 using UnityEngine;
 using ZombieGame.Combat;
+using ZombieGame.Core;
 using ZombieGame.Core.Config;
+using ZombieGame.Core.Events;
 
 namespace ZombieGame.Characters
 {
@@ -20,6 +22,10 @@ namespace ZombieGame.Characters
         private BalanceConfig? _balance;
 
         private Stamina _stamina = null!;
+        private EventBus? _bus;
+        private int _ownerId;
+        private bool _isPlayer;
+        private float _lastAnnounced = float.NaN;
 
         /// <summary>Stamina left.</summary>
         public float Current => _stamina.Current;
@@ -27,7 +33,11 @@ namespace ZombieGame.Characters
         /// <summary>How full it is, for the bar on the HUD.</summary>
         public float Fraction => _stamina.Fraction;
 
-        private void Awake() =>
+        /// <summary>Who this stamina belongs to, as the HUD and later systems see it.</summary>
+        public int OwnerId => _ownerId;
+
+        private void Awake()
+        {
             // Assembled here rather than in BalanceConfig: Core cannot reference Combat, because
             // Combat already references Core, and this is the layer that knows both.
             _stamina = new Stamina(
@@ -38,7 +48,50 @@ namespace ZombieGame.Characters
                         _balance.StaminaRegenPerSecond,
                         _balance.StaminaRegenDelay));
 
-        private void Update() => _stamina.Tick(Time.deltaTime);
+            _ownerId = ActorIds.Next();
+
+            // The character the player steers is the one with an input reader on it. Deriving it
+            // beats a "this is the hero" checkbox that can be ticked on two objects at once.
+            _isPlayer = GetComponent<PlayerInputReader>() is not null;
+
+            GameServices.TryGet(out _bus);
+        }
+
+        private void Update()
+        {
+            _stamina.Tick(Time.deltaTime);
+            Announce();
+        }
+
+        /// <summary>
+        /// Tells the bus when the number moved, and once at the start so a bar has something to
+        /// draw before the player does anything.
+        /// </summary>
+        /// <remarks>
+        /// Only on a change: during a full bar this would otherwise publish sixty identical events
+        /// a second for every survivor in the zone.
+        /// </remarks>
+        private void Announce()
+        {
+            // Looked up again when it was missing: the bootstrap that registers the bus lives in
+            // the same scene, and Awake order between two scene objects is not something to rely
+            // on. By the first Update it is certainly up.
+            if (_bus is null && !GameServices.TryGet(out _bus))
+            {
+                return;
+            }
+
+            // NaN compares false against everything, including itself, so the first call always
+            // publishes without needing a separate flag.
+            if (Mathf.Approximately(_stamina.Current, _lastAnnounced))
+            {
+                return;
+            }
+
+            _lastAnnounced = _stamina.Current;
+            _bus.Publish(
+                new StaminaChangedEvent(_ownerId, _stamina.Current, _stamina.Maximum, _isPlayer));
+        }
 
         /// <summary>True when a swing or a dodge could be paid for right now.</summary>
         public bool CanSpend(float cost) => _stamina.CanSpend(cost);

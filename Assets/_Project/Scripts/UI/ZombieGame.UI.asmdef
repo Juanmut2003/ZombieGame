@@ -3,6 +3,7 @@
     "rootNamespace": "ZombieGame.UI",
     "references": [
         "ZombieGame.Core",
+        "ZombieGame.Combat",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],
