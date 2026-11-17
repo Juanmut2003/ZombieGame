@@ -42,17 +42,15 @@ namespace ZombieGame.Characters
             // and later for hundreds of zombies.
             _body = GetComponent<Rigidbody2D>();
 
-            _settings = _balance is null
-                ? new MovementSettings(3.5f, 1.8f, 40f)
-                : new MovementSettings(
-                    _balance.WalkSpeed, _balance.SprintMultiplier, _balance.Acceleration);
-
-            _sprintCostPerSecond = _balance is null ? 16f : _balance.SprintStaminaPerSecond;
-
             if (_balance is null)
             {
-                Debug.LogWarning($"[Movement] {name} has no BalanceConfig; using fallback speeds.");
+                Debug.LogWarning($"[Movement] {name} has no BalanceConfig; using the defaults.");
+                _balance = BalanceConfig.CreateDefault();
             }
+
+            _settings = new MovementSettings(
+                _balance.WalkSpeed, _balance.SprintMultiplier, _balance.Acceleration);
+            _sprintCostPerSecond = _balance.SprintStaminaPerSecond;
         }
 
         private void FixedUpdate()

@@ -62,6 +62,9 @@ namespace ZombieGame.Combat
         {
             // A default-constructed settings has a maximum of zero, which is nobody having said
             // anything rather than someone asking for a character who cannot move.
+            // The game never arrives here: a character builds these from its BalanceConfig, which
+            // is where the tuned numbers live. This is the floor under a unit test or a tool that
+            // wants a stamina pool without an asset in sight.
             _settings = settings.Maximum > 0f ? settings : new StaminaSettings();
             Current = _settings.Maximum;
         }

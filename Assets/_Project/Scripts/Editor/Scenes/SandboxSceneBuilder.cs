@@ -293,25 +293,15 @@ namespace ZombieGame.Editor.Scenes
             // like a rendering bug even when every one of them is walking its own way.
             ZombieDefinition[] kinds =
             {
-                GetOrCreateDefinition(
+                RequireDefinition(
                     WalkerDefinitionPath,
                     displayName: "Walker",
-                    maxHealth: 40f,
-
-                    // Slower than the MC's 3.5: dangerous in numbers or in a corner, not alone.
-                    moveSpeed: 1.2f,
-                    bodyRadius: 0.3f,
                     front: ZombieSprite,
                     left: ZombieLeftSprite,
                     right: ZombieRightSprite),
-                GetOrCreateDefinition(
+                RequireDefinition(
                     StumblerDefinitionPath,
                     displayName: "Stumbler",
-
-                    // Gaunt and bent: less to chew through, but it keeps coming a little faster.
-                    maxHealth: 30f,
-                    moveSpeed: 1.45f,
-                    bodyRadius: 0.26f,
                     front: Zombie2Sprite,
                     left: Zombie2LeftSprite,
                     right: Zombie2RightSprite),
@@ -339,21 +329,19 @@ namespace ZombieGame.Editor.Scenes
         }
 
         /// <summary>
-        /// Gets a zombie asset, creating it from the pack art if it is not there yet.
+        /// Loads a zombie asset, creating an untuned one with its art wired up if it is missing.
         /// </summary>
         /// <remarks>
-        /// The numbers are a first guess and belong to the designer from here on: an existing
-        /// asset is returned untouched, so tuning it survives a rebuild of the scene.
+        /// The builder deliberately sets no numbers. Health, speed and body radius belong to the
+        /// asset and to whoever is tuning it; a scene builder that wrote them would be a second,
+        /// invisible source of truth that quietly disagrees with the asset the moment either one
+        /// is edited. What it does wire is the art, which is not a balance value and is tedious
+        /// to click together by hand.
+        /// A fresh asset therefore comes out at the definition's own declared defaults, with a
+        /// warning saying so.
         /// </remarks>
-        private static ZombieDefinition GetOrCreateDefinition(
-            string assetPath,
-            string displayName,
-            float maxHealth,
-            float moveSpeed,
-            float bodyRadius,
-            string front,
-            string left,
-            string right)
+        private static ZombieDefinition RequireDefinition(
+            string assetPath, string displayName, string front, string left, string right)
         {
             var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(assetPath);
             if (existing is not null)
@@ -366,9 +354,6 @@ namespace ZombieGame.Editor.Scenes
 
             var serialized = new SerializedObject(definition);
             serialized.FindProperty("_displayName").stringValue = displayName;
-            serialized.FindProperty("_maxHealth").floatValue = maxHealth;
-            serialized.FindProperty("_moveSpeed").floatValue = moveSpeed;
-            serialized.FindProperty("_bodyRadius").floatValue = bodyRadius;
             serialized.FindProperty("_front").objectReferenceValue = LoadSprite(front);
             serialized.FindProperty("_left").objectReferenceValue = LoadSprite(left);
             serialized.FindProperty("_right").objectReferenceValue = LoadSprite(right);
@@ -376,14 +361,17 @@ namespace ZombieGame.Editor.Scenes
 
             AssetDatabase.CreateAsset(definition, assetPath);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Sandbox] created {assetPath}");
+            Debug.LogWarning(
+                $"[Sandbox] {assetPath} was missing and has been created untuned. "
+                + "Its numbers are the definition's defaults until someone sets them.");
             return definition;
         }
 
         /// <summary>
-        /// Gets the bat asset, creating it with a first guess at its numbers if it is missing.
+        /// Loads the weapon the MC starts with, creating an untuned one if it is missing.
         /// </summary>
-        private static WeaponDefinition GetOrCreateBat()
+        /// <remarks>Same rule as the zombies: the asset owns the numbers, not this file.</remarks>
+        private static WeaponDefinition RequireBat()
         {
             var existing = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(BatWeaponPath);
             if (existing is not null)
@@ -396,20 +384,13 @@ namespace ZombieGame.Editor.Scenes
 
             var serialized = new SerializedObject(bat);
             serialized.FindProperty("_displayName").stringValue = "Bat";
-
-            // Three swings for a walker, four for nothing: enough that a crowd is a problem.
-            serialized.FindProperty("_damage").floatValue = 14f;
-            serialized.FindProperty("_damageType").enumValueIndex = (int)DamageType.Blunt;
-            serialized.FindProperty("_range").floatValue = 1.1f;
-            serialized.FindProperty("_halfAngleDegrees").floatValue = 60f;
-            serialized.FindProperty("_maxTargets").intValue = 3;
-            serialized.FindProperty("_staminaCost").floatValue = 14f;
-            serialized.FindProperty("_cooldownSeconds").floatValue = 0.45f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             AssetDatabase.CreateAsset(bat, BatWeaponPath);
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Sandbox] created {BatWeaponPath}");
+            Debug.LogWarning(
+                $"[Sandbox] {BatWeaponPath} was missing and has been created untuned. "
+                + "Its numbers are the definition's defaults until someone sets them.");
             return bat;
         }
 
@@ -503,7 +484,7 @@ namespace ZombieGame.Editor.Scenes
 
             PlayerMelee melee = player.AddComponent<PlayerMelee>();
             var serializedMelee = new SerializedObject(melee);
-            serializedMelee.FindProperty("_weapon").objectReferenceValue = GetOrCreateBat();
+            serializedMelee.FindProperty("_weapon").objectReferenceValue = RequireBat();
             serializedMelee.FindProperty("_input").objectReferenceValue = input;
             serializedMelee.FindProperty("_stamina").objectReferenceValue = stamina;
             serializedMelee.ApplyModifiedPropertiesWithoutUndo();

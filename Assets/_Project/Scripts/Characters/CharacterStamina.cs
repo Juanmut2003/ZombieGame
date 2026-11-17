@@ -40,13 +40,17 @@ namespace ZombieGame.Characters
         {
             // Assembled here rather than in BalanceConfig: Core cannot reference Combat, because
             // Combat already references Core, and this is the layer that knows both.
+            if (_balance is null)
+            {
+                Debug.LogWarning($"[Stamina] {name} has no BalanceConfig; using the defaults.");
+                _balance = BalanceConfig.CreateDefault();
+            }
+
             _stamina = new Stamina(
-                _balance is null
-                    ? new StaminaSettings()
-                    : new StaminaSettings(
-                        _balance.StaminaMax,
-                        _balance.StaminaRegenPerSecond,
-                        _balance.StaminaRegenDelay));
+                new StaminaSettings(
+                    _balance.StaminaMax,
+                    _balance.StaminaRegenPerSecond,
+                    _balance.StaminaRegenDelay));
 
             _ownerId = ActorIds.Next();
 

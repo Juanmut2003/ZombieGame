@@ -70,6 +70,13 @@ namespace ZombieGame.Core.Config
         [Min(0f)]
         private float _zombieSeparationStrength = 1.6f;
 
+        [Tooltip(
+            "Side length of one neighbour-search bucket, in world units. Must be at least as wide "
+            + "as the widest zombie, or a neighbour can sit outside the cells that are searched.")]
+        [SerializeField]
+        [Min(0.1f)]
+        private float _zombieCrowdCellSize = 1f;
+
         /// <summary>Real-time seconds for a full in-game day in a zone.</summary>
         public float SecondsPerDay => _secondsPerDay;
 
@@ -100,8 +107,28 @@ namespace ZombieGame.Core.Config
         /// <summary>The point in the day a confirmed day jumps to.</summary>
         public float DayStartNormalized => _dayStartNormalized;
 
+        /// <summary>Side length of one neighbour-search bucket for the crowd.</summary>
+        public float ZombieCrowdCellSize => _zombieCrowdCellSize;
+
         /// <summary>Builds the settings the <see cref="GameClock"/> runs on.</summary>
         public ClockSettings CreateClockSettings() => new(_secondsPerDay, _dayStartNormalized);
 
+        /// <summary>
+        /// An unsaved config carrying the values declared above, for a component that was left
+        /// without one.
+        /// </summary>
+        /// <remarks>
+        /// This exists so that no system has to carry a second copy of the numbers as a fallback.
+        /// CLAUDE.md rules out balance numbers in C#, and a constant written "just in case the
+        /// asset is missing" is still a balance number in C# — one that silently disagrees with
+        /// the asset the designer is tuning. Here there is one declaration, and a missing asset
+        /// means the same values rather than different ones.
+        /// </remarks>
+        public static BalanceConfig CreateDefault()
+        {
+            BalanceConfig fallback = CreateInstance<BalanceConfig>();
+            fallback.name = "BalanceConfig (fallback)";
+            return fallback;
+        }
     }
 }

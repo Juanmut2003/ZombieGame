@@ -49,6 +49,9 @@ namespace ZombieGame.AI
 
         /// <summary>A sensible crowd: they jostle, they do not merge.</summary>
         /// <remarks>
+        /// For tests and for code constructing a manager on its own. The game does not come
+        /// through here: a zone's director builds these from its BalanceConfig, which is where the
+        /// tuned values live.
         /// Spelled out rather than written as <c>new()</c>: on a struct that calls the implicit
         /// zero constructor, not this type's one with its default arguments, and the result is a
         /// separation strength of zero — which is exactly the bug this field exists to prevent.

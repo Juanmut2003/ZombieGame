@@ -63,9 +63,17 @@ namespace ZombieGame.AI
             GameServices.TryGet(out EventBus? bus);
             _bus = bus;
 
-            float separation = _balance is null ? 1.6f : _balance.ZombieSeparationStrength;
+            if (_balance is null)
+            {
+                Debug.LogWarning($"[Zombies] {name} has no BalanceConfig; using the defaults.");
+                _balance = BalanceConfig.CreateDefault();
+            }
+
             _manager = new ZombieManager(
-                _capacity, bus, new CrowdSettings(separation, cellSize: 1f), _seed);
+                _capacity,
+                bus,
+                new CrowdSettings(_balance.ZombieSeparationStrength, _balance.ZombieCrowdCellSize),
+                _seed);
 
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
         }
