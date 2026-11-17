@@ -22,8 +22,11 @@ namespace ZombieGame.Editor.Scenes
     /// </remarks>
     public static class SandboxSceneBuilder
     {
-        private const int FloorWidth = 20;
-        private const int FloorHeight = 12;
+        // Sized so the whole room, walls included, sits inside the camera's view: at 32 pixels per
+        // unit the reference resolution shows about 15 by 8.4 units. A sandbox whose edges you
+        // cannot see is a sandbox that hides half of what it is supposed to demonstrate.
+        private const int FloorWidth = 12;
+        private const int FloorHeight = 6;
 
         /// <summary>
         /// The vertical half-size a camera needs to show exactly the reference resolution at the
@@ -100,6 +103,12 @@ namespace ZombieGame.Editor.Scenes
             GameObject gridObject = SceneBuilder.CreateObject(scene, "Grid");
             Grid grid = gridObject.AddComponent<Grid>();
             grid.cellSize = Vector3.one;
+
+            // Unity's cell (0,0) spans 0..1, so its centre sits at (0.5, 0.5) and no tile centre
+            // lands on a whole world coordinate. Shifting the grid by half a cell makes
+            // "integer world position == centre of a tile", which is the convention the base
+            // building grid, placement checks and pathfinding will all want.
+            gridObject.transform.position = new Vector3(-0.5f, -0.5f, 0f);
 
             Tilemap floorMap = CreateTilemapLayer(gridObject.transform, "Tilemap_Floor", 0);
             Tilemap wallMap = CreateTilemapLayer(gridObject.transform, "Tilemap_Walls", 1);
