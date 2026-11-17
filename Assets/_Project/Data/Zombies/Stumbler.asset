@@ -20,6 +20,7 @@ MonoBehaviour:
   _viewDistance: 6
   _viewHalfAngleDegrees: 60
   _hearingRadius: 6.5
+  _listenSeconds: 2.5
   _blunt: 1
   _sharp: 1
   _ballistic: 1

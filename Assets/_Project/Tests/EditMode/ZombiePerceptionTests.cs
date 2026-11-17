@@ -125,6 +125,71 @@ namespace ZombieGame.Tests.EditMode
         }
 
         [Test]
+        public void AZombieTurnsTowardsWhatItHeard()
+        {
+            SpawnLooking(Vector2.zero, Vector2.right);
+            var behind = new Vector2(-3f, 0f);
+
+            Assert.That(_manager.Perceive(behind, 0.25f), Is.Zero, "it is looking the other way");
+
+            _manager.HearNoise(behind, loudness: 1f);
+
+            // The point of hearing: a noise behind a zombie moves its cone, and the thing that
+            // made the noise is now in it.
+            Assert.That(_manager.Perceive(behind, 0.25f), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ANoiseItCannotHearLeavesItLookingWhereItWas()
+        {
+            SpawnLooking(Vector2.zero, Vector2.right);
+            Vector2 look = _manager.Get(0).Look;
+
+            _manager.HearNoise(new Vector2(-200f, 0f), loudness: 1f);
+
+            Assert.That(_manager.Get(0).Look, Is.EqualTo(look));
+        }
+
+        [Test]
+        public void ItGoesBackToLookingWhereItWalksOnceItStopsListening()
+        {
+            int id = SpawnLooking(Vector2.zero, Vector2.right);
+            int index = _manager.IndexOf(id);
+            _manager.HearNoise(new Vector2(0f, 3f), loudness: 1f);
+
+            // Still listening: walking does not pull its eyes back yet.
+            _manager.SetDestination(index, new Vector2(10f, 0f));
+            _manager.Tick(0.1f);
+            Assert.That(_manager.Get(index).Look.y, Is.GreaterThan(0.5f));
+
+            // Long enough for any sensible attention span to run out.
+            _manager.Tick(_manager.SensesOf(index).ListenSeconds + 0.1f);
+            _manager.Tick(0.1f);
+
+            Assert.That(_manager.Get(index).Look.x, Is.GreaterThan(0.9f));
+        }
+
+        [Test]
+        public void ADeafZombieHearsNothing()
+        {
+            var deaf = ScriptableObject.CreateInstance<ZombieDefinition>();
+            try
+            {
+                var serialized = new UnityEditor.SerializedObject(deaf);
+                serialized.FindProperty("_hearingRadius").floatValue = 0f;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+
+                _manager.Spawn(deaf, Vector2.zero);
+
+                Assert.That(_manager.HearNoise(new Vector2(0.1f, 0f), loudness: 10f), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(deaf);
+            }
+        }
+
+        [Test]
         public void PerceptionSurvivesADeathInTheMiddleOfTheArray()
         {
             SpawnLooking(Vector2.zero, Vector2.right);

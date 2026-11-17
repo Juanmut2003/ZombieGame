@@ -57,6 +57,11 @@ namespace ZombieGame.AI
         [Min(0f)]
         private float _hearingRadius = 6f;
 
+        [Tooltip("How long it keeps staring at a noise before going back to what it was doing.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _listenSeconds = 2f;
+
         [Header("Resistances")]
         [Tooltip("Damage multiplier per type: blunt, sharp, ballistic, fire, toxic. 1 is full.")]
         [SerializeField]
@@ -100,7 +105,7 @@ namespace ZombieGame.AI
 
         /// <summary>What this kind can see and hear.</summary>
         public ZombieSenses Senses =>
-            new(_viewDistance, _viewHalfAngleDegrees, _hearingRadius);
+            new(_viewDistance, _viewHalfAngleDegrees, _hearingRadius, _listenSeconds);
 
         /// <summary>How many looks this kind has to choose from.</summary>
         public int SkinCount => _skins.Length;

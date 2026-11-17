@@ -3,6 +3,7 @@ using UnityEngine;
 using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Events;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Characters
 {
@@ -91,6 +92,10 @@ namespace ZombieGame.Characters
                 damage: _weapon.CreateDamage(_actorId));
 
             _bus?.Publish(swing);
+
+            // A swing is heard whether or not it connects. Missing is louder than standing still,
+            // which is what makes a wild swing in the dark a decision rather than a free try.
+            _bus?.Publish(new NoiseEvent(transform.position, _weapon.Noise, _actorId));
             return true;
         }
     }

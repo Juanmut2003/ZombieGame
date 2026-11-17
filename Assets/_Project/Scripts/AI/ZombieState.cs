@@ -49,6 +49,14 @@ namespace ZombieGame.AI
         /// </summary>
         public Vector2 Look;
 
+        /// <summary>Where the last noise it heard came from.</summary>
+        public Vector2 HeardAt;
+
+        /// <summary>
+        /// Seconds left of staring at that noise. Zero means it is back to looking where it walks.
+        /// </summary>
+        public float ListenTimer;
+
         /// <summary>True while it can see what it is hunting.</summary>
         public bool SeesTarget;
 

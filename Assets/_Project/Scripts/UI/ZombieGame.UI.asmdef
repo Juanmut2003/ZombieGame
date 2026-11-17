@@ -4,7 +4,8 @@
     "references": [
         "ZombieGame.Core",
         "ZombieGame.Combat",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "ZombieGame.Waves"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

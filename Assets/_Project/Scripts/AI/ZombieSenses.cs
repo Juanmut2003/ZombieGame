@@ -22,8 +22,12 @@ namespace ZombieGame.AI
         /// <param name="hearingRadius">
         /// How far an ordinary noise carries to it. A louder noise reaches further.
         /// </param>
+        /// <param name="listenSeconds">How long it keeps looking at whatever it heard.</param>
         public ZombieSenses(
-            float viewDistance = 7f, float viewHalfAngleDegrees = 55f, float hearingRadius = 6f)
+            float viewDistance = 7f,
+            float viewHalfAngleDegrees = 55f,
+            float hearingRadius = 6f,
+            float listenSeconds = 2f)
         {
             if (viewDistance < 0f)
             {
@@ -45,9 +49,16 @@ namespace ZombieGame.AI
                     nameof(hearingRadius), hearingRadius, "Cannot be negative.");
             }
 
+            if (listenSeconds < 0f)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(listenSeconds), listenSeconds, "Cannot be negative.");
+            }
+
             ViewDistance = viewDistance;
             ViewHalfAngleDegrees = viewHalfAngleDegrees;
             HearingRadius = hearingRadius;
+            ListenSeconds = listenSeconds;
         }
 
         /// <summary>How far it sees.</summary>
@@ -59,7 +70,10 @@ namespace ZombieGame.AI
         /// <summary>How far an ordinary noise carries to it.</summary>
         public float HearingRadius { get; }
 
+        /// <summary>How long it keeps looking towards a noise it heard.</summary>
+        public float ListenSeconds { get; }
+
         /// <summary>Notices nothing at all. For tests that want perception out of the way.</summary>
-        public static ZombieSenses Deaf => new(0f, 0f, 0f);
+        public static ZombieSenses Deaf => new(0f, 0f, 0f, 0f);
     }
 }

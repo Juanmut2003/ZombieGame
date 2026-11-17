@@ -64,6 +64,58 @@ namespace ZombieGame.Core.Config
         [Min(0f)]
         private float _sprintStaminaPerSecond = 16f;
 
+        [Header("Noise")]
+        [Tooltip("How loud one walking step is. 1 is an ordinary noise.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _walkNoise = 0.45f;
+
+        [Tooltip("How loud one sprinting step is. The price of getting away quickly.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _sprintNoise = 1.4f;
+
+        [Tooltip("Seconds between steps at a walk.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _walkStepSeconds = 0.55f;
+
+        [Tooltip("Seconds between steps at a sprint.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _sprintStepSeconds = 0.32f;
+
+        [Header("Zone heat")]
+        [Tooltip("How much of a full meter one ordinary noise adds.")]
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _heatPerNoise = 0.02f;
+
+        [Tooltip("How much heat a second of quiet takes off.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _heatDecayPerSecond = 0.03f;
+
+        [Tooltip("Where the zone counts as having noticed, 0 to 1.")]
+        [SerializeField]
+        [Range(0.05f, 0.95f)]
+        private float _heatStirredAt = 0.35f;
+
+        [Tooltip("Where the zone counts as hunting, 0 to 1.")]
+        [SerializeField]
+        [Range(0.1f, 1f)]
+        private float _heatHuntingAt = 0.75f;
+
+        [Tooltip("How far the meter falls back below a threshold before the stage drops again.")]
+        [SerializeField]
+        [Range(0f, 0.3f)]
+        private float _heatStageDrop = 0.06f;
+
+        [Tooltip("How many extra zombies wander in each time the zone escalates a stage.")]
+        [SerializeField]
+        [Min(0)]
+        private int _heatSpawnsPerStage = 5;
+
         [Header("Crowds")]
         [Tooltip("How hard zombies standing in each other push apart, relative to walking speed.")]
         [SerializeField]
@@ -110,8 +162,38 @@ namespace ZombieGame.Core.Config
         /// <summary>Side length of one neighbour-search bucket for the crowd.</summary>
         public float ZombieCrowdCellSize => _zombieCrowdCellSize;
 
+        /// <summary>How loud one walking step is.</summary>
+        public float WalkNoise => _walkNoise;
+
+        /// <summary>How loud one sprinting step is.</summary>
+        public float SprintNoise => _sprintNoise;
+
+        /// <summary>Seconds between steps at a walk.</summary>
+        public float WalkStepSeconds => _walkStepSeconds;
+
+        /// <summary>Seconds between steps at a sprint.</summary>
+        public float SprintStepSeconds => _sprintStepSeconds;
+
+        /// <summary>How many extra zombies arrive each time a zone escalates a stage.</summary>
+        public int HeatSpawnsPerStage => _heatSpawnsPerStage;
+
         /// <summary>Builds the settings the <see cref="GameClock"/> runs on.</summary>
         public ClockSettings CreateClockSettings() => new(_secondsPerDay, _dayStartNormalized);
+
+        /// <summary>How much of a full heat meter one ordinary noise adds.</summary>
+        public float HeatPerNoise => _heatPerNoise;
+
+        /// <summary>How much heat a second of quiet takes off.</summary>
+        public float HeatDecayPerSecond => _heatDecayPerSecond;
+
+        /// <summary>Where a zone counts as having noticed.</summary>
+        public float HeatStirredAt => _heatStirredAt;
+
+        /// <summary>Where a zone counts as hunting.</summary>
+        public float HeatHuntingAt => _heatHuntingAt;
+
+        /// <summary>How far heat falls back below a threshold before the stage drops.</summary>
+        public float HeatStageDrop => _heatStageDrop;
 
         /// <summary>
         /// An unsaved config carrying the values declared above, for a component that was left

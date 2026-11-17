@@ -168,6 +168,73 @@ namespace ZombieGame.Tests.EditMode
         }
 
         [Test]
+        public void SwingingTheBatIsHeard()
+        {
+            WeaponDefinition bat = Load<WeaponDefinition>(BatPath);
+
+            // Melee being quieter than a gun is the reason to carry a bat at all; it still cannot
+            // be silent, or there is no reason ever to sneak past anything.
+            Assert.That(bat.Noise, Is.GreaterThan(0f), "a silent weapon makes stealth free");
+        }
+
+        [Test]
+        public void SprintingIsLouderThanWalking()
+        {
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            // The trade the whole stealth layer rests on: speed costs attention. Equal numbers
+            // here would leave sprinting with no downside but stamina.
+            Assert.That(balance.SprintNoise, Is.GreaterThan(balance.WalkNoise));
+            Assert.That(
+                balance.SprintStepSeconds,
+                Is.LessThan(balance.WalkStepSeconds),
+                "running also puts feet down more often");
+        }
+
+        [Test]
+        public void AZoneCoolsDownButNotBeforeThePlayerNotices()
+        {
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            Assert.That(balance.HeatPerNoise, Is.GreaterThan(0f), "noise that does nothing");
+            Assert.That(balance.HeatDecayPerSecond, Is.GreaterThan(0f), "a zone that never calms");
+
+            // A stage has to last long enough to be read. Decaying a whole stage in under a
+            // couple of seconds would make the meter flicker rather than inform.
+            float stageWidth = balance.HeatHuntingAt - balance.HeatStirredAt;
+            Assert.That(stageWidth / balance.HeatDecayPerSecond, Is.GreaterThan(2f));
+            Assert.That(balance.HeatStirredAt, Is.LessThan(balance.HeatHuntingAt));
+            Assert.That(balance.HeatSpawnsPerStage, Is.GreaterThan(0), "escalation with no teeth");
+        }
+
+        [Test]
+        public void ASprintAcrossTheRoomIsEnoughToBeNoticed()
+        {
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            // Ten seconds of running should have consequences. The relationship between step
+            // rate, loudness and heat is the thing no single field can state on its own.
+            float seconds = 10f;
+            float steps = seconds / balance.SprintStepSeconds;
+            float heat = (steps * balance.SprintNoise * balance.HeatPerNoise)
+                         - (seconds * balance.HeatDecayPerSecond);
+
+            Assert.That(
+                heat,
+                Is.GreaterThan(balance.HeatStirredAt),
+                "ten seconds of sprinting goes unnoticed");
+        }
+
+        [TestCaseSource(nameof(EveryZombie))]
+        public void AZombieKeepsListeningLongEnoughToMatter(string path)
+        {
+            ZombieDefinition zombie = Load<ZombieDefinition>(path);
+
+            // Turning towards a noise for a fraction of a second would be invisible and useless.
+            Assert.That(zombie.Senses.ListenSeconds, Is.GreaterThan(0.5f));
+        }
+
+        [Test]
         public void TheCrowdCellIsWideEnoughForTheWidestZombie()
         {
             BalanceConfig balance = Load<BalanceConfig>(BalancePath);

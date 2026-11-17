@@ -4,7 +4,8 @@
     "references": [
         "ZombieGame.Core",
         "ZombieGame.Combat",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "ZombieGame.Waves"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

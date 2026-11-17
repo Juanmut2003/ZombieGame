@@ -338,6 +338,47 @@ namespace ZombieGame.AI
         }
 
         /// <summary>
+        /// Lets a noise reach the horde. Whoever hears it turns to look that way.
+        /// </summary>
+        /// <remarks>
+        /// Turning the head is the smallest thing hearing can do and still matter, and it matters
+        /// a lot: a zombie looking at a noise is a zombie whose view cone has moved, so the sound
+        /// you made behind it is what gets you seen. Walking over to investigate, and giving up
+        /// again, are the next step — this one only redirects attention.
+        /// Facing is left alone on purpose. The three-pose art shows which way a body is walking,
+        /// and a zombie that spun its sprite round without moving would read as a bug.
+        /// </remarks>
+        /// <param name="origin">Where the noise came from.</param>
+        /// <param name="loudness">How loud it was. 1 is an ordinary noise.</param>
+        /// <returns>How many heard it.</returns>
+        public int HearNoise(Vector2 origin, float loudness)
+        {
+            int heard = 0;
+
+            for (int i = 0; i < Count; i++)
+            {
+                ref ZombieState zombie = ref _states[i];
+                if (!PerceptionMath.CanHear(
+                        zombie.Position, origin, loudness, _senses[i].HearingRadius))
+                {
+                    continue;
+                }
+
+                heard++;
+                zombie.HeardAt = origin;
+                zombie.ListenTimer = _senses[i].ListenSeconds;
+
+                Vector2 towards = origin - zombie.Position;
+                if (towards.sqrMagnitude > 0.000001f)
+                {
+                    zombie.Look = towards.normalized;
+                }
+            }
+
+            return heard;
+        }
+
+        /// <summary>
         /// Moves every zombie one step towards its destination.
         /// </summary>
         /// <remarks>
@@ -368,6 +409,13 @@ namespace ZombieGame.AI
                 if (zombie.HitFlash > 0f)
                 {
                     zombie.HitFlash = Math.Max(0f, zombie.HitFlash - deltaSeconds);
+                }
+
+                // Same here: a zombie listening to something stops listening eventually, whether
+                // or not it is walking anywhere.
+                if (zombie.ListenTimer > 0f)
+                {
+                    zombie.ListenTimer = Math.Max(0f, zombie.ListenTimer - deltaSeconds);
                 }
 
                 Vector2 toTarget = zombie.Destination - zombie.Position;
@@ -410,8 +458,9 @@ namespace ZombieGame.AI
 
                 // A zombie looks where it is going. Kept only while it is actually moving, so one
                 // that has stopped keeps staring where it last walked instead of snapping to a
-                // zero vector and going blind.
-                if (direction.sqrMagnitude > 0.000001f)
+                // zero vector and going blind — and not at all while it is still listening to
+                // something, which is what gives a noise its hold on a zombie's attention.
+                if (zombie.ListenTimer <= 0f && direction.sqrMagnitude > 0.000001f)
                 {
                     zombie.Look = direction;
                 }

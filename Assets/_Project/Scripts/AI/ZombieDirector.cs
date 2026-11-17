@@ -6,6 +6,7 @@ using ZombieGame.Combat;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
 using ZombieGame.Core.Pooling;
+using ZombieGame.Waves;
 
 namespace ZombieGame.AI
 {
@@ -59,7 +60,11 @@ namespace ZombieGame.AI
         [Min(0f)]
         private float _targetRadius = 0.25f;
 
+        // Far enough out that arrivals come from beyond the scattered crowd rather than inside it.
+        private const float RimFactor = 1.25f;
+
         private ZombieManager _manager = null!;
+        private System.Random _rimRandom = null!;
         private EventBus? _bus;
         private ObjectPool<ZombieView> _views = null!;
         private ILineOfSight _lineOfSight = OpenLineOfSight.Instance;
@@ -85,6 +90,11 @@ namespace ZombieGame.AI
                 new CrowdSettings(_balance.ZombieSeparationStrength, _balance.ZombieCrowdCellSize),
                 _seed);
 
+            // Its own stream, so an escalation does not shuffle the opening layout: a zone that
+            // laid itself out differently depending on how loud the player had been would make
+            // every bug in it unreproducible.
+            _rimRandom = new System.Random(_seed ^ 0x5EED);
+
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
 
             // With no layers named, nothing blocks sight — and a zombie that sees through walls
@@ -99,9 +109,68 @@ namespace ZombieGame.AI
             }
         }
 
-        private void OnEnable() => _bus?.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
+        private void OnEnable()
+        {
+            _bus?.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
+            _bus?.Subscribe<NoiseEvent>(OnNoise);
+            _bus?.Subscribe<HeatChangedEvent>(OnHeatChanged);
+        }
 
-        private void OnDisable() => _bus?.Unsubscribe<MeleeSwungEvent>(OnMeleeSwung);
+        private void OnDisable()
+        {
+            _bus?.Unsubscribe<MeleeSwungEvent>(OnMeleeSwung);
+            _bus?.Unsubscribe<NoiseEvent>(OnNoise);
+            _bus?.Unsubscribe<HeatChangedEvent>(OnHeatChanged);
+        }
+
+        /// <summary>Lets the horde hear what the zone heard.</summary>
+        private void OnNoise(NoiseEvent noise) => _manager.HearNoise(noise.Origin, noise.Loudness);
+
+        /// <summary>
+        /// Walks more zombies in whenever the zone gets worse.
+        /// </summary>
+        /// <remarks>
+        /// This is the part of PROJECT.md §5 that makes noise cost something right now rather than
+        /// at the end of the mission: gunfire and alarms escalate zone spawns in real time. They
+        /// arrive at the rim rather than next to the player — the zone is drawing them in, not
+        /// conjuring them on top of you, and a crowd that appears in your face is a cheat however
+        /// loud you were being.
+        /// </remarks>
+        private void OnHeatChanged(HeatChangedEvent heat)
+        {
+            if (!heat.Escalated || _definitions.Length == 0 || _balance is null)
+            {
+                return;
+            }
+
+            SpawnAtRim(_balance.HeatSpawnsPerStage);
+        }
+
+        /// <summary>Puts fresh zombies down around the edge of the spawn area.</summary>
+        public int SpawnAtRim(int count)
+        {
+            if (_definitions.Length == 0)
+            {
+                return 0;
+            }
+
+            int spawned = 0;
+            for (int i = 0; i < count && !_manager.IsFull; i++)
+            {
+                float angle = (float)(_rimRandom.NextDouble() * Mathf.PI * 2f);
+                var rim = new Vector2(
+                    Mathf.Cos(angle) * _spawnArea.x * RimFactor,
+                    Mathf.Sin(angle) * _spawnArea.y * RimFactor);
+
+                int type = _rimRandom.Next(_definitions.Length);
+                if (_manager.Spawn(_definitions[type], (Vector2)transform.position + rim, type) != 0)
+                {
+                    spawned++;
+                }
+            }
+
+            return spawned;
+        }
 
         /// <summary>
         /// Resolves a swing against the horde. The attacker never touches the array itself.

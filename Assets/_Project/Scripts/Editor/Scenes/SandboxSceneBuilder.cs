@@ -16,6 +16,7 @@ using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
 using ZombieGame.Editor.Input;
 using ZombieGame.UI;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -80,6 +81,7 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudTrack = new(0.09f, 0.1f, 0.1f, 0.78f);
         private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
+        private static readonly Color HudCalm = new(0.45f, 0.55f, 0.62f, 1f);
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -103,6 +105,7 @@ namespace ZombieGame.Editor.Scenes
                 Transform? player = CreateActors(scene);
                 Camera camera = CameraRigBuilder.Create(scene, player);
                 CreateHorde(scene, player);
+                CreateZoneHeat(scene);
                 CreateSwingFlash(scene);
                 CreateHud(scene, camera);
             });
@@ -202,6 +205,57 @@ namespace ZombieGame.Editor.Scenes
 
             var serialized = new SerializedObject(presenter);
             serialized.FindProperty("_fill").objectReferenceValue = fill;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            CreateHeatBar(canvas);
+        }
+
+        /// <summary>
+        /// The zone's heat meter, above the stamina bar.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately next to stamina rather than off in a corner: the two are the same
+        /// decision seen from both ends. Sprinting spends one and fills the other.
+        /// </remarks>
+        private static void CreateHeatBar(Canvas canvas)
+        {
+            Text label = UiSceneParts.CreateLabel(
+                canvas.transform,
+                "Heat Label",
+                "CALM",
+                anchoredPosition: new Vector2(-404f, -192f),
+                size: new Vector2(120f, 18f),
+                fontSize: 12,
+                colour: HudMuted,
+                alignment: TextAnchor.MiddleLeft);
+
+            Image fill = UiSceneParts.CreateCornerBar(
+                canvas.transform,
+                "Heat Bar",
+                size: new Vector2(180f, 10f),
+                margin: new Vector2(24f, 54f),
+                trackColour: HudTrack,
+                fillColour: HudCalm);
+
+            var presenterObject = new GameObject("Heat Bar Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            HeatBarPresenter presenter = presenterObject.AddComponent<HeatBarPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_fill").objectReferenceValue = fill;
+            serialized.FindProperty("_label").objectReferenceValue = label;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Puts the zone's heat meter in the scene, listening to the bus.</summary>
+        private static void CreateZoneHeat(Scene scene)
+        {
+            GameObject heatObject = SceneBuilder.CreateObject(scene, "Zone Heat");
+            ZoneHeat heat = heatObject.AddComponent<ZoneHeat>();
+
+            var serialized = new SerializedObject(heat);
+            serialized.FindProperty("_balance").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -521,6 +575,14 @@ namespace ZombieGame.Editor.Scenes
             serializedFacing.FindProperty("_right").objectReferenceValue =
                 LoadSprite(PlayerRightSprite);
             serializedFacing.ApplyModifiedPropertiesWithoutUndo();
+
+            // Walking is quiet, sprinting is not. The whole stealth half of the game hangs off
+            // this component being on the thing the player steers.
+            FootstepNoise steps = player.AddComponent<FootstepNoise>();
+            var serializedSteps = new SerializedObject(steps);
+            serializedSteps.FindProperty("_balance").objectReferenceValue = balance;
+            serializedSteps.FindProperty("_input").objectReferenceValue = input;
+            serializedSteps.ApplyModifiedPropertiesWithoutUndo();
 
             PlayerMelee melee = player.AddComponent<PlayerMelee>();
             var serializedMelee = new SerializedObject(melee);

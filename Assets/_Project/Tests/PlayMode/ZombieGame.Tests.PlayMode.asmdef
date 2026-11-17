@@ -9,7 +9,8 @@
         "ZombieGame.UI",
         "UnityEngine.UI",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "ZombieGame.Waves"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

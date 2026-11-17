@@ -3,7 +3,8 @@
     "rootNamespace": "ZombieGame.AI",
     "references": [
         "ZombieGame.Core",
-        "ZombieGame.Combat"
+        "ZombieGame.Combat",
+        "ZombieGame.Waves"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
