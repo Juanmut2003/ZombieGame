@@ -134,7 +134,7 @@ namespace ZombieGame.Editor.Art
 
             // One accent pixel every few steps: enough to see the grid and any tiling seam,
             // not enough to look like a texture.
-            const int step = 8;
+            const int step = 16;
             for (int y = 0; y < spec.Height; y += step)
             {
                 for (int x = 0; x < spec.Width; x += step)

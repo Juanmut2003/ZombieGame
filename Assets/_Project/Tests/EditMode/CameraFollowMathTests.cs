@@ -139,15 +139,16 @@ namespace ZombieGame.Tests.EditMode
         [Test]
         public void TheReferenceResolutionMatchesTheArtDirection()
         {
-            Assert.That(PixelPerfectSettings.ReferenceWidth, Is.EqualTo(480));
-            Assert.That(PixelPerfectSettings.ReferenceHeight, Is.EqualTo(270));
-            Assert.That(PixelPerfectSettings.PixelsPerUnit, Is.EqualTo(32));
+            Assert.That(PixelPerfectSettings.ReferenceWidth, Is.EqualTo(960));
+            Assert.That(PixelPerfectSettings.ReferenceHeight, Is.EqualTo(540));
+            Assert.That(PixelPerfectSettings.PixelsPerUnit, Is.EqualTo(64));
         }
 
         [Test]
         public void TheOrthographicSizeShowsExactlyTheReferenceHeight()
         {
-            // 270 pixels tall at 32 pixels per unit is 8.4375 units, and Unity wants half of that.
+            // 540 pixels tall at 64 pixels per unit is 8.4375 units, and Unity wants half of that.
+            // Unchanged by the move from 32 to 64: the camera still shows the same slice of world.
             Assert.That(PixelPerfectSettings.OrthographicSize, Is.EqualTo(4.21875f).Within(0.00001f));
             Assert.That(PixelPerfectSettings.OrthographicSizeFor(540, 32), Is.EqualTo(8.4375f));
         }

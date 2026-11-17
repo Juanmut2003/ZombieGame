@@ -1,4 +1,5 @@
-# PROJECT.md — Game Design Document
+| Which pixel scale does the art run at? | **64 px per tile, 64 pixels per unit, 960×540 reference.** Raised from 32/480×270 so bought character art of 64 px fits a tile; the visible area and the clean 1080p upscale are unchanged | §13, CLAUDE.md §4 |
+| Is cash (€) still credible?# PROJECT.md — Game Design Document
 
 **Working title:** ZombieGame (placeholder)
 **Genre:** Top-down survival / base building / squad action
@@ -357,8 +358,10 @@ Named groups with territory, demands and attitudes. Reputation per faction (−1
 
 ## 13. Art & audio direction
 
-- **Visuals:** top-down, slightly pixelated. Target sprite base 32×32 px per tile, characters ~24×32,
-  rendered at a fixed pixels-per-unit with a pixel-perfect camera. Limited palette (~48 colours),
+- **Visuals:** top-down, slightly pixelated. Target sprite base **64×64 px per tile**, characters
+  roughly one tile tall (about 48×64), rendered at **64 pixels per unit** with a pixel-perfect
+  camera at a **960×540** reference resolution — which shows 15 by 8.4 tiles and upscales to 1080p
+  exactly twice. Limited palette (~48 colours),
   muted desaturated European tones; blood, fire and faction colours are the only saturated accents.
 - **Lighting:** URP 2D lights — day/night global light ramp, flashlights with cone shadows, fire,
   muzzle flashes, floodlights, window glow. Lighting is a gameplay system, not decoration.
@@ -389,8 +392,8 @@ generation beyond template dressing, a scripted ending campaign.
 
 ## 15. Settled decisions
 
-These were the open questions of the first draft. All five are now decided and written into the
-sections above; they are recorded here so the reasoning is not lost.
+The open questions of the first draft, plus what has been settled since. Each one is written into
+the sections above; they are recorded here so the reasoning is not lost.
 
 | Question | Decision | Written into |
 |----------|----------|--------------|
@@ -399,5 +402,6 @@ sections above; they are recorded here so the reasoning is not lost.
 | Real-time base management or day confirmation? | **Day confirmation.** The base layer is turn-based and resolves in an end-of-day step; zones stay fully real-time | §12 |
 | Fixed or randomised base candidate sites? | **Randomised per run**, drawn from a larger handcrafted pool | §4.1 |
 | Is cash (€) still credible? | **No — barter replaces it.** Goods are priced in abstract Trade Value (TV); Die Börse is the one faction still dealing in cash and metals | §11, §4.1 |
+| Which pixel scale does the art run at? | **64 px per tile, 64 pixels per unit, 960×540 reference.** Raised from 32 and 480×270 so bought 64 px character art fits a tile; the visible area and the exact 1080p upscale are unchanged | §13, CLAUDE.md §4 |
 
 New open questions go here as they come up — this section should never be empty for long.

@@ -77,22 +77,22 @@ namespace ZombieGame.Editor.Scenes
                 Transform root = canvas.transform;
 
                 UiSceneParts.CreateLabel(
-                    root, "Title", "ZOMBIEGAME", new Vector2(0f, 70f), new Vector2(400f, 40f), 28, Ink);
+                    root, "Title", "ZOMBIEGAME", new Vector2(0f, 140f), new Vector2(800f, 80f), 56, Ink);
                 UiSceneParts.CreateLabel(
                     root,
                     "Subtitle",
                     "placeholder main menu",
-                    new Vector2(0f, 44f),
-                    new Vector2(400f, 20f),
-                    12,
+                    new Vector2(0f, 88f),
+                    new Vector2(800f, 40f),
+                    24,
                     Muted);
 
                 Button newRun = UiSceneParts.CreateButton(
-                    root, "New Run Button", "New run", new Vector2(0f, -10f),
-                    new Vector2(160f, 32f), ButtonFill, Ink);
+                    root, "New Run Button", "New run", new Vector2(0f, -20f),
+                    new Vector2(320f, 64f), ButtonFill, Ink);
                 Button quit = UiSceneParts.CreateButton(
-                    root, "Quit Button", "Quit", new Vector2(0f, -52f),
-                    new Vector2(160f, 32f), ButtonFill, Muted);
+                    root, "Quit Button", "Quit", new Vector2(0f, -104f),
+                    new Vector2(320f, 64f), ButtonFill, Muted);
 
                 GameObject presenterObject = SceneBuilder.CreateObject(scene, "Main Menu Presenter");
                 MainMenuPresenter presenter = presenterObject.AddComponent<MainMenuPresenter>();

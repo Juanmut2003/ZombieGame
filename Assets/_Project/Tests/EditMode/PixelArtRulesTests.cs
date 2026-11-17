@@ -74,7 +74,7 @@ namespace ZombieGame.Tests.EditMode
         [Test]
         public void ThePixelsPerUnitMatchesTheArtDirection()
         {
-            Assert.That(PixelArtRules.PixelsPerUnit, Is.EqualTo(32));
+            Assert.That(PixelArtRules.PixelsPerUnit, Is.EqualTo(64));
         }
     }
 }

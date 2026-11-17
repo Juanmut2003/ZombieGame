@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using ZombieGame.Core.Rendering;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -20,8 +21,12 @@ namespace ZombieGame.Editor.Scenes
     /// </remarks>
     public static class UiSceneParts
     {
-        /// <summary>The design resolution the UI is laid out against.</summary>
-        public static readonly Vector2 ReferenceResolution = new(480f, 270f);
+        /// <summary>
+        /// The design resolution the UI is laid out against — the same one the world renders at, so
+        /// a UI pixel and a world pixel are the same size on screen.
+        /// </summary>
+        public static readonly Vector2 ReferenceResolution =
+            new(PixelPerfectSettings.ReferenceWidth, PixelPerfectSettings.ReferenceHeight);
 
         /// <summary>Creates a screen-space canvas that scales with the window.</summary>
         /// <param name="camera">
@@ -128,7 +133,7 @@ namespace ZombieGame.Editor.Scenes
                 label,
                 Vector2.zero,
                 size,
-                14,
+                28,
                 labelColour);
             text.raycastTarget = false;
 

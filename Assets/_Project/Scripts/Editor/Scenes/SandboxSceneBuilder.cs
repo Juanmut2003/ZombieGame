@@ -189,12 +189,12 @@ namespace ZombieGame.Editor.Scenes
 
             // Only the feet collide, not the whole figure. In a top-down view the sprite is drawn
             // standing up but occupies a small patch of floor, so the body is free to overlap a
-            // wall it is standing in front of. The art is 58 px tall at 32 pixels per unit, so
-            // the figure is about 1.8 units — the collider stays a fraction of that.
+            // wall it is standing in front of. The art is 58 px tall at 64 pixels per unit, so the
+            // figure is about 0.9 units — roughly one tile — and the collider is a fraction of that.
             var collider = player.AddComponent<CapsuleCollider2D>();
             collider.direction = CapsuleDirection2D.Horizontal;
-            collider.size = new Vector2(0.7f, 0.4f);
-            collider.offset = new Vector2(0f, 0.2f);
+            collider.size = new Vector2(0.35f, 0.2f);
+            collider.offset = new Vector2(0f, 0.1f);
 
             PlayerInputReader input = player.AddComponent<PlayerInputReader>();
             var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(

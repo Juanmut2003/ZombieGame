@@ -40,18 +40,18 @@ namespace ZombieGame.Editor.Art
             new List<(string, PlaceholderSpriteSpec)>
             {
                 ("Characters", new PlaceholderSpriteSpec(
-                    "placeholder_mc", 24, 32, PlaceholderShape.Humanoid, PlayerBody, PlayerAccent)),
+                    "placeholder_mc", 48, 64, PlaceholderShape.Humanoid, PlayerBody, PlayerAccent)),
                 ("Characters", new PlaceholderSpriteSpec(
-                    "placeholder_survivor", 24, 32, PlaceholderShape.Humanoid,
+                    "placeholder_survivor", 48, 64, PlaceholderShape.Humanoid,
                     SurvivorBody, SurvivorAccent)),
                 ("Zombies", new PlaceholderSpriteSpec(
-                    "placeholder_walker", 24, 32, PlaceholderShape.Humanoid, ZombieBody, ZombieAccent)),
+                    "placeholder_walker", 48, 64, PlaceholderShape.Humanoid, ZombieBody, ZombieAccent)),
                 ("Tiles", new PlaceholderSpriteSpec(
-                    "placeholder_floor", 32, 32, PlaceholderShape.Tile, FloorBody, FloorAccent)),
+                    "placeholder_floor", 64, 64, PlaceholderShape.Tile, FloorBody, FloorAccent)),
                 ("Tiles", new PlaceholderSpriteSpec(
-                    "placeholder_wall", 32, 32, PlaceholderShape.Tile, WallBody, WallAccent)),
+                    "placeholder_wall", 64, 64, PlaceholderShape.Tile, WallBody, WallAccent)),
                 ("Items", new PlaceholderSpriteSpec(
-                    "placeholder_crate", 32, 32, PlaceholderShape.Box, CrateBody, CrateAccent)),
+                    "placeholder_crate", 64, 64, PlaceholderShape.Box, CrateBody, CrateAccent)),
             };
 
         /// <summary>Writes any placeholder that is not on disk yet.</summary>

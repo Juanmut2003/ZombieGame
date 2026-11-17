@@ -110,10 +110,11 @@ unlock thresholds live in SO assets or in a `BalanceConfig` SO. Code reads them;
 
 ## 4. Art & audio pipeline
 
-- Sprites: **Point (no filter)**, Compression **None**, `Pixels Per Unit = 32`, Mesh Type `Full Rect`,
+- Sprites: **Point (no filter)**, Compression **None**, `Pixels Per Unit = 64`, Mesh Type `Full Rect`,
   pivot documented per sprite type. No mipmaps.
 - Pixel Perfect Camera component on the main camera — do not change its reference resolution
-  (`480×270`) without a design discussion.
+  (`960×540`) without a design discussion. One tile is 64×64 px and one world unit; characters are
+  roughly one tile tall.
 - Stick to the palette in `Art/Palettes/`. New colours need a reason.
 - Sprite atlases per category to keep draw calls low. One atlas per `Sprites/` subfolder.
 - Audio: `.ogg` for music/ambience, `.wav` for short SFX. SFX play through an audio service with
