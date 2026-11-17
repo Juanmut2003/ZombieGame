@@ -207,22 +207,54 @@ namespace ZombieGame.Tests.EditMode
             Assert.That(balance.HeatSpawnsPerStage, Is.GreaterThan(0), "escalation with no teeth");
         }
 
+        /// <summary>How hot a stretch of running leaves the zone, decay included.</summary>
+        private static float HeatAfterSprinting(BalanceConfig balance, float seconds) =>
+            (seconds / balance.SprintStepSeconds * balance.SprintNoise * balance.HeatPerNoise)
+            - (seconds * balance.HeatDecayPerSecond);
+
+        [Test]
+        public void OneBarOfStaminaSpentSprintingBringsTheZoneDownOnYou()
+        {
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            // The relationship that nearly got away. Stamina decides how long a sprint can last,
+            // and if the meter cannot reach its top stage inside that window, then no amount of
+            // running will ever bring the zone to Hunting and the stage is decoration.
+            // Three systems, one rule, and no single asset field can state it.
+            float sprintSeconds = balance.StaminaMax / balance.SprintStaminaPerSecond;
+
+            Assert.That(
+                HeatAfterSprinting(balance, sprintSeconds),
+                Is.GreaterThan(balance.HeatHuntingAt),
+                $"{sprintSeconds:0.0}s is all the sprinting there is, and it never reaches Hunting");
+        }
+
         [Test]
         public void ASprintAcrossTheRoomIsEnoughToBeNoticed()
         {
             BalanceConfig balance = Load<BalanceConfig>(BalancePath);
 
-            // Ten seconds of running should have consequences. The relationship between step
-            // rate, loudness and heat is the thing no single field can state on its own.
-            float seconds = 10f;
-            float steps = seconds / balance.SprintStepSeconds;
-            float heat = (steps * balance.SprintNoise * balance.HeatPerNoise)
-                         - (seconds * balance.HeatDecayPerSecond);
-
+            // A few seconds of running should already have consequences, well inside the stamina
+            // a rested character carries.
             Assert.That(
-                heat,
+                HeatAfterSprinting(balance, 4f),
                 Is.GreaterThan(balance.HeatStirredAt),
-                "ten seconds of sprinting goes unnoticed");
+                "four seconds of sprinting goes unnoticed");
+        }
+
+        [Test]
+        public void WalkingNeverHeatsAZoneUp()
+        {
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            float perSecond = balance.WalkNoise / balance.WalkStepSeconds * balance.HeatPerNoise;
+
+            // The other half of the trade: crossing a zone on foot has to be possible all day, or
+            // there is no quiet way through and stealth is just a slower way to be found.
+            Assert.That(
+                perSecond,
+                Is.LessThan(balance.HeatDecayPerSecond * 0.9f),
+                "walking alone fills the meter");
         }
 
         [TestCaseSource(nameof(EveryZombie))]

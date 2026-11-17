@@ -68,7 +68,7 @@ namespace ZombieGame.Core.Config
         [Tooltip("How loud one walking step is. 1 is an ordinary noise.")]
         [SerializeField]
         [Min(0f)]
-        private float _walkNoise = 0.45f;
+        private float _walkNoise = 0.4f;
 
         [Tooltip("How loud one sprinting step is. The price of getting away quickly.")]
         [SerializeField]
@@ -89,7 +89,7 @@ namespace ZombieGame.Core.Config
         [Tooltip("How much of a full meter one ordinary noise adds.")]
         [SerializeField]
         [Range(0f, 1f)]
-        private float _heatPerNoise = 0.02f;
+        private float _heatPerNoise = 0.035f;
 
         [Tooltip("How much heat a second of quiet takes off.")]
         [SerializeField]
@@ -104,7 +104,7 @@ namespace ZombieGame.Core.Config
         [Tooltip("Where the zone counts as hunting, 0 to 1.")]
         [SerializeField]
         [Range(0.1f, 1f)]
-        private float _heatHuntingAt = 0.75f;
+        private float _heatHuntingAt = 0.6f;
 
         [Tooltip("How far the meter falls back below a threshold before the stage drops again.")]
         [SerializeField]

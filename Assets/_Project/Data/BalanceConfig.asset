@@ -21,14 +21,14 @@ MonoBehaviour:
   _staminaRegenPerSecond: 18
   _staminaRegenDelay: 0.8
   _sprintStaminaPerSecond: 16
-  _walkNoise: 0.45
+  _walkNoise: 0.4
   _sprintNoise: 1.4
   _walkStepSeconds: 0.55
   _sprintStepSeconds: 0.32
-  _heatPerNoise: 0.02
+  _heatPerNoise: 0.035
   _heatDecayPerSecond: 0.03
   _heatStirredAt: 0.35
-  _heatHuntingAt: 0.75
+  _heatHuntingAt: 0.6
   _heatStageDrop: 0.06
   _heatSpawnsPerStage: 5
   _zombieSeparationStrength: 1.6
