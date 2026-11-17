@@ -117,6 +117,13 @@ unlock thresholds live in SO assets or in a `BalanceConfig` SO. Code reads them;
   roughly one tile tall.
 - Stick to the palette in `Art/Palettes/`. New colours need a reason.
 - Sprite atlases per category to keep draw calls low. One atlas per `Sprites/` subfolder.
+- Zombie art is named `{kind}_{variant}_{pose}.png` in `Sprites/Zombies/`, where `variant` is
+  optional and `pose` is one of `front_walk`, `front_attack`, `side_left_walk`,
+  `side_left_attack`, `side_right_walk`, `side_right_attack`. The part before the first underscore
+  is the kind's display name in lower case. `ZombieGame/Content/Rebuild Zombie Skins` turns each
+  group into a `ZombieSkin` asset and the scene builder attaches every skin of a kind to that
+  kind. **A new look for an existing zombie is art plus a menu click, never a code change** — one
+  silhouette repeated across a crowd reads as a rendering fault.
 - Audio: `.ogg` for music/ambience, `.wav` for short SFX. SFX play through an audio service with
   per-category volume buses; never `AudioSource.PlayClipAtPoint`.
 

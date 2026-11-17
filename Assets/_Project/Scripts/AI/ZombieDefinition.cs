@@ -75,30 +75,9 @@ namespace ZombieGame.AI
         private float _toxic = 1f;
 
         [Header("Look")]
-        [Tooltip("Facing the camera.")]
+        [Tooltip("The looks this kind can wear. One is picked per zombie at spawn.")]
         [SerializeField]
-        private Sprite? _front;
-
-        [Tooltip("Walking to the left.")]
-        [SerializeField]
-        private Sprite? _left;
-
-        [Tooltip("Walking to the right.")]
-        [SerializeField]
-        private Sprite? _right;
-
-        [Header("Look — alerted")]
-        [Tooltip("Facing the camera, arms up. Shown while it has noticed someone.")]
-        [SerializeField]
-        private Sprite? _frontAlert;
-
-        [Tooltip("Lunging to the left.")]
-        [SerializeField]
-        private Sprite? _leftAlert;
-
-        [Tooltip("Lunging to the right.")]
-        [SerializeField]
-        private Sprite? _rightAlert;
+        private ZombieSkin[] _skins = System.Array.Empty<ZombieSkin>();
 
         /// <summary>Shown in the bestiary and debug overlays.</summary>
         public string DisplayName => _displayName;
@@ -123,38 +102,32 @@ namespace ZombieGame.AI
         public ZombieSenses Senses =>
             new(_viewDistance, _viewHalfAngleDegrees, _hearingRadius);
 
-        /// <summary>The sprite for a facing, falling back to the front view.</summary>
-        public Sprite? SpriteFor(ZombieFacing facing) => facing switch
-        {
-            ZombieFacing.Left => _left != null ? _left : _front,
-            ZombieFacing.Right => _right != null ? _right : _front,
-            _ => _front,
-        };
+        /// <summary>How many looks this kind has to choose from.</summary>
+        public int SkinCount => _skins.Length;
 
-        /// <summary>
-        /// The sprite for a facing, in the pose that matches whether it has noticed anyone.
-        /// </summary>
+        /// <summary>One of this kind's looks, or null when it has none.</summary>
         /// <remarks>
-        /// An alerted zombie showing a different pose is the only way a player can tell they have
-        /// been seen. Without it, perception is invisible: the first sign of being noticed would
-        /// be a zombie arriving, which is far too late to do anything about.
-        /// Falls back to the calm pose, so a kind without alert art simply never changes.
+        /// Out-of-range asks for the first skin rather than throwing: skins are picked at spawn
+        /// and an asset can lose one between a save and a reload, and a zombie with no picture is
+        /// a far worse outcome than a zombie wearing the wrong face.
         /// </remarks>
-        public Sprite? SpriteFor(ZombieFacing facing, bool alerted)
+        public ZombieSkin? Skin(int index)
         {
-            if (!alerted)
+            if (_skins.Length == 0)
             {
-                return SpriteFor(facing);
+                return null;
             }
 
-            Sprite? alert = facing switch
-            {
-                ZombieFacing.Left => _leftAlert != null ? _leftAlert : _frontAlert,
-                ZombieFacing.Right => _rightAlert != null ? _rightAlert : _frontAlert,
-                _ => _frontAlert,
-            };
-
-            return alert != null ? alert : SpriteFor(facing);
+            ZombieSkin? skin = _skins[(uint)index < (uint)_skins.Length ? index : 0];
+            return skin != null ? skin : null;
         }
+
+        /// <summary>The sprite for one individual, by the look it was given at spawn.</summary>
+        public Sprite? SpriteFor(int skinIndex, ZombieFacing facing, bool alerted = false) =>
+            Skin(skinIndex)?.SpriteFor(facing, alerted);
+
+        /// <summary>The sprite from this kind's first look. For tools and for tests.</summary>
+        public Sprite? SpriteFor(ZombieFacing facing, bool alerted = false) =>
+            SpriteFor(0, facing, alerted);
     }
 }

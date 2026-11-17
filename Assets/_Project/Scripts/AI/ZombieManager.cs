@@ -124,6 +124,11 @@ namespace ZombieGame.AI
             float spread = definition.SpeedVariance;
             float factor = 1f + (((float)_random.NextDouble() * 2f) - 1f) * spread;
 
+            // And its own face, where the kind has more than one. Drawn only then, so a kind with
+            // a single look leaves the random sequence — and therefore the whole zone — exactly
+            // as it was before skins existed.
+            int skin = definition.SkinCount > 1 ? _random.Next(definition.SkinCount) : 0;
+
             _states[index] = new ZombieState
             {
                 Position = position,
@@ -138,6 +143,7 @@ namespace ZombieGame.AI
                 // down the screen. Without this a fresh zombie looks at (0,0) and sees nothing.
                 Look = Vector2.down,
                 TypeId = typeId,
+                SkinId = skin,
                 Id = id,
             };
             _resistances[index] = definition.Resistances;

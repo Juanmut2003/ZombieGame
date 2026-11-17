@@ -25,9 +25,5 @@ MonoBehaviour:
   _ballistic: 1
   _fire: 1
   _toxic: 1
-  _front: {fileID: 21300000, guid: 4e836e9abf29c3c4d9ad0b7216b08b68, type: 3}
-  _left: {fileID: 21300000, guid: 27c29eb722cb01d4aa45d7c9b1f21303, type: 3}
-  _right: {fileID: 21300000, guid: ef1439dd97425a547a7d84585dd85665, type: 3}
-  _frontAlert: {fileID: 21300000, guid: 37d53c14e1d5635408891ee2c0af30c6, type: 3}
-  _leftAlert: {fileID: 21300000, guid: 2c1d1f0cfb50cf040abd3b9270cc5f29, type: 3}
-  _rightAlert: {fileID: 21300000, guid: 831c957cd07185d48837b78addaba68d, type: 3}
+  _skins:
+  - {fileID: 11400000, guid: d90e5edd8b228fc46a422bc0ecf6bb9b, type: 2}

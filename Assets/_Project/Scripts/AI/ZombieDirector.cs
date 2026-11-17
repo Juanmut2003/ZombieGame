@@ -180,7 +180,7 @@ namespace ZombieGame.AI
                 ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
                 _active[i].Show(
                     states[i].Position,
-                    type.SpriteFor(states[i].Facing, states[i].SeesTarget),
+                    type.SpriteFor(states[i].SkinId, states[i].Facing, states[i].SeesTarget),
                     states[i].HitFlash > 0f);
             }
         }

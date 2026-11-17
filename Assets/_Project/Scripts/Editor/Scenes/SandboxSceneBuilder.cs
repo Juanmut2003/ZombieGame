@@ -13,6 +13,7 @@ using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Editor.Art;
+using ZombieGame.Editor.Content;
 using ZombieGame.Editor.Input;
 using ZombieGame.UI;
 
@@ -41,8 +42,6 @@ namespace ZombieGame.Editor.Scenes
         private const string WallSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_wall.png";
         private const string PlayerSprite =
             "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
-        private const string ZombieSpriteFolder = "Assets/_Project/Art/Sprites/Zombies";
-
         private const string SwingArcSprite = "Assets/_Project/Art/Sprites/FX/swing_arc.png";
 
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
@@ -59,20 +58,22 @@ namespace ZombieGame.Editor.Scenes
         private const int HordeOnStart = 26;
 
         /// <summary>
-        /// The kinds of zombie the sandbox puts out, as asset name and sprite prefix.
+        /// The kinds of zombie the sandbox puts out, by asset name.
         /// </summary>
         /// <remarks>
         /// Four silhouettes rather than one. A crowd of the same figure repeated reads as a
         /// rendering fault even when every one of them walks its own way, and telling two kinds
         /// apart at a glance is what lets a player decide whether to fight or leave.
-        /// No numbers here on purpose: they live in the assets, see <see cref="RequireDefinition"/>.
+        /// Neither numbers nor art here on purpose: the numbers live in the assets, and the looks
+        /// are found by name — see <see cref="RequireDefinition"/> and
+        /// <see cref="ZombieSkinLibrary"/>.
         /// </remarks>
-        private static readonly (string Name, string Prefix)[] ZombieKinds =
+        private static readonly string[] ZombieKinds =
         {
-            ("Walker", "zombie"),
-            ("Stumbler", "zombie2"),
-            ("Bloater", "zombie3"),
-            ("Nurse", "zombie4"),
+            "Walker",
+            "Stumbler",
+            "Bloater",
+            "Nurse",
         };
 
         // Dim enough to read as part of the world rather than a web page laid over it.
@@ -85,6 +86,11 @@ namespace ZombieGame.Editor.Scenes
         public static void Build()
         {
             PlaceholderSpriteGenerator.GenerateAll();
+
+            // Before anything is wired: a pack dropped into the sprite folder becomes a skin asset
+            // here, and the kinds below pick theirs up by name. Building the scene is the moment
+            // somebody would notice a missing look, so it is the moment to go and find them.
+            ZombieSkinLibrary.Rebuild();
 
             SceneBuilder.Build(ProjectScenes.Sandbox, scene =>
             {
@@ -270,6 +276,21 @@ namespace ZombieGame.Editor.Scenes
         /// </remarks>
         private static void AddWallCollision(GameObject wallObject)
         {
+            // What makes this tilemap "the walls" to the rest of the game: a sight query asks for
+            // the Walls layer and gets the walls, and nothing else in the scene has to be excluded
+            // one object at a time.
+            int walls = GameLayers.WallsIndex;
+            if (walls < 0)
+            {
+                Debug.LogWarning(
+                    $"[Sandbox] the project has no '{GameLayers.Walls}' layer; "
+                    + "sight will not be blocked by anything.");
+            }
+            else
+            {
+                wallObject.layer = walls;
+            }
+
             var body = wallObject.AddComponent<Rigidbody2D>();
             body.bodyType = RigidbodyType2D.Static;
 
@@ -297,7 +318,7 @@ namespace ZombieGame.Editor.Scenes
             var kinds = new ZombieDefinition[ZombieKinds.Length];
             for (int i = 0; i < ZombieKinds.Length; i++)
             {
-                kinds[i] = RequireDefinition(ZombieKinds[i].Name, ZombieKinds[i].Prefix);
+                kinds[i] = RequireDefinition(ZombieKinds[i]);
             }
 
             GameObject directorObject = SceneBuilder.CreateObject(scene, "Zombie Director");
@@ -319,10 +340,10 @@ namespace ZombieGame.Editor.Scenes
             serialized.FindProperty("_spawnOnStart").intValue = HordeOnStart;
             serialized.FindProperty("_spawnArea").vector2Value = new Vector2(3.5f, 2f);
 
-            // The walls are on the default layer, and the character being watched is excluded by
-            // object rather than by layer — see Physics2DLineOfSight. A dedicated Walls layer
-            // would be cleaner, but adding one is a project-settings change.
-            serialized.FindProperty("_sightBlockers").intValue = 1 << 0;
+            // Only the walls stop sight. Naming the layer is what makes that true: on the default
+            // layer the query would also return the floor, the props and the character being
+            // looked at, and every zombie would decide it was standing behind a wall.
+            serialized.FindProperty("_sightBlockers").intValue = GameLayers.WallsMask;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -338,7 +359,7 @@ namespace ZombieGame.Editor.Scenes
         /// A fresh asset therefore comes out at the definition's own declared defaults, with a
         /// warning saying so.
         /// </remarks>
-        private static ZombieDefinition RequireDefinition(string displayName, string spritePrefix)
+        private static ZombieDefinition RequireDefinition(string displayName)
         {
             string assetPath = $"Assets/_Project/Data/Zombies/{displayName}.asset";
             var existing = AssetDatabase.LoadAssetAtPath<ZombieDefinition>(assetPath);
@@ -352,12 +373,22 @@ namespace ZombieGame.Editor.Scenes
 
             var serialized = new SerializedObject(definition);
             serialized.FindProperty("_displayName").stringValue = displayName;
-            WireSprite(serialized, "_front", spritePrefix, "front_walk");
-            WireSprite(serialized, "_left", spritePrefix, "side_left_walk");
-            WireSprite(serialized, "_right", spritePrefix, "side_right_walk");
-            WireSprite(serialized, "_frontAlert", spritePrefix, "front_attack");
-            WireSprite(serialized, "_leftAlert", spritePrefix, "side_left_attack");
-            WireSprite(serialized, "_rightAlert", spritePrefix, "side_right_attack");
+
+            ZombieSkin[] skins = ZombieSkinLibrary.SkinsFor(displayName);
+            if (skins.Length == 0)
+            {
+                Debug.LogWarning(
+                    $"[Sandbox] no skins named '{displayName.ToLowerInvariant()}' in "
+                    + $"{ZombieSkinLibrary.SkinFolder}; the {displayName} stays invisible.");
+            }
+
+            SerializedProperty list = serialized.FindProperty("_skins");
+            list.arraySize = skins.Length;
+            for (int i = 0; i < skins.Length; i++)
+            {
+                list.GetArrayElementAtIndex(i).objectReferenceValue = skins[i];
+            }
+
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             if (existing is not null)
@@ -374,21 +405,6 @@ namespace ZombieGame.Editor.Scenes
                 $"[Sandbox] {assetPath} was missing and has been created untuned. "
                 + "Its numbers are the definition's defaults until someone sets them.");
             return definition;
-        }
-
-        /// <summary>Points one sprite field at <c>{prefix}_{pose}.png</c>, if that file exists.</summary>
-        private static void WireSprite(
-            SerializedObject definition, string field, string prefix, string pose)
-        {
-            string path = $"{ZombieSpriteFolder}/{prefix}_{pose}.png";
-            Sprite? sprite = LoadSprite(path);
-            if (sprite is null)
-            {
-                Debug.LogWarning($"[Sandbox] no sprite at '{path}'.");
-                return;
-            }
-
-            definition.FindProperty(field).objectReferenceValue = sprite;
         }
 
         /// <summary>

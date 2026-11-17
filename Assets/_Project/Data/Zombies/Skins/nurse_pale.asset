@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1830d01f37be6b546ae27daadc019d5b, type: 3}
+  m_Name: nurse_pale
+  m_EditorClassIdentifier: ZombieGame.AI::ZombieGame.AI.ZombieSkin
+  _front: {fileID: 21300000, guid: 102f508af99ab8a49acdde2115bd583c, type: 3}
+  _left: {fileID: 21300000, guid: 3e8ad3a6972432d4baecede77a80cba4, type: 3}
+  _right: {fileID: 21300000, guid: 42876358bf257814292b5d7ba2caa0e5, type: 3}
+  _frontAlert: {fileID: 21300000, guid: 3309f6064e804e14cbae3cc7df2c49e3, type: 3}
+  _leftAlert: {fileID: 21300000, guid: 61072cba7a876364bbbf33450200e5cd, type: 3}
+  _rightAlert: {fileID: 21300000, guid: c22c4915b8f700548880e2a524654d71, type: 3}

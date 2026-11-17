@@ -28,6 +28,15 @@ namespace ZombieGame.AI
         /// <summary>How much room it takes up, for keeping the crowd apart.</summary>
         public float Radius;
 
+        /// <summary>
+        /// Which of its kind's looks it wears, drawn at spawn. Zero when the kind has one.
+        /// </summary>
+        /// <remarks>
+        /// Fixed for life: a zombie that re-rolled its face every time a pooled body was
+        /// handed around would flicker through the whole wardrobe as the crowd shifted.
+        /// </remarks>
+        public int SkinId;
+
         /// <summary>Which definition it was spawned from, as the spawner numbered them.</summary>
         public int TypeId;
 

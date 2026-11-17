@@ -9,11 +9,10 @@ namespace ZombieGame.AI
     /// two known points, and phrasing it that way removes the chance of a mismatched length.
     /// Allocation-free — the hit buffer is reused, which matters when hundreds of zombies ask this
     /// every tick.
-    /// The target itself has to be skipped: the line ends inside whoever is being looked at, so
-    /// their own collider is always on it, and without this every zombie would decide it was
-    /// standing behind a wall that is actually the player.
-    /// TODO: this filters by object because the project has no Walls layer yet. A layer would be
-    /// cheaper and clearer, but it is a project-settings change and CLAUDE.md asks first.
+    /// Sight is filtered by layer: only what sits on <c>Walls</c> is asked about, so the
+    /// character being watched is not in the answer at all. The <c>ignore</c> transform is
+    /// a belt-and-braces filter for whoever puts a target on a blocking layer anyway — the
+    /// line ends inside the thing being looked at, so its own collider is always on it.
     /// </remarks>
     public sealed class Physics2DLineOfSight : ILineOfSight
     {
