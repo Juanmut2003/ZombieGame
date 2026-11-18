@@ -21,6 +21,9 @@ namespace ZombieGame.Editor.Art
         /// texture, so it can be rotated around the character who swung it.
         /// </summary>
         SwingArc,
+
+        /// <summary>A round in flight: a bright streak with a hot tip.</summary>
+        Bullet,
     }
 
     /// <summary>What one placeholder sprite should look like.</summary>
@@ -107,6 +110,9 @@ namespace ZombieGame.Editor.Art
                 case PlaceholderShape.SwingArc:
                     DrawSwingArc(pixels, spec);
                     break;
+                case PlaceholderShape.Bullet:
+                    DrawBullet(pixels, spec);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(spec), spec.Shape, "Unknown placeholder shape.");
@@ -180,6 +186,36 @@ namespace ZombieGame.Editor.Art
         /// and inner radius are fixed here rather than taken from the weapon, because this is one
         /// sprite rotated and scaled to whatever weapon swung it.
         /// </remarks>
+        /// <summary>
+        /// A round: a streak along the x axis with a brighter head, drawn pointing right.
+        /// </summary>
+        /// <remarks>
+        /// Pointing right because the view rotates it to the direction of travel, and right is
+        /// zero degrees. A dot would be honest but unreadable at this size and speed; the streak
+        /// is what lets a player see where a shot went.
+        /// </remarks>
+        private static void DrawBullet(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            int middle = spec.Height / 2;
+            int thickness = Math.Max(1, spec.Height / 3);
+            int head = Math.Max(1, spec.Width / 4);
+
+            for (int y = middle - thickness; y <= middle + thickness; y++)
+            {
+                if (y < 0 || y >= spec.Height)
+                {
+                    continue;
+                }
+
+                for (int x = 0; x < spec.Width; x++)
+                {
+                    bool edge = Math.Abs(y - middle) == thickness;
+                    pixels[(y * spec.Width) + x] =
+                        x >= spec.Width - head || !edge ? spec.Accent : spec.Body;
+                }
+            }
+        }
+
         private static void DrawSwingArc(Color32[] pixels, PlaceholderSpriteSpec spec)
         {
             const float halfAngleDegrees = 55f;

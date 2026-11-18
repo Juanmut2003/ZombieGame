@@ -8,8 +8,9 @@ namespace ZombieGame.Combat
     /// assets, never classes.
     /// </summary>
     /// <remarks>
-    /// Melee only for now; firearms add their own fields when they arrive, and the fields they
-    /// share stay here.
+    /// Melee and firearms share this one asset type. A pistol and a bat have more in common than
+    /// not — damage, noise, a rate of fire — and the handful of fields only one of them uses is a
+    /// far smaller price than two asset types that drift apart.
     /// </remarks>
     [CreateAssetMenu(menuName = "ZombieGame/Weapon Definition", fileName = "WeaponDefinition")]
     public sealed class WeaponDefinition : ScriptableObject
@@ -17,6 +18,10 @@ namespace ZombieGame.Combat
         [Header("Identity")]
         [SerializeField]
         private string _displayName = "Bat";
+
+        [Tooltip("Swung or fired. Decides which half of the combat code picks this up.")]
+        [SerializeField]
+        private WeaponKind _kind = WeaponKind.Melee;
 
         [Header("Damage")]
         [Tooltip("Damage per hit, before the target's resistances.")]
@@ -55,6 +60,37 @@ namespace ZombieGame.Combat
         [Min(0.05f)]
         private float _cooldownSeconds = 0.45f;
 
+        [Header("Firearm")]
+        [Tooltip("Rounds in a full magazine. Ignored by melee weapons.")]
+        [SerializeField]
+        [Min(1)]
+        private int _magazineSize = 12;
+
+        [Tooltip("Seconds to put a fresh magazine in.")]
+        [SerializeField]
+        [Min(0.1f)]
+        private float _reloadSeconds = 1.6f;
+
+        [Tooltip("How fast a round leaves the barrel, in world units per second.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _muzzleSpeed = 24f;
+
+        [Tooltip("How far off aim a round can go, in degrees either way.")]
+        [SerializeField]
+        [Range(0f, 45f)]
+        private float _spreadDegrees = 2.5f;
+
+        [Tooltip("Seconds a round stays in the air before it gives up. Speed times this is its reach.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _projectileLifeSeconds = 0.7f;
+
+        [Tooltip("How fat a round is, for deciding what it clips.")]
+        [SerializeField]
+        [Min(0.01f)]
+        private float _projectileRadius = 0.08f;
+
         [Header("Noise")]
         [Tooltip("How loud a swing is. Melee is quiet, which is the whole point of it.")]
         [SerializeField]
@@ -63,6 +99,30 @@ namespace ZombieGame.Combat
 
         /// <summary>Shown in the inventory and the loadout.</summary>
         public string DisplayName => _displayName;
+
+        /// <summary>Swung or fired.</summary>
+        public WeaponKind Kind => _kind;
+
+        /// <summary>Rounds in a full magazine.</summary>
+        public int MagazineSize => _magazineSize;
+
+        /// <summary>Seconds to reload.</summary>
+        public float ReloadSeconds => _reloadSeconds;
+
+        /// <summary>Muzzle speed in world units per second.</summary>
+        public float MuzzleSpeed => _muzzleSpeed;
+
+        /// <summary>How far off aim a round can go, in degrees either way.</summary>
+        public float SpreadDegrees => _spreadDegrees;
+
+        /// <summary>Seconds a round stays in the air.</summary>
+        public float ProjectileLifeSeconds => _projectileLifeSeconds;
+
+        /// <summary>How fat a round is.</summary>
+        public float ProjectileRadius => _projectileRadius;
+
+        /// <summary>How far a round can reach before it expires.</summary>
+        public float ProjectileReach => _muzzleSpeed * _projectileLifeSeconds;
 
         /// <summary>Damage per hit, before resistances.</summary>
         public float Damage => _damage;

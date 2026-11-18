@@ -65,10 +65,20 @@ namespace ZombieGame.Editor.Input
             // Both mouse buttons swing. Left is the reflex everyone brings to a game; right is the
             // one a player who has met a shooter expects for the melee they fall back on. Once
             // firearms arrive, Fire takes the left button and this keeps the right one.
+            // Now that firearms exist, the split the comment above always promised: the left
+            // button is the gun, the right is the melee you fall back on when it is empty or when
+            // you would rather the zone did not hear you.
             InputAction attack = gameplay.AddAction("Attack", InputActionType.Button);
-            attack.AddBinding("<Mouse>/leftButton");
             attack.AddBinding("<Mouse>/rightButton");
             attack.AddBinding("<Gamepad>/buttonWest");
+
+            InputAction fire = gameplay.AddAction("Fire", InputActionType.Button);
+            fire.AddBinding("<Mouse>/leftButton");
+            fire.AddBinding("<Gamepad>/rightTrigger");
+
+            InputAction reload = gameplay.AddAction("Reload", InputActionType.Button);
+            reload.AddBinding("<Keyboard>/r");
+            reload.AddBinding("<Gamepad>/buttonNorth");
 
             InputAction sprint = gameplay.AddAction("Sprint", InputActionType.Button);
             sprint.AddBinding("<Keyboard>/leftShift");

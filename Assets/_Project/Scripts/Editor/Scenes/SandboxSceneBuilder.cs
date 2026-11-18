@@ -47,6 +47,8 @@ namespace ZombieGame.Editor.Scenes
 
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
         private const string BatWeaponPath = "Assets/_Project/Data/Weapons/Bat.asset";
+        private const string PistolWeaponPath = "Assets/_Project/Data/Weapons/Pistol.asset";
+        private const string BulletSprite = "Assets/_Project/Art/Sprites/FX/bullet.png";
 
         private const string PlayerLeftSprite =
             "Assets/_Project/Art/Sprites/Characters/archer_side_left_walk.png";
@@ -82,6 +84,7 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
         private static readonly Color HudCalm = new(0.45f, 0.55f, 0.62f, 1f);
+        private static readonly Color HudAmmo = new(0.82f, 0.81f, 0.76f, 1f);
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -106,6 +109,7 @@ namespace ZombieGame.Editor.Scenes
                 Camera camera = CameraRigBuilder.Create(scene, player);
                 CreateHorde(scene, player);
                 CreateZoneHeat(scene);
+                CreateProjectileRunner(scene);
                 CreateSwingFlash(scene);
                 CreateHud(scene, camera);
             });
@@ -208,6 +212,35 @@ namespace ZombieGame.Editor.Scenes
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             CreateHeatBar(canvas);
+            CreateAmmoLabel(canvas);
+        }
+
+        /// <summary>
+        /// The ammunition count, in the opposite corner from the bars.
+        /// </summary>
+        /// <remarks>
+        /// Bottom right rather than next to stamina: it is read at a different moment. Stamina and
+        /// heat are watched while moving; the count is looked at between fights.
+        /// </remarks>
+        private static void CreateAmmoLabel(Canvas canvas)
+        {
+            Text label = UiSceneParts.CreateLabel(
+                canvas.transform,
+                "Ammo Label",
+                "-- / --",
+                anchoredPosition: new Vector2(330f, -222f),
+                size: new Vector2(140f, 22f),
+                fontSize: 18,
+                colour: HudAmmo,
+                alignment: TextAnchor.MiddleRight);
+
+            var presenterObject = new GameObject("Ammo Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            AmmoPresenter presenter = presenterObject.AddComponent<AmmoPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_label").objectReferenceValue = label;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -245,6 +278,57 @@ namespace ZombieGame.Editor.Scenes
             serialized.FindProperty("_fill").objectReferenceValue = fill;
             serialized.FindProperty("_label").objectReferenceValue = label;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Puts the thing that flies the rounds in the scene.</summary>
+        /// <remarks>
+        /// One per zone, not one per gun: survivors, raiders and turrets all fire into the same
+        /// pool, and a pool per shooter would mean a hundred half-empty pools in a firefight.
+        /// </remarks>
+        private static void CreateProjectileRunner(Scene scene)
+        {
+            GameObject runnerObject = SceneBuilder.CreateObject(scene, "Projectiles");
+            ProjectileRunner runner = runnerObject.AddComponent<ProjectileRunner>();
+
+            var serialized = new SerializedObject(runner);
+            serialized.FindProperty("_bulletSprite").objectReferenceValue = LoadSprite(BulletSprite);
+
+            // Rounds stop at the same walls that stop sight, for the same reason: it is the one
+            // thing in the scene that is actually solid.
+            serialized.FindProperty("_barriers").intValue = GameLayers.WallsMask;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Loads the pistol, creating an untuned one if it is missing.
+        /// </summary>
+        /// <remarks>
+        /// Same rule as everywhere else: the asset owns the numbers. The one thing set here is
+        /// that it is a firearm, which is not a balance value but what the thing <i>is</i> —
+        /// a pistol asset left on Melee would silently never fire.
+        /// </remarks>
+        private static WeaponDefinition RequirePistol()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<WeaponDefinition>(PistolWeaponPath);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(PistolWeaponPath)!);
+            WeaponDefinition pistol = ScriptableObject.CreateInstance<WeaponDefinition>();
+
+            var serialized = new SerializedObject(pistol);
+            serialized.FindProperty("_displayName").stringValue = "Pistol";
+            serialized.FindProperty("_kind").enumValueIndex = (int)WeaponKind.Firearm;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            AssetDatabase.CreateAsset(pistol, PistolWeaponPath);
+            AssetDatabase.SaveAssets();
+            Debug.LogWarning(
+                $"[Sandbox] {PistolWeaponPath} was missing and has been created untuned. "
+                + "Its numbers are the definition's defaults until someone sets them.");
+            return pistol;
         }
 
         /// <summary>Puts the zone's heat meter in the scene, listening to the bus.</summary>
@@ -583,6 +667,14 @@ namespace ZombieGame.Editor.Scenes
             serializedSteps.FindProperty("_balance").objectReferenceValue = balance;
             serializedSteps.FindProperty("_input").objectReferenceValue = input;
             serializedSteps.ApplyModifiedPropertiesWithoutUndo();
+
+            // The gun goes on the left mouse button, the bat stays on the right. Loud and finite
+            // against quiet and free, one button each.
+            PlayerGun gun = player.AddComponent<PlayerGun>();
+            var serializedGun = new SerializedObject(gun);
+            serializedGun.FindProperty("_weapon").objectReferenceValue = RequirePistol();
+            serializedGun.FindProperty("_input").objectReferenceValue = input;
+            serializedGun.ApplyModifiedPropertiesWithoutUndo();
 
             PlayerMelee melee = player.AddComponent<PlayerMelee>();
             var serializedMelee = new SerializedObject(melee);

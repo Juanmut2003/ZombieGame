@@ -1,11 +1,12 @@
 #nullable enable
 using System.Collections.Generic;
 using UnityEngine;
-using ZombieGame.Core;
 using ZombieGame.Combat;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
+using ZombieGame.Core.Physics;
 using ZombieGame.Core.Pooling;
+using ZombieGame.Core;
 using ZombieGame.Waves;
 
 namespace ZombieGame.AI
@@ -97,6 +98,11 @@ namespace ZombieGame.AI
 
             _views = new ObjectPool<ZombieView>(CreateView, prewarm: _spawnOnStart);
 
+            // Anything that fires asks the locator who can be hit; the horde is the answer while
+            // this zone is loaded. Replace rather than Register, so loading a zone twice does not
+            // throw over a service the last one left behind.
+            GameServices.Replace<IProjectileHitTest>(new ZombieHitTest(_manager));
+
             // With no layers named, nothing blocks sight — and a zombie that sees through walls
             // would be a long afternoon of wondering why. Say so instead.
             if (_sightBlockers.value == 0)
@@ -106,6 +112,18 @@ namespace ZombieGame.AI
             else
             {
                 _lineOfSight = new Physics2DLineOfSight(_sightBlockers, _target);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // Only if it is still ours. Another zone loading first would have replaced it, and
+            // tearing that one down with this one would leave the new zone unshootable.
+            if (GameServices.TryGet(out IProjectileHitTest? registered)
+                && registered is ZombieHitTest mine
+                && ReferenceEquals(mine.Horde, _manager))
+            {
+                GameServices.Unregister<IProjectileHitTest>();
             }
         }
 

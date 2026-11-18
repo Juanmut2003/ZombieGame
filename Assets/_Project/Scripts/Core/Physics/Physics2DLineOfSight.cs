@@ -1,7 +1,7 @@
 #nullable enable
 using UnityEngine;
 
-namespace ZombieGame.AI
+namespace ZombieGame.Core.Physics
 {
     /// <summary>Asks the physics engine whether a wall is in the way.</summary>
     /// <remarks>

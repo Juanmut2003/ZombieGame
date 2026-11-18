@@ -1,5 +1,6 @@
 #nullable enable
 using UnityEngine;
+using ZombieGame.Core.Physics;
 
 namespace ZombieGame.AI
 {

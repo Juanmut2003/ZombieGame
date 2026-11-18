@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e3ea04cba6423e4195bd0b7bfb20e5a, type: 3}
+  m_Name: Pistol
+  m_EditorClassIdentifier: ZombieGame.Combat::ZombieGame.Combat.WeaponDefinition
+  _displayName: Pistol
+  _kind: 1
+  _damage: 26
+  _damageType: 2
+  _range: 1.1
+  _halfAngleDegrees: 60
+  _maxTargets: 3
+  _staminaCost: 0
+  _cooldownSeconds: 0.25
+  _magazineSize: 12
+  _reloadSeconds: 1.6
+  _muzzleSpeed: 26
+  _spreadDegrees: 3
+  _projectileLifeSeconds: 0.8
+  _projectileRadius: 0.08
+  _noise: 6

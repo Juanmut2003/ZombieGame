@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using UnityEngine;
 using ZombieGame.AI;
+using ZombieGame.Core.Physics;
 
 namespace ZombieGame.Tests.EditMode
 {

@@ -27,6 +27,8 @@ namespace ZombieGame.Tests.EditMode
 
         [TestCase("Move")]
         [TestCase("Attack")]
+        [TestCase("Fire")]
+        [TestCase("Reload")]
         [TestCase("Sprint")]
         public void TheGameplayMapHasTheAction(string actionName)
         {
@@ -37,17 +39,35 @@ namespace ZombieGame.Tests.EditMode
             Assert.That(map!.FindAction(actionName, throwIfNotFound: false), Is.Not.Null);
         }
 
-        [TestCase("<Mouse>/leftButton")]
         [TestCase("<Mouse>/rightButton")]
         [TestCase("<Gamepad>/buttonWest")]
-        public void SwingingIsBoundTo(string path)
-        {
-            InputAction attack = _asset
-                .FindActionMap(InputActionsGenerator.GameplayMap, throwIfNotFound: true)
-                .FindAction("Attack", throwIfNotFound: true);
+        public void SwingingIsBoundTo(string path) =>
+            Assert.That(PathsOf("Attack"), Contains.Item(path));
 
-            Assert.That(attack.bindings.Select(binding => binding.path), Contains.Item(path));
+        [TestCase("<Mouse>/leftButton")]
+        [TestCase("<Gamepad>/rightTrigger")]
+        public void FiringIsBoundTo(string path) =>
+            Assert.That(PathsOf("Fire"), Contains.Item(path));
+
+        [TestCase("<Keyboard>/r")]
+        public void ReloadingIsBoundTo(string path) =>
+            Assert.That(PathsOf("Reload"), Contains.Item(path));
+
+        [Test]
+        public void TheTwoWeaponsDoNotShareAButton()
+        {
+            // The one rule the bindings have to keep: pulling the trigger must never also swing
+            // the bat, or every shot would be followed by a free melee attack.
+            Assert.That(PathsOf("Attack"), Has.No.Member("<Mouse>/leftButton"));
+            Assert.That(PathsOf("Fire"), Has.No.Member("<Mouse>/rightButton"));
         }
+
+        private string[] PathsOf(string actionName) => _asset
+            .FindActionMap(InputActionsGenerator.GameplayMap, throwIfNotFound: true)
+            .FindAction(actionName, throwIfNotFound: true)
+            .bindings
+            .Select(binding => binding.path)
+            .ToArray();
 
         [Test]
         public void MovingIsBoundToBothKeyboardLayoutsAndTheStick()

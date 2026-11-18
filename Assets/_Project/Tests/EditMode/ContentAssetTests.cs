@@ -26,6 +26,7 @@ namespace ZombieGame.Tests.EditMode
         private const string WalkerPath = "Assets/_Project/Data/Zombies/Walker.asset";
         private const string StumblerPath = "Assets/_Project/Data/Zombies/Stumbler.asset";
         private const string BatPath = "Assets/_Project/Data/Weapons/Bat.asset";
+        private const string PistolPath = "Assets/_Project/Data/Weapons/Pistol.asset";
 
         private static T Load<T>(string path) where T : Object
         {
@@ -280,6 +281,69 @@ namespace ZombieGame.Tests.EditMode
             // whether they have been noticed.
             Assert.That(instincts.WanderSpeedFactor, Is.LessThan(1f));
             Assert.That(instincts.WanderRadius, Is.GreaterThanOrEqualTo(0f));
+        }
+
+        [Test]
+        public void ThePistolIsFilledIn()
+        {
+            WeaponDefinition pistol = Load<WeaponDefinition>(PistolPath);
+
+            Assert.That(pistol.Kind, Is.EqualTo(WeaponKind.Firearm), "a pistol that never fires");
+            Assert.That(pistol.Damage, Is.GreaterThan(0f));
+            Assert.That(pistol.MagazineSize, Is.GreaterThan(1));
+            Assert.That(pistol.ReloadSeconds, Is.GreaterThan(0.2f), "an instant reload is no cost");
+            Assert.That(pistol.MuzzleSpeed, Is.GreaterThan(0f));
+            Assert.That(pistol.CooldownSeconds, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void ShootingIsLouderThanSwinging()
+        {
+            WeaponDefinition pistol = Load<WeaponDefinition>(PistolPath);
+            WeaponDefinition bat = Load<WeaponDefinition>(BatPath);
+
+            // The trade the whole arsenal is built on: the gun is better at everything except
+            // being heard. Take that away and there is no reason to own a bat.
+            Assert.That(pistol.Noise, Is.GreaterThan(bat.Noise * 2f));
+        }
+
+        [Test]
+        public void OneShotIsEnoughToStirTheZone()
+        {
+            WeaponDefinition pistol = Load<WeaponDefinition>(PistolPath);
+            BalanceConfig balance = Load<BalanceConfig>(BalancePath);
+
+            // A gunshot that a zone can ignore is not a gunshot. Half a magazine should be past
+            // the first stage on its own, before a single footstep is counted.
+            float halfAMagazine = pistol.MagazineSize / 2f * pistol.Noise * balance.HeatPerNoise;
+
+            Assert.That(halfAMagazine, Is.GreaterThan(balance.HeatStirredAt));
+        }
+
+        [Test]
+        public void ShootingReachesFurtherThanSwinging()
+        {
+            WeaponDefinition pistol = Load<WeaponDefinition>(PistolPath);
+            WeaponDefinition bat = Load<WeaponDefinition>(BatPath);
+
+            // And the reason to carry it: a round arrives before the zombie does.
+            Assert.That(pistol.ProjectileReach, Is.GreaterThan(bat.Range * 4f));
+        }
+
+        [TestCaseSource(nameof(EveryZombie))]
+        public void APistolKillsAZombieInFewerShotsThanSwings(string path)
+        {
+            WeaponDefinition pistol = Load<WeaponDefinition>(PistolPath);
+            ZombieDefinition zombie = Load<ZombieDefinition>(path);
+
+            float perShot = zombie.Resistances.Apply(pistol.CreateDamage(attackerId: 1));
+            Assert.That(perShot, Is.GreaterThan(0f));
+
+            int shots = Mathf.CeilToInt(zombie.MaxHealth / perShot);
+            Assert.That(
+                shots,
+                Is.InRange(1, 5),
+                $"{zombie.DisplayName} takes {shots} rounds from the {pistol.DisplayName}");
         }
 
         [Test]

@@ -1,7 +1,7 @@
 #nullable enable
 using UnityEngine;
 
-namespace ZombieGame.AI
+namespace ZombieGame.Core.Physics
 {
     /// <summary>Answers whether one point can be seen from another.</summary>
     /// <remarks>

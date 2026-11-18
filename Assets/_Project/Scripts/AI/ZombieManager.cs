@@ -1,9 +1,10 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using ZombieGame.Combat;
 using ZombieGame.Core.Events;
+using ZombieGame.Core.Physics;
 
 namespace ZombieGame.AI
 {
@@ -270,6 +271,57 @@ namespace ZombieGame.AI
             }
 
             return hits;
+        }
+
+        /// <summary>
+        /// Finds the first zombie standing on a line, for something travelling along it.
+        /// </summary>
+        /// <remarks>
+        /// A segment rather than a point because a round covers half a world unit between physics
+        /// steps: testing only where it landed lets it pass clean through a body that was standing
+        /// in the middle of that jump.
+        /// "First" means nearest to <paramref name="from"/>, so a round stops at the zombie in
+        /// front rather than at whichever one happens to sit earlier in the array.
+        /// </remarks>
+        /// <param name="from">Where the segment starts.</param>
+        /// <param name="to">Where it ends.</param>
+        /// <param name="radius">How fat the thing travelling is.</param>
+        /// <param name="index">The slot of the zombie that was struck.</param>
+        /// <param name="point">Where along the segment it struck.</param>
+        /// <returns>False when the line is clear of zombies.</returns>
+        public bool TryHitSegment(
+            Vector2 from, Vector2 to, float radius, out int index, out Vector2 point)
+        {
+            index = -1;
+            point = to;
+
+            Vector2 along = to - from;
+            float lengthSquared = along.sqrMagnitude;
+            float nearest = float.MaxValue;
+
+            for (int i = 0; i < Count; i++)
+            {
+                ZombieState zombie = _states[i];
+                float reach = zombie.Radius + radius;
+
+                // How far along the segment this body sits, clamped to its ends so a zombie
+                // behind the muzzle or beyond the step is measured from the nearer end.
+                float t = lengthSquared > 0.000001f
+                    ? Mathf.Clamp01(Vector2.Dot(zombie.Position - from, along) / lengthSquared)
+                    : 0f;
+
+                Vector2 closest = from + (along * t);
+                if ((zombie.Position - closest).sqrMagnitude > reach * reach || t >= nearest)
+                {
+                    continue;
+                }
+
+                nearest = t;
+                index = i;
+                point = closest;
+            }
+
+            return index >= 0;
         }
 
         /// <summary>Removes a zombie outright, raising its death.</summary>

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Bat
   m_EditorClassIdentifier: ZombieGame.Combat::ZombieGame.Combat.WeaponDefinition
   _displayName: Bat
+  _kind: 0
   _damage: 14
   _damageType: 0
   _range: 1.1
@@ -20,4 +21,10 @@ MonoBehaviour:
   _maxTargets: 3
   _staminaCost: 6
   _cooldownSeconds: 0.45
+  _magazineSize: 12
+  _reloadSeconds: 1.6
+  _muzzleSpeed: 24
+  _spreadDegrees: 2.5
+  _projectileLifeSeconds: 0.7
+  _projectileRadius: 0.08
   _noise: 1

@@ -34,6 +34,9 @@ namespace ZombieGame.Editor.Art
         // looking like a light source.
         private static readonly Color32 SwingBody = new(214, 208, 190, 150);
         private static readonly Color32 SwingAccent = new(246, 243, 232, 220);
+        // Hot and bright: a round has to read against a dark floor at a glance.
+        private static readonly Color32 BulletBody = new(232, 176, 72, 255);
+        private static readonly Color32 BulletAccent = new(255, 240, 198, 255);
         private static readonly Color32 CrateBody = new(126, 104, 74, 255);
         private static readonly Color32 CrateAccent = new(80, 64, 44, 255);
 
@@ -56,6 +59,8 @@ namespace ZombieGame.Editor.Art
                     "placeholder_wall", 64, 64, PlaceholderShape.Tile, WallBody, WallAccent)),
                 ("FX", new PlaceholderSpriteSpec(
                     "swing_arc", 128, 128, PlaceholderShape.SwingArc, SwingBody, SwingAccent)),
+                ("FX", new PlaceholderSpriteSpec(
+                    "bullet", 24, 8, PlaceholderShape.Bullet, BulletBody, BulletAccent)),
                 ("Items", new PlaceholderSpriteSpec(
                     "placeholder_crate", 64, 64, PlaceholderShape.Box, CrateBody, CrateAccent)),
             };
