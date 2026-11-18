@@ -3,6 +3,7 @@ using System;
 using NUnit.Framework;
 using UnityEngine;
 using ZombieGame.AI;
+using ZombieGame.Core.Physics;
 
 namespace ZombieGame.Tests.EditMode
 {
@@ -234,6 +235,42 @@ namespace ZombieGame.Tests.EditMode
             Assert.Throws<ArgumentOutOfRangeException>(() => new ZombieInstincts(3f, 1f, 1f, 1.5f));
             Assert.Throws<ArgumentOutOfRangeException>(
                 () => new ZombieInstincts(3f, 1f, 1f, 0.5f, 0f));
+        }
+
+        [Test]
+        public void AChaseGoesRoundAWallInsteadOfIntoIt()
+        {
+            // A wall between the zombie and the player, open at the top. Walking at the player
+            // means walking into bricks, and that is exactly what used to happen.
+            var walls = new WallGrid(Vector2.zero, 12, 8);
+            for (int row = 0; row < 6; row++)
+            {
+                walls.SetSolid(6, row);
+            }
+
+            var routes = new GridFlowField(Vector2.zero, 12, 8);
+            routes.ReadWalls(walls);
+
+            var player = new Vector2(9.5f, 1.5f);
+            routes.Rebuild(player);
+
+            // Looking at the player to begin with, so this is a test about walking rather than
+            // about whether it noticed.
+            int index = SpawnLooking(new Vector2(3.5f, 1.5f), Vector2.right);
+
+            for (int i = 0; i < 600; i++)
+            {
+                _manager.Perceive(player, 0.25f);
+                _manager.Decide(player, 0.05f);
+                _manager.Tick(0.05f, walls, routes);
+            }
+
+            // Not "it arrived" — a chase is also a giving-up timer, and the point here is only
+            // that it got past the wall rather than standing against it for twenty seconds.
+            Assert.That(
+                _manager.Get(index).Position.x,
+                Is.GreaterThan(6.5f),
+                "it should have come round the wall, not stopped at it");
         }
 
         [Test]

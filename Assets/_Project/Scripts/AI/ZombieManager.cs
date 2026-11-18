@@ -665,7 +665,14 @@ namespace ZombieGame.AI
         /// step; this is the integration loop they will drive.
         /// What it is no longer dumb about is each other — see <see cref="CrowdSettings"/>.
         /// </remarks>
-        public void Tick(float deltaSeconds, IWallMap? walls = null)
+        /// <param name="deltaSeconds">How long since the last tick.</param>
+        /// <param name="walls">What is solid. Open ground when nothing is passed.</param>
+        /// <param name="route">
+        /// Which way is downhill towards whatever the horde is hunting. Used only by the ones
+        /// actually chasing: a zombie that has heard a noise is walking to a spot it picked, not
+        /// to the player, and one that is shuffling about has nowhere particular to be.
+        /// </param>
+        public void Tick(float deltaSeconds, IWallMap? walls = null, IFlowField? route = null)
         {
             if (deltaSeconds <= 0f)
             {
@@ -673,6 +680,7 @@ namespace ZombieGame.AI
             }
 
             IWallMap solid = walls ?? OpenGround.Instance;
+            IFlowField flow = route ?? NoFlow.Instance;
             bool separating = _crowd.SeparationStrength > 0f && Count > 1;
             if (separating)
             {
@@ -714,6 +722,22 @@ namespace ZombieGame.AI
                 }
 
                 Vector2 direction = distance > 0.0001f ? toTarget / distance : Vector2.zero;
+
+                // A chase follows the route rather than the straight line. Without this a zombie
+                // walks at the player and stops dead against whatever is in between, which from
+                // the far side of a wall reads as a corpse having a quiet moment rather than as
+                // something hunting you.
+                // Only while it can see where it is going downhill: where the field says nothing
+                // — a zombie inside a doorway, or a frame before the first sweep — the straight
+                // line is still better than standing still.
+                if (zombie.Behaviour == ZombieBehaviour.Chasing && distance > 0.75f)
+                {
+                    Vector2 downhill = flow.Direction(zombie.Position);
+                    if (downhill.sqrMagnitude > 0.000001f)
+                    {
+                        direction = downhill;
+                    }
+                }
 
                 // Arrival only counts when nothing is shoving: a zombie standing on its
                 // destination still has to give way to the one walking into it.

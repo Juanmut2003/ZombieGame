@@ -77,6 +77,7 @@ namespace ZombieGame.AI
 
         private ZombieManager _manager = null!;
         private IHurtable? _targetVitals;
+        private Vector2? _sweptFor;
         private System.Random _rimRandom = null!;
         private EventBus? _bus;
         private ObjectPool<ZombieView> _views = null!;
@@ -292,7 +293,38 @@ namespace ZombieGame.AI
             // Looked up each step rather than cached: the zone's walls register themselves when
             // it loads, and a director that asked once might have asked before they did.
             GameServices.TryGet(out IWallMap? walls);
-            _manager.Tick(Time.fixedDeltaTime, walls);
+            GameServices.TryGet(out IFlowField? routes);
+            _manager.Tick(Time.fixedDeltaTime, walls, RefreshRoutes(routes));
+        }
+
+        /// <summary>
+        /// Keeps the horde's routes pointed at the target, and sweeps them again when it has
+        /// moved far enough for the old ones to be wrong.
+        /// </summary>
+        /// <remarks>
+        /// Not every step. The sweep is linear in the size of the zone and the answer barely
+        /// changes while the target is still standing in the same cell, so it is redone when the
+        /// target has left the cell the field was built for — which during a chase is a few times
+        /// a second and while the player stands still is never.
+        /// </remarks>
+        private IFlowField? RefreshRoutes(IFlowField? routes)
+        {
+            if (routes is null || _target is null)
+            {
+                return routes;
+            }
+
+            Vector3 at = _target.position;
+            var goal = new Vector2(at.x, at.y);
+            if (_sweptFor.HasValue
+                && Mathf.FloorToInt(_sweptFor.Value.x) == Mathf.FloorToInt(goal.x)
+                && Mathf.FloorToInt(_sweptFor.Value.y) == Mathf.FloorToInt(goal.y))
+            {
+                return routes;
+            }
+
+            _sweptFor = routes.Rebuild(goal) ? goal : null;
+            return routes;
         }
 
         /// <summary>

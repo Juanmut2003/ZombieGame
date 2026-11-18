@@ -23,9 +23,13 @@ namespace ZombieGame.Core.Physics
         private Tilemap? _walls;
 
         private WallGrid? _grid;
+        private GridFlowField? _routes;
 
         /// <summary>What is solid in this zone.</summary>
         public IWallMap Map => _grid ?? (IWallMap)OpenGround.Instance;
+
+        /// <summary>How to get about in this zone, once somebody points it at a goal.</summary>
+        public IFlowField Routes => _routes ?? (IFlowField)NoFlow.Instance;
 
         private void Awake()
         {
@@ -61,6 +65,13 @@ namespace ZombieGame.Core.Physics
             }
 
             GameServices.Replace<IWallMap>(_grid);
+
+            // The routes over the same walls, built here because this is the object that knows
+            // how big the zone is and where its corner sits. Nothing is swept yet — it is
+            // pointed at a goal by whoever is doing the hunting.
+            _routes = new GridFlowField(_grid.Origin, _grid.Width, _grid.Height);
+            _routes.ReadWalls(_grid);
+            GameServices.Replace<IFlowField>(_routes);
         }
 
         private void OnDestroy()
@@ -69,6 +80,11 @@ namespace ZombieGame.Core.Physics
             if (GameServices.TryGet(out IWallMap? registered) && ReferenceEquals(registered, _grid))
             {
                 GameServices.Unregister<IWallMap>();
+            }
+
+            if (GameServices.TryGet(out IFlowField? routes) && ReferenceEquals(routes, _routes))
+            {
+                GameServices.Unregister<IFlowField>();
             }
         }
     }
