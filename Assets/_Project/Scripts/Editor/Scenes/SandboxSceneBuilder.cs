@@ -54,7 +54,7 @@ namespace ZombieGame.Editor.Scenes
                 ZoneSceneParts.WireAim(player, camera);
                 ZoneSceneParts.CreateHorde(
                     scene, player, new Vector3(3f, 1f, 0f), new Vector2(3.5f, 2f), HordeOnStart);
-                ZoneSceneParts.CreateZoneHeat(scene);
+                ZoneSceneParts.CreateZoneHeat(scene, player);
                 ZoneSceneParts.CreateProjectileRunner(scene);
                 ZoneSceneParts.CreateSwingFlash(scene);
                 ZoneSceneParts.CreateHud(scene, camera);

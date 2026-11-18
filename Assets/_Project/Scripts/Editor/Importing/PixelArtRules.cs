@@ -77,7 +77,12 @@ namespace ZombieGame.Editor.Importing
         public static bool StandsOnTheGround(string? category) =>
             string.Equals(category, "Characters", StringComparison.Ordinal)
             || string.Equals(category, "Zombies", StringComparison.Ordinal)
-            || string.Equals(category, "Buildings", StringComparison.Ordinal);
+            || string.Equals(category, "Buildings", StringComparison.Ordinal)
+
+            // A tree, a wreck or a bin is drawn standing on the ground, so its contact point is
+            // its foot. Pivoting it in the middle would bury the bottom half of every tree in
+            // the cell below it.
+            || string.Equals(category, "Props", StringComparison.Ordinal);
 
         private static bool HasImageExtension(string path) =>
             path.EndsWith(".png", StringComparison.OrdinalIgnoreCase)

@@ -27,6 +27,13 @@ namespace ZombieGame.Editor.Art
 
         /// <summary>The way out: a hatched pad with a bright border.</summary>
         ExtractionPad,
+
+        /// <summary>
+        /// One dash of a road's centre line, running up the middle of an otherwise empty tile, so
+        /// a row of them reads as a painted line and a tile rotated a quarter turn serves a street
+        /// running the other way.
+        /// </summary>
+        RoadDash,
     }
 
     /// <summary>What one placeholder sprite should look like.</summary>
@@ -119,6 +126,9 @@ namespace ZombieGame.Editor.Art
                 case PlaceholderShape.ExtractionPad:
                     DrawExtractionPad(pixels, spec);
                     break;
+                case PlaceholderShape.RoadDash:
+                    DrawRoadDash(pixels, spec);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(spec), spec.Shape, "Unknown placeholder shape.");
@@ -147,6 +157,31 @@ namespace ZombieGame.Editor.Art
                 int faceHeight = Math.Max(1, headHeight / 3);
                 Fill(pixels, spec, headLeft, headBottom, headSize, faceHeight, spec.Accent);
             }
+        }
+
+        /// <summary>
+        /// A worn stripe up the middle of a transparent tile, with a gap at either end so that
+        /// laying one on every other cell gives a broken line rather than a continuous one.
+        /// </summary>
+        private static void DrawRoadDash(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            int thickness = Math.Max(2, spec.Width / 10);
+            int left = (spec.Width - thickness) / 2;
+            int gap = spec.Height / 8;
+
+            Fill(pixels, spec, left, gap, thickness, spec.Height - (gap * 2), spec.Body);
+
+            // A thinner core in the brighter colour: fresh paint in the middle of a stripe the
+            // traffic has worn, which keeps it from reading as a flat white bar.
+            int core = Math.Max(1, thickness / 2);
+            Fill(
+                pixels,
+                spec,
+                left + ((thickness - core) / 2),
+                gap + 1,
+                core,
+                spec.Height - (gap * 2) - 2,
+                spec.Accent);
         }
 
         private static void DrawTile(Color32[] pixels, PlaceholderSpriteSpec spec)

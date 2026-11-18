@@ -50,6 +50,10 @@ namespace ZombieGame.Editor.Art
         // Washed-out green, the colour every game paints a way out in.
         private static readonly Color32 ExitBody = new(74, 104, 72, 170);
         private static readonly Color32 ExitAccent = new(132, 200, 128, 230);
+        // Road paint is never white for long. Grey-white with a brighter core reads as a line
+        // that has been driven over, which is what a street in this town would look like.
+        private static readonly Color32 RoadLineBody = new(176, 172, 158, 235);
+        private static readonly Color32 RoadLineAccent = new(214, 210, 196, 255);
         private static readonly Color32 CrateBody = new(126, 104, 74, 255);
         private static readonly Color32 CrateAccent = new(80, 64, 44, 255);
 
@@ -78,6 +82,8 @@ namespace ZombieGame.Editor.Art
                     "placeholder_pavement", 64, 64, PlaceholderShape.Tile, PavementBody, PavementAccent)),
                 ("Tiles", new PlaceholderSpriteSpec(
                     "placeholder_tree", 64, 64, PlaceholderShape.Tile, TreeBody, TreeAccent)),
+                ("Tiles", new PlaceholderSpriteSpec(
+                    "road_dash", 64, 64, PlaceholderShape.RoadDash, RoadLineBody, RoadLineAccent)),
                 ("FX", new PlaceholderSpriteSpec(
                     "swing_arc", 128, 128, PlaceholderShape.SwingArc, SwingBody, SwingAccent)),
                 ("FX", new PlaceholderSpriteSpec(

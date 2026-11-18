@@ -11,9 +11,12 @@ namespace ZombieGame.Editor.Scenes
     /// are then dressed procedurally, and the handcrafted half has to live somewhere a person can
     /// change in ten seconds and a reviewer can read in a diff. A tilemap in a scene file is
     /// neither; twenty lines of text are both.
-    /// Legend: <c>#</c> wall, <c>.</c> floor, space nothing, <c>P</c> where the squad starts,
-    /// <c>X</c> the way out, <c>L</c> a container worth going through, <c>Z</c> somewhere zombies
-    /// are standing about.
+    /// Legend, ground first: <c>#</c> wall, <c>.</c> floor, <c>g</c> grass, <c>r</c> road,
+    /// <c>p</c> pavement, space nothing. Then what stands on it: <c>t</c> scrub, which hides
+    /// whoever walks into it and stops nobody, <c>v</c> a wrecked car and <c>f</c> fencing, which
+    /// both stop people without being a building. And the markers: <c>P</c> where the squad
+    /// starts, <c>X</c> the way out, <c>L</c> a container worth going through, <c>Z</c> somewhere
+    /// zombies are standing about.
     /// </remarks>
     public static class ZoneMaps
     {
@@ -38,7 +41,7 @@ namespace ZombieGame.Editor.Scenes
             "#ttttttttttttttttttttttttttttttttttttpppttttttttttttttttttttttttttttttttttt#",
             "#ttttttttttttttttttttttttttttttttttttpppttttttttttttttttttttttttttttttttttt#",
             "#gggprrrpgggggggggggprrrpggggggggggggpppgggggggggggprrrpgggggggggggggprrrpg#",
-            "#gggprrrpgggggggggggprrrpggggggggggggpppgggggggggggprrrpgggggggggggggprrrpg#",
+            "#gggprrrpgggggggggggprrrpgggffffffgggpppgggfffffgggprrrpgggggggggggggprrrpg#",
             "#gggprrrp#########ggprrrpggggggggggtgpppgggggggggggprrrpg##########ggprrrpg#",
             "#gggprrrp#.......#ggprrrpgggtggggggggpppggggtggggggprrrpg#........#ggprrrpg#",
             "#gggprrrp#.L.....#ggprrrpggggggggggggpppgggggZgggggprrrpg#.L......#ggprrrpg#",
@@ -47,7 +50,7 @@ namespace ZombieGame.Editor.Scenes
             "#gggprrrp####.####ggprrrpggggggtgggggpppgtgggggggggprrrpg####.#####ggprrrpg#",
             "#pppprrrppppppppppppprrrppgggggggggggpppggggggggggpprrrppppppppppppppprrrpp#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
-            "#rrrrrrrrrrrrrrrrrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrZrrrrrrrrrrrrrr#",
+            "#rrrrrrrrrrrrrrvrrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrvrrrrrrrrrZrrrrrrrrrrrrrr#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
             "#pppprrrppppppppppppprrrppp######################ppprrrppppppppppppppprrrpp#",
             "#gggprrrp####.####ggprrrpgg#....................#ggprrrpg####.#####ggprrrpg#",
@@ -62,7 +65,7 @@ namespace ZombieGame.Editor.Scenes
             "#gggprrrpgggggggggggprrrpggppppppppppppppppppppppggprrrpgggggggggggggprrrpg#",
             "#pppprrrppppppppppppprrrpppppppppppppppppppppppppppprrrppppppppppppppprrrpp#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
-            "#rrrrrrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
+            "#rrrrrrrrrrrrZrrrrrrrrrrrrrrrrvrrrrrrrrrrrrrrrrZrrrrrrrrrrrrvrrrrrrrrrrrrrr#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
             "#pppprrrpppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppprrrpp#",
             "#gggprrrpgggggpppZpppppppppgggggggggggggggggppppZpppppppppZppggggggggprrrpg#",
@@ -72,7 +75,7 @@ namespace ZombieGame.Editor.Scenes
             "#gggprrrpggggg###########ggggggggggggggggggg##############gggggggggggprrrpg#",
             "#pppprrrppppppppppppprrrpppppppppppppppppppppppppppprrrppppppppppppppprrrpp#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
-            "#rrrrrrrrrrrrrrrrrrrrrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrZrrrrrrrrrrr#",
+            "#rrrrrrrrrrrrrrrrrrrvrrrrrrrZrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrZrrvrrrrrrrr#",
             "#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#",
             "#pppprrrppppppppppppprrrpppppppppppppPpppppppppppppprrrppppppppppppppprrrpp#",
             "#gggprrrp####.#####gprrrpggggg######.######ggggggggprrrpg#####.#####gprrrpg#",

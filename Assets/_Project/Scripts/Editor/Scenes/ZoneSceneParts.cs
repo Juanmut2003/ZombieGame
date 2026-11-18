@@ -14,6 +14,7 @@ using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Physics;
+using ZombieGame.Core.Rendering;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
 using ZombieGame.Editor.Input;
@@ -84,6 +85,7 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudTrack = new(0.09f, 0.1f, 0.1f, 0.78f);
         private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
+        private static readonly Color HudHealth = new(0.74f, 0.26f, 0.24f, 1f);
         private static readonly Color HudCalm = new(0.45f, 0.55f, 0.62f, 1f);
         private static readonly Color HudAmmo = new(0.82f, 0.81f, 0.76f, 1f);
         private static readonly Vector2 HotbarSlot = new(86f, 22f);
@@ -130,7 +132,7 @@ namespace ZombieGame.Editor.Scenes
 
             // Above every body on the floor: a swing that disappears behind the zombie it just
             // hit is worse than no swing at all.
-            renderer.sortingOrder = 500;
+            renderer.sortingOrder = SortingBands.Projectile;
 
             if (renderer.sprite is null)
             {
@@ -182,6 +184,7 @@ namespace ZombieGame.Editor.Scenes
             serialized.FindProperty("_fill").objectReferenceValue = fill;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+            CreateHealthBar(canvas);
             CreateHeatBar(canvas);
             CreateAmmoLabel(canvas);
             CreateHotbar(canvas);
@@ -324,6 +327,42 @@ namespace ZombieGame.Editor.Scenes
         }
 
         /// <summary>
+        /// The squad's health, at the top of the stack of bars.
+        /// </summary>
+        /// <remarks>
+        /// Topmost because it is the only one of the three that does not come back. Stamina
+        /// refills, heat cools, and this is the bar that ends the run.
+        /// </remarks>
+        internal static void CreateHealthBar(Canvas canvas)
+        {
+            UiSceneParts.CreateLabel(
+                canvas.transform,
+                "Health Label",
+                "HEALTH",
+                anchoredPosition: new Vector2(-404f, -162f),
+                size: new Vector2(120f, 18f),
+                fontSize: 12,
+                colour: HudMuted,
+                alignment: TextAnchor.MiddleLeft);
+
+            Image fill = UiSceneParts.CreateCornerBar(
+                canvas.transform,
+                "Health Bar",
+                size: new Vector2(180f, 10f),
+                margin: new Vector2(24f, 84f),
+                trackColour: HudTrack,
+                fillColour: HudHealth);
+
+            var presenterObject = new GameObject("Health Bar Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            HealthBarPresenter presenter = presenterObject.AddComponent<HealthBarPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_fill").objectReferenceValue = fill;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
         /// The zone's heat meter, above the stamina bar.
         /// </summary>
         /// <remarks>
@@ -412,7 +451,7 @@ namespace ZombieGame.Editor.Scenes
         }
 
         /// <summary>Puts the zone's heat meter in the scene, listening to the bus.</summary>
-        internal static void CreateZoneHeat(Scene scene)
+        internal static ZoneHeat CreateZoneHeat(Scene scene, Transform? squad = null)
         {
             GameObject heatObject = SceneBuilder.CreateObject(scene, "Zone Heat");
             ZoneHeat heat = heatObject.AddComponent<ZoneHeat>();
@@ -420,7 +459,13 @@ namespace ZombieGame.Editor.Scenes
             var serialized = new SerializedObject(heat);
             serialized.FindProperty("_balance").objectReferenceValue =
                 AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
+
+            // Who the zone is looking for. Without it nowhere counts as hidden, which is the
+            // right answer for a zone with nobody in it rather than a quiet failure.
+            serialized.FindProperty("_squad").objectReferenceValue = squad;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            return heat;
         }
 
         internal static void CreateGlobalLight(Scene scene)
@@ -454,6 +499,26 @@ namespace ZombieGame.Editor.Scenes
             Tile? road = TileAssetFactory.GetOrCreate(RoadSprite, Tile.ColliderType.None);
             Tile? pavement = TileAssetFactory.GetOrCreate(PavementSprite, Tile.ColliderType.None);
             Tile? tree = TileAssetFactory.GetOrCreate(TreeSprite, Tile.ColliderType.Grid);
+
+            // The dressed look, where it is installed. Each kind of ground comes as a set rather
+            // than a tile, and the cell decides which of the set it gets: one sprite repeated over
+            // a thousand cells reads as a texture error, not as a field.
+            // The town set where it is installed, the borrowed one where it is not. Two complete
+            // sets rather than a mixture: half a town in one style and half in another looks
+            // worse than either on its own.
+            Tile[] grassSet = Prefer(TownArt.Grass(), CainosArt.Grass());
+            Tile[] roadSet = Prefer(TownArt.Road(), CainosArt.Road());
+            Tile[] pavementSet = Prefer(TownArt.Pavement(), CainosArt.Pavement());
+            Tile[] floorSet = Prefer(TownArt.Floor(), CainosArt.Floor());
+            Tile[] wallSet = Prefer(TownArt.Roof(), CainosArt.Wall());
+            Tile[] facadeSet = Prefer(TownArt.Facade(), wallSet);
+            Tile[] bushSet = Prefer(TownArt.Scrub(), CainosArt.Bushes());
+            Tile[] doorwaySet = Prefer(TownArt.Doorway(), CainosArt.Doorway());
+            Tile[] wreckSet = TownArt.Wrecks();
+            Tile[] fenceSet = TownArt.Fence();
+            Tile? lineAlong = TownArt.CentreLine(across: false) ?? CainosArt.RoadLine(across: false);
+            Tile? lineAcross = TownArt.CentreLine(across: true) ?? CainosArt.RoadLine(across: true);
+
             if (floor is null || wall is null || rows.Length == 0)
             {
                 Debug.LogWarning("[Zone] tile placeholders are missing; the floor stays empty.");
@@ -470,8 +535,14 @@ namespace ZombieGame.Editor.Scenes
             // building grid, placement checks and pathfinding will all want.
             gridObject.transform.position = new Vector3(-0.5f, -0.5f, 0f);
 
-            Tilemap floorMap = CreateTilemapLayer(gridObject.transform, "Tilemap_Floor", 0);
-            Tilemap wallMap = CreateTilemapLayer(gridObject.transform, "Tilemap_Walls", 1);
+            Tilemap floorMap =
+                CreateTilemapLayer(gridObject.transform, "Tilemap_Floor", SortingBands.Floor);
+            Tilemap markingMap =
+                CreateTilemapLayer(gridObject.transform, "Tilemap_Markings", SortingBands.Markings);
+            Tilemap wallMap =
+                CreateTilemapLayer(gridObject.transform, "Tilemap_Walls", SortingBands.Walls);
+            Tilemap scrubMap =
+                CreateTilemapLayer(gridObject.transform, "Tilemap_Scrub", SortingBands.Scrub);
 
             int height = rows.Length;
             int width = rows[0].Length;
@@ -490,21 +561,72 @@ namespace ZombieGame.Editor.Scenes
                     var cell = new Vector3Int(column - (width / 2), ((height - 1 - row) - (height / 2)), 0);
                     var at = new Vector2(cell.x, cell.y);
 
-                    // Trees are walls that look like trees: a zone has to be able to shut a
-                    // route without putting a building there.
-                    if (marker == '#' || marker == 't')
+                    if (marker == '#')
                     {
-                        wallMap.SetTile(cell, marker == 't' && tree is not null ? tree : wall);
+                        // The one side of a building you are actually looking at gets its front;
+                        // the rest of it is roof. The art is drawn from slightly above, with an
+                        // eave along the top, so it only reads right on the wall whose outside
+                        // is below it on the screen.
+                        bool front = ZoneGround.IsFrontWall(rows, column, row);
+                        wallMap.SetTile(
+                            cell,
+                            front
+                                ? Variant(facadeSet, wall, column, row, 8)
+                                : Variant(wallSet, wall, column, row, 3));
                         continue;
                     }
 
-                    floorMap.SetTile(cell, marker switch
+                    // A burnt-out car blocks a street without walling it off, which is the kind
+                    // of obstacle a town needs and a drawn map cannot say with '#'.
+                    if (marker == 'v' || marker == 'f')
                     {
-                        'g' => grass ?? floor,
-                        'r' => road ?? floor,
-                        'p' => pavement ?? floor,
-                        _ => floor,
+                        floorMap.SetTile(
+                            cell,
+                            marker == 'v'
+                                ? Variant(roadSet, road ?? floor, column, row, 4)
+                                : Variant(grassSet, grass ?? floor, column, row, 1));
+
+                        wallMap.SetTile(
+                            cell,
+                            marker == 'v'
+                                ? Variant(wreckSet, wall, column, row, 9)
+                                : Variant(fenceSet, wall, column, row, 10));
+                        continue;
+                    }
+
+                    // Scrub stands on the ground it grew out of, so the grass carries on
+                    // underneath it and the edge of a wood stops looking like a cut-out. It is
+                    // painted on a layer of its own, above the walls and with no collision:
+                    // the scrub layer is what the zone later reads as cover.
+                    if (marker == 't')
+                    {
+                        floorMap.SetTile(cell, Variant(grassSet, grass ?? floor, column, row, 1));
+                        scrubMap.SetTile(cell, Variant(bushSet, tree, column, row, 2));
+                        continue;
+                    }
+
+                    // What a cell is standing on, which is not the same as what is standing on
+                    // it: a crate, a nest or the way out keeps the road or grass it was put on.
+                    char ground = ZoneGround.Under(rows, column, row);
+
+                    floorMap.SetTile(cell, ground switch
+                    {
+                        'g' => Variant(grassSet, grass ?? floor, column, row, 1),
+                        'r' => Variant(roadSet, road ?? floor, column, row, 4),
+                        'p' => Variant(pavementSet, pavement ?? floor, column, row, 5),
+                        'd' => Variant(doorwaySet, pavement ?? floor, column, row, 7),
+                        _ => Variant(floorSet, floor, column, row, 6),
                     });
+
+                    if (ground == 'r')
+                    {
+                        // A broken line down the middle of the street, every second cell.
+                        if (ZoneGround.IsStreetCentre(rows, column, row, out bool northSouth)
+                            && (northSouth ? row : column) % 2 == 0)
+                        {
+                            markingMap.SetTile(cell, northSouth ? lineAlong : lineAcross);
+                        }
+                    }
 
                     switch (marker)
                     {
@@ -533,6 +655,14 @@ namespace ZombieGame.Editor.Scenes
             var serializedWalls = new SerializedObject(walls);
             serializedWalls.FindProperty("_walls").objectReferenceValue = wallMap;
             serializedWalls.ApplyModifiedPropertiesWithoutUndo();
+
+            // The scrub, baked the same way: not to stop anyone, but so the zone knows where it
+            // cannot see.
+            GameObject coverObject = SceneBuilder.CreateObject(scene, "Zone Cover");
+            ZoneCover cover = coverObject.AddComponent<ZoneCover>();
+            var serializedCover = new SerializedObject(cover);
+            serializedCover.FindProperty("_scrub").objectReferenceValue = scrubMap;
+            serializedCover.ApplyModifiedPropertiesWithoutUndo();
 
             return map;
         }
@@ -734,6 +864,34 @@ namespace ZombieGame.Editor.Scenes
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>
+        /// Picks one tile out of a set for a given cell, or falls back when the set is empty.
+        /// </summary>
+        /// <remarks>
+        /// Deterministic on purpose. A scene is a file in git, so a rebuild that shuffled the
+        /// grass would show up as a diff of several thousand changed cells with no change in it,
+        /// and the one real edit would be impossible to find.
+        /// </remarks>
+        /// <summary>The first set that has anything in it.</summary>
+        private static Tile[] Prefer(Tile[] first, Tile[] second) =>
+            first.Length > 0 ? first : second;
+
+        /// <param name="salt">Separates the streams, so grass and road do not vary in step.</param>
+        private static Tile? Variant(Tile[] set, Tile? fallback, int column, int row, int salt)
+        {
+            if (set.Length == 0)
+            {
+                return fallback;
+            }
+
+            unchecked
+            {
+                int mixed = (column * 73856093) ^ (row * 19349663) ^ (salt * 83492791);
+                mixed ^= mixed >> 13;
+                return set[(mixed & 0x7FFFFFFF) % set.Length];
+            }
+        }
+
         internal static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
 
         internal static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
@@ -804,6 +962,11 @@ namespace ZombieGame.Editor.Scenes
             var serializedStamina = new SerializedObject(stamina);
             serializedStamina.FindProperty("_balance").objectReferenceValue = balance;
             serializedStamina.ApplyModifiedPropertiesWithoutUndo();
+
+            CharacterVitals vitals = player.AddComponent<CharacterVitals>();
+            var serializedVitals = new SerializedObject(vitals);
+            serializedVitals.FindProperty("_balance").objectReferenceValue = balance;
+            serializedVitals.ApplyModifiedPropertiesWithoutUndo();
 
             CharacterMovement movement = player.AddComponent<CharacterMovement>();
             var serializedMovement = new SerializedObject(movement);
@@ -886,8 +1049,11 @@ namespace ZombieGame.Editor.Scenes
             renderer.sprite = sprite;
 
             // Everything that stands on the floor sorts by how far down the screen it is, so a
-            // figure lower in the scene draws in front of one further back.
-            renderer.sortingOrder = 10;
+            // figure lower in the scene draws in front of one further back. Kept up to date as
+            // it walks, inside the same band the horde sorts in — otherwise the player and the
+            // zombie standing next to them would be sorted by two different rules.
+            renderer.sortingOrder = SortingBands.ForGround(position.y);
+            actor.AddComponent<GroundSorting>();
 
             return actor.transform;
         }

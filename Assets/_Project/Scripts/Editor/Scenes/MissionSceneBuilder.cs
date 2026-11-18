@@ -5,7 +5,9 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
+using ZombieGame.Core.Rendering;
 using ZombieGame.Missions;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -101,14 +103,19 @@ namespace ZombieGame.Editor.Scenes
                     mission.ZombiesOnStart,
                     map.ZombieNests);
 
-                ZoneSceneParts.CreateZoneHeat(scene);
+                ZoneHeat heat = ZoneSceneParts.CreateZoneHeat(scene, player);
+
+                // The zone's temperament, from the mission rather than from the zone: the same
+                // streets run cold on a first job and already stirred on a later one.
+                heat.Profile(mission.StartingHeat, mission.NoiseFactor);
+                EditorUtility.SetDirty(heat);
                 ZoneSceneParts.CreateProjectileRunner(scene);
                 ZoneSceneParts.CreateSwingFlash(scene);
                 ZoneSceneParts.CreateHud(scene, camera);
 
                 CreateLoot(scene, map);
                 ExtractionPoint extraction = CreateExtraction(scene, map.Extraction, player);
-                CreateMissionRunner(scene, mission, extraction);
+                CreateMissionRunner(scene, mission, extraction, heat, player);
                 SceneBuilder.CreateObject(scene, "Mission End").AddComponent<MissionEndFlow>();
             });
 
@@ -123,7 +130,7 @@ namespace ZombieGame.Editor.Scenes
         /// </remarks>
         private static void CreateLoot(Scene scene, ZoneMap map)
         {
-            var crate = AssetDatabase.LoadAssetAtPath<Sprite>(CrateSprite);
+            Sprite? crate = CainosArt.Chest() ?? AssetDatabase.LoadAssetAtPath<Sprite>(CrateSprite);
             if (crate is null)
             {
                 Debug.LogWarning($"[Mission] no crate sprite at '{CrateSprite}'.");
@@ -134,9 +141,24 @@ namespace ZombieGame.Editor.Scenes
                 GameObject container = SceneBuilder.CreateObject(scene, $"Crate {i + 1}");
                 container.transform.position = new Vector3(map.Loot[i].x, map.Loot[i].y, 0f);
 
-                var renderer = container.AddComponent<SpriteRenderer>();
+                // The art hangs off a child: a chest is pivoted at its foot, the way a thing
+                // standing on a floor is, and the container itself has to stay on the cell the
+                // map put it on for the reach check to mean anything.
+                var art = new GameObject("Art", typeof(SpriteRenderer));
+                art.transform.SetParent(container.transform, worldPositionStays: false);
+                SpriteRenderer renderer = art.GetComponent<SpriteRenderer>();
                 renderer.sprite = crate;
-                renderer.sortingOrder = 5;
+                renderer.sortingOrder = SortingBands.ForGround(map.Loot[i].y);
+
+                // On the art, not the container: the chest is pivoted at its foot, and where it
+                // stands is what decides whether the player walks in front of it or behind it.
+                art.AddComponent<GroundSorting>();
+                if (crate is not null)
+                {
+                    float foot = crate.pivot.y / crate.pixelsPerUnit;
+                    float middle = crate.rect.height / crate.pixelsPerUnit / 2f;
+                    art.transform.localPosition = new Vector3(0f, foot - middle, 0f);
+                }
 
                 var reach = container.AddComponent<CircleCollider2D>();
                 reach.isTrigger = true;
@@ -161,7 +183,7 @@ namespace ZombieGame.Editor.Scenes
             padRenderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PadSprite);
 
             // Under the bodies but over the floor: it is floor paint, not a thing to walk round.
-            padRenderer.sortingOrder = 1;
+            padRenderer.sortingOrder = SortingBands.Markings;
 
             ExtractionPoint extraction = point.AddComponent<ExtractionPoint>();
             var serialized = new SerializedObject(extraction);
@@ -173,7 +195,11 @@ namespace ZombieGame.Editor.Scenes
 
         /// <summary>Puts the mission's bookkeeping in the scene.</summary>
         private static void CreateMissionRunner(
-            Scene scene, MissionDefinition mission, ExtractionPoint extraction)
+            Scene scene,
+            MissionDefinition mission,
+            ExtractionPoint extraction,
+            ZoneHeat heat,
+            Transform? squad)
         {
             GameObject runnerObject = SceneBuilder.CreateObject(scene, "Mission");
             MissionRunner runner = runnerObject.AddComponent<MissionRunner>();
@@ -181,6 +207,11 @@ namespace ZombieGame.Editor.Scenes
             var serialized = new SerializedObject(runner);
             serialized.FindProperty("_mission").objectReferenceValue = mission;
             serialized.FindProperty("_extraction").objectReferenceValue = extraction;
+            serialized.FindProperty("_heat").objectReferenceValue = heat;
+
+            // The run ends when the squad does, so the thing that can be lost has to be the
+            // thing the runner is watching.
+            serialized.FindProperty("_squadTransform").objectReferenceValue = squad;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

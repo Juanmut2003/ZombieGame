@@ -125,8 +125,11 @@ namespace ZombieGame.Tests.EditMode
                         continue;
                     }
 
+                    // Scrub is cover, not a barrier: it can be pushed through, and a route that
+                    // goes through a hedge is still a route. A wall, a wreck and a fence are all
+                    // solid, whatever they look like.
                     char cell = map[nextRow][nextColumn];
-                    if (reached[nextRow, nextColumn] || cell == '#' || cell == 't')
+                    if (reached[nextRow, nextColumn] || cell is '#' or 'v' or 'f')
                     {
                         continue;
                     }
