@@ -5,6 +5,7 @@ using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using ZombieGame.Core.Rendering;
+using ZombieGame.Editor.Art;
 
 namespace ZombieGame.Editor.Scenes
 {
@@ -54,6 +55,11 @@ namespace ZombieGame.Editor.Scenes
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 1f;
 
+            // The HUD art is drawn at eighteen pixels to the unit, and a nine-slice border is
+            // measured in those. Leave this at the default hundred and a two-pixel border is
+            // stretched to eleven, which on a bar ten pixels tall is the whole bar.
+            scaler.referencePixelsPerUnit = HudArt.PixelsPerUnit;
+
             canvasObject.AddComponent<GraphicRaycaster>();
             return canvas;
         }
@@ -97,7 +103,11 @@ namespace ZombieGame.Editor.Scenes
 
             Text text = labelObject.AddComponent<Text>();
             text.text = content;
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            // The pack's pixel font where it is installed. A HUD drawn at 64 pixels to the tile
+            // and then labelled in a smooth system face reads as two games at once.
+            text.font = HudArt.PixelFont()
+                        ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = fontSize;
             text.color = colour;
             text.alignment = alignment;
@@ -142,6 +152,17 @@ namespace ZombieGame.Editor.Scenes
             track.color = trackColour;
             track.raycastTarget = false;
 
+            // The pack's own track and fill, stretched by their nine-slice borders so the ends
+            // keep their shape at any width. Without the art both stay flat rectangles, which is
+            // what the HUD looked like before.
+            Sprite? trackSprite = HudArt.BarTrack();
+            if (trackSprite is not null)
+            {
+                track.sprite = trackSprite;
+                track.type = Image.Type.Sliced;
+                track.color = Color.white;
+            }
+
             var fillObject = new GameObject($"{name} Fill", typeof(RectTransform));
             fillObject.transform.SetParent(barObject.transform, worldPositionStays: false);
 
@@ -155,6 +176,18 @@ namespace ZombieGame.Editor.Scenes
             Image fill = fillObject.AddComponent<Image>();
             fill.color = fillColour;
             fill.raycastTarget = false;
+
+            Sprite? fillSprite = HudArt.BarFill();
+            if (fillSprite is not null)
+            {
+                fill.sprite = fillSprite;
+                fill.type = Image.Type.Sliced;
+            }
+
+            // Inset, so the track reads as a frame with something inside it rather than as a
+            // second bar behind the first.
+            fillRect.offsetMin = new Vector2(2f, 2f);
+            fillRect.offsetMax = new Vector2(-2f, -2f);
             return fill;
         }
 

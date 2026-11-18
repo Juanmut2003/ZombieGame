@@ -111,7 +111,7 @@ namespace ZombieGame.Editor.Scenes
                 EditorUtility.SetDirty(heat);
                 ZoneSceneParts.CreateProjectileRunner(scene);
                 ZoneSceneParts.CreateSwingFlash(scene);
-                ZoneSceneParts.CreateHud(scene, camera);
+                ZoneSceneParts.CreateHud(scene, camera, player);
 
                 CreateLoot(scene, map);
                 ExtractionPoint extraction = CreateExtraction(scene, map.Extraction, player);

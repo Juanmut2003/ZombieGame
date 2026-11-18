@@ -86,6 +86,12 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
         private static readonly Color HudHealth = new(0.74f, 0.26f, 0.24f, 1f);
+
+        /// <summary>
+        /// Which of the pack's framed icons each belt slot wears: a club, a pistol, and the third
+        /// slot left empty until there is a third weapon to put in it.
+        /// </summary>
+        private static readonly int[] HotbarIcons = { 1, 4, 9 };
         private static readonly Color HudCalm = new(0.45f, 0.55f, 0.62f, 1f);
         private static readonly Color HudAmmo = new(0.82f, 0.81f, 0.76f, 1f);
         private static readonly Vector2 HotbarSlot = new(86f, 22f);
@@ -153,7 +159,7 @@ namespace ZombieGame.Editor.Scenes
         /// with no warning. Health gets its bar when the MC can be hurt.
         /// TODO: placeholder framing. The diegetic HUD from PROJECT.md 13 comes with the UX pass.
         /// </remarks>
-        internal static void CreateHud(Scene scene, Camera camera)
+        internal static void CreateHud(Scene scene, Camera camera, Transform? squad = null)
         {
             Canvas canvas = UiSceneParts.CreateCanvas(scene, camera, "HUD Canvas");
 
@@ -161,7 +167,7 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Stamina Label",
                 "STAMINA",
-                anchoredPosition: new Vector2(-404f, -222f),
+                anchoredPosition: new Vector2(-404f, -226f),
                 size: new Vector2(120f, 18f),
                 fontSize: 12,
                 colour: HudMuted,
@@ -170,7 +176,7 @@ namespace ZombieGame.Editor.Scenes
             Image fill = UiSceneParts.CreateCornerBar(
                 canvas.transform,
                 "Stamina Bar",
-                size: new Vector2(180f, 10f),
+                size: new Vector2(184f, 16f),
                 margin: new Vector2(24f, 24f),
                 trackColour: HudTrack,
                 fillColour: HudStamina);
@@ -186,6 +192,7 @@ namespace ZombieGame.Editor.Scenes
 
             CreateHealthBar(canvas);
             CreateHeatBar(canvas);
+            CreateMinimap(scene, canvas, squad);
             CreateAmmoLabel(canvas);
             CreateHotbar(canvas);
             CreateMissionLines(canvas);
@@ -268,15 +275,42 @@ namespace ZombieGame.Editor.Scenes
                 Image plate = plateObject.AddComponent<Image>();
                 plate.color = HudTrack;
                 plate.raycastTarget = false;
+
+                Sprite? panel = HudArt.Panel();
+                if (panel is not null)
+                {
+                    plate.sprite = panel;
+                    plate.type = Image.Type.Sliced;
+                    plate.color = Color.white;
+                }
+
                 plates[i] = plate;
+
+                // The pack's framed item icons. A club for the bat and a pistol for the pistol;
+                // the slot number stays as a label underneath, because the keys are what the
+                // player actually presses.
+                Sprite? icon = HudArt.Icon(HotbarIcons[i]);
+                if (icon is not null)
+                {
+                    var iconObject = new GameObject("Icon", typeof(RectTransform));
+                    iconObject.transform.SetParent(plateObject.transform, worldPositionStays: false);
+
+                    var iconRect = (RectTransform)iconObject.transform;
+                    iconRect.anchoredPosition = new Vector2(0f, 3f);
+                    iconRect.sizeDelta = new Vector2(26f, 26f);
+
+                    Image art = iconObject.AddComponent<Image>();
+                    art.sprite = icon;
+                    art.raycastTarget = false;
+                }
 
                 labels[i] = UiSceneParts.CreateLabel(
                     plateObject.transform,
                     "Label",
                     string.Empty,
-                    anchoredPosition: Vector2.zero,
+                    anchoredPosition: new Vector2(0f, -13f),
                     size: HotbarSlot,
-                    fontSize: 12,
+                    fontSize: 10,
                     colour: HudMuted);
             }
 
@@ -326,6 +360,116 @@ namespace ZombieGame.Editor.Scenes
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        /// <summary>Where the minimap's render texture lives.</summary>
+        private const string MinimapTexturePath = "Assets/_Project/Settings/Minimap.renderTexture";
+
+        /// <summary>
+        /// A second camera looking down on the zone, shown in the corner.
+        /// </summary>
+        /// <remarks>
+        /// The map is the world, not a drawing of it. A drawn one would be a second copy of every
+        /// zone to keep correct and the first thing to go stale when one changes; a camera cannot
+        /// be wrong about a zone it is looking at.
+        /// It does show the horde, because it shows whatever is there. That makes it a radar as
+        /// much as a map, which is a real cost to the stealth in PROJECT.md 9 — hiding what the
+        /// zone's perception says you should not see needs a layer of its own, and that is a
+        /// project settings change to ask about rather than make.
+        /// </remarks>
+        internal static void CreateMinimap(Scene scene, Canvas canvas, Transform? squad)
+        {
+            RenderTexture? target = RequireMinimapTexture();
+            if (target is null)
+            {
+                return;
+            }
+
+            GameObject cameraObject = SceneBuilder.CreateObject(scene, "Minimap Camera");
+            cameraObject.transform.position = new Vector3(0f, 0f, -40f);
+
+            Camera view = cameraObject.AddComponent<Camera>();
+            view.orthographic = true;
+            view.orthographicSize = 14f;
+            view.targetTexture = target;
+            view.clearFlags = CameraClearFlags.SolidColor;
+            view.backgroundColor = new Color(0.06f, 0.07f, 0.06f, 1f);
+            view.cullingMask = ~0;
+
+            // Rendered before the camera the player is looking through, so the texture the HUD
+            // samples is this frame's rather than last frame's.
+            view.depth = -10f;
+
+            // URP will not render a camera it has no data for, and a camera added from code has
+            // none. Without this the minimap is a texture that never gets written to.
+            cameraObject.AddComponent<UniversalAdditionalCameraData>().renderType =
+                CameraRenderType.Base;
+
+            MinimapFollow follow = cameraObject.AddComponent<MinimapFollow>();
+            var serializedFollow = new SerializedObject(follow);
+            serializedFollow.FindProperty("_squad").objectReferenceValue = squad;
+            serializedFollow.ApplyModifiedPropertiesWithoutUndo();
+
+            var frameObject = new GameObject("Minimap", typeof(RectTransform));
+            frameObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+
+            var frameRect = (RectTransform)frameObject.transform;
+            frameRect.anchorMin = new Vector2(0f, 1f);
+            frameRect.anchorMax = new Vector2(0f, 1f);
+            frameRect.pivot = new Vector2(0f, 1f);
+            frameRect.anchoredPosition = new Vector2(10f, -10f);
+            frameRect.sizeDelta = new Vector2(124f, 124f);
+
+            Image frame = frameObject.AddComponent<Image>();
+            frame.raycastTarget = false;
+            Sprite? panel = HudArt.Panel();
+            if (panel is not null)
+            {
+                frame.sprite = panel;
+                frame.type = Image.Type.Sliced;
+            }
+
+            // Dark either way. The pack's panel is near white, which beside a night-time street
+            // is a lamp rather than a frame.
+            frame.color = HudTrack;
+
+            var viewObject = new GameObject("Minimap View", typeof(RectTransform));
+            viewObject.transform.SetParent(frameObject.transform, worldPositionStays: false);
+
+            var viewRect = (RectTransform)viewObject.transform;
+            viewRect.anchorMin = Vector2.zero;
+            viewRect.anchorMax = Vector2.one;
+            viewRect.offsetMin = new Vector2(6f, 6f);
+            viewRect.offsetMax = new Vector2(-6f, -6f);
+
+            RawImage picture = viewObject.AddComponent<RawImage>();
+            picture.texture = target;
+            picture.raycastTarget = false;
+        }
+
+        /// <summary>The texture the minimap camera draws into, created on first use.</summary>
+        private static RenderTexture? RequireMinimapTexture()
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<RenderTexture>(MinimapTexturePath);
+            if (existing is not null)
+            {
+                return existing;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(MinimapTexturePath)!);
+
+            var created = new RenderTexture(256, 256, 16, RenderTextureFormat.ARGB32)
+            {
+                name = "Minimap",
+
+                // Point, because everything it is looking at is pixel art and a smoothed minimap
+                // of a pixel-art town looks like a smear.
+                filterMode = FilterMode.Point,
+            };
+
+            AssetDatabase.CreateAsset(created, MinimapTexturePath);
+            AssetDatabase.SaveAssetIfDirty(created);
+            return created;
+        }
+
         /// <summary>
         /// The squad's health, at the top of the stack of bars.
         /// </summary>
@@ -348,8 +492,8 @@ namespace ZombieGame.Editor.Scenes
             Image fill = UiSceneParts.CreateCornerBar(
                 canvas.transform,
                 "Health Bar",
-                size: new Vector2(180f, 10f),
-                margin: new Vector2(24f, 84f),
+                size: new Vector2(184f, 16f),
+                margin: new Vector2(24f, 88f),
                 trackColour: HudTrack,
                 fillColour: HudHealth);
 
@@ -375,7 +519,7 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Heat Label",
                 "CALM",
-                anchoredPosition: new Vector2(-404f, -192f),
+                anchoredPosition: new Vector2(-404f, -194f),
                 size: new Vector2(120f, 18f),
                 fontSize: 12,
                 colour: HudMuted,
@@ -384,8 +528,8 @@ namespace ZombieGame.Editor.Scenes
             Image fill = UiSceneParts.CreateCornerBar(
                 canvas.transform,
                 "Heat Bar",
-                size: new Vector2(180f, 10f),
-                margin: new Vector2(24f, 54f),
+                size: new Vector2(184f, 16f),
+                margin: new Vector2(24f, 56f),
                 trackColour: HudTrack,
                 fillColour: HudCalm);
 

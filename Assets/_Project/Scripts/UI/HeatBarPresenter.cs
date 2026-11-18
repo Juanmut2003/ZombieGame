@@ -41,6 +41,9 @@ namespace ZombieGame.UI
         [SerializeField]
         private Color _huntingColour = new(0.82f, 0.31f, 0.25f, 1f);
 
+        /// <summary>How far the fill sits inside its track, in reference pixels.</summary>
+        private const float Inset = 2f;
+
         private EventBus? _bus;
         private RectTransform? _fillRect;
 
@@ -78,8 +81,9 @@ namespace ZombieGame.UI
 
             _fillRect.anchorMin = Vector2.zero;
             _fillRect.anchorMax = new Vector2(clamped, 1f);
-            _fillRect.offsetMin = Vector2.zero;
-            _fillRect.offsetMax = Vector2.zero;
+            // Inset, so the track around it reads as a frame rather than as a second bar.
+            _fillRect.offsetMin = new Vector2(Inset, Inset);
+            _fillRect.offsetMax = new Vector2(-Inset, -Inset);
 
             _fill.color = stage switch
             {

@@ -57,7 +57,7 @@ namespace ZombieGame.Editor.Scenes
                 ZoneSceneParts.CreateZoneHeat(scene, player);
                 ZoneSceneParts.CreateProjectileRunner(scene);
                 ZoneSceneParts.CreateSwingFlash(scene);
-                ZoneSceneParts.CreateHud(scene, camera);
+                ZoneSceneParts.CreateHud(scene, camera, player);
             });
 
             Debug.Log($"[Sandbox] built {ProjectScenes.Sandbox}");

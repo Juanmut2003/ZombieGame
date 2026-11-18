@@ -35,6 +35,9 @@ namespace ZombieGame.UI
         [Range(0f, 1f)]
         private float _lowFraction = 0.35f;
 
+        /// <summary>How far the fill sits inside its track, in reference pixels.</summary>
+        private const float Inset = 2f;
+
         private EventBus? _bus;
         private RectTransform? _fillRect;
 
@@ -72,8 +75,9 @@ namespace ZombieGame.UI
 
             _fillRect.anchorMin = new Vector2(0f, 0f);
             _fillRect.anchorMax = new Vector2(clamped, 1f);
-            _fillRect.offsetMin = Vector2.zero;
-            _fillRect.offsetMax = Vector2.zero;
+            // Inset, so the track around it reads as a frame rather than as a second bar.
+            _fillRect.offsetMin = new Vector2(Inset, Inset);
+            _fillRect.offsetMax = new Vector2(-Inset, -Inset);
 
             _fill.color = clamped <= _lowFraction ? _lowColour : _normalColour;
         }

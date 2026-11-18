@@ -86,6 +86,11 @@ namespace ZombieGame.Editor.Scenes
 
             try
             {
+                // Anything drawing into its own texture goes first, or the HUD samples a
+                // texture nothing has written to and the screenshot shows the minimap as a
+                // blank square. Which is exactly how this was found.
+                RenderOffscreenCameras(scene);
+
                 camera.targetTexture = target;
                 Render(camera, target);
 
@@ -111,6 +116,29 @@ namespace ZombieGame.Editor.Scenes
             }
         }
 
+        /// <summary>
+        /// Draws every camera in the scene that renders into a texture of its own.
+        /// </summary>
+        /// <remarks>
+        /// Outside play mode nothing renders on its own, so a minimap camera is never asked to
+        /// draw and the texture the HUD samples stays empty. One pass over them before the shot
+        /// makes a screenshot show what a player would see rather than what a stopped editor
+        /// happens to hold.
+        /// </remarks>
+        private static void RenderOffscreenCameras(Scene scene)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                foreach (Camera other in root.GetComponentsInChildren<Camera>(includeInactive: false))
+                {
+                    if (other.targetTexture != null)
+                    {
+                        Render(other, other.targetTexture);
+                    }
+                }
+            }
+        }
+
         private static void Render(Camera camera, RenderTexture target)
         {
             // URP ignores Camera.Render; a render request is the supported way to drive a single
@@ -129,10 +157,15 @@ namespace ZombieGame.Editor.Scenes
         {
             foreach (GameObject root in scene.GetRootGameObjects())
             {
-                Camera? found = root.GetComponentInChildren<Camera>(includeInactive: false);
-                if (found is not null)
+                foreach (Camera found in root.GetComponentsInChildren<Camera>(includeInactive: false))
                 {
-                    return found;
+                    // Not a camera that is already drawing somewhere else. Since the minimap
+                    // there is one of those in every zone, and it happens to come first in some
+                    // scenes — a screenshot taken through it is a picture of the minimap.
+                    if (found.targetTexture == null)
+                    {
+                        return found;
+                    }
                 }
             }
 
