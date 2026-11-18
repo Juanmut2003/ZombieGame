@@ -43,6 +43,11 @@ namespace ZombieGame.Editor.Scenes
             canvas.worldCamera = camera;
             canvas.planeDistance = 1f;
 
+            // Above everything in the world. Sprites and tilemaps sort in the same default layer,
+            // and a HUD at order zero disappears behind whatever wall the character walks past —
+            // which is exactly when the player needs to read it.
+            canvas.sortingOrder = 1000;
+
             CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = ReferenceResolution;

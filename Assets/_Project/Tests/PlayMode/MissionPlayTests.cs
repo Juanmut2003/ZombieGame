@@ -6,6 +6,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
 using ZombieGame.Characters;
+using ZombieGame.Core;
+using ZombieGame.Core.Physics;
 using ZombieGame.Missions;
 
 namespace ZombieGame.Tests.PlayMode
@@ -52,7 +54,7 @@ namespace ZombieGame.Tests.PlayMode
         public IEnumerator TheZoneIsFullOfThingsToGoThrough()
         {
             LootContainer[] crates =
-                Object.FindObjectsByType<LootContainer>(FindObjectsSortMode.None);
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude);
 
             Assert.That(crates, Has.Length.GreaterThanOrEqualTo(5));
             yield break;
@@ -62,7 +64,7 @@ namespace ZombieGame.Tests.PlayMode
         public IEnumerator SearchingACrateTakesTimeAndThenPaysOut()
         {
             LootContainer crate =
-                Object.FindObjectsByType<LootContainer>(FindObjectsSortMode.None)[0];
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude)[0];
 
             // Standing next to it and holding the button, which is what a player does.
             _player.position = crate.transform.position + new Vector3(0.4f, 0f, 0f);
@@ -82,7 +84,7 @@ namespace ZombieGame.Tests.PlayMode
         public IEnumerator WalkingAwayLosesTheSearch()
         {
             LootContainer crate =
-                Object.FindObjectsByType<LootContainer>(FindObjectsSortMode.None)[0];
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude)[0];
 
             _player.position = crate.transform.position + new Vector3(0.4f, 0f, 0f);
             _input.SetInputOverride(Vector2.zero, sprint: false, interact: true);
@@ -115,7 +117,7 @@ namespace ZombieGame.Tests.PlayMode
         public IEnumerator LootOnlyCountsOnceTheSquadIsOut()
         {
             LootContainer crate =
-                Object.FindObjectsByType<LootContainer>(FindObjectsSortMode.None)[0];
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude)[0];
 
             _player.position = crate.transform.position + new Vector3(0.4f, 0f, 0f);
             _input.SetInputOverride(Vector2.zero, sprint: false, interact: true);
@@ -130,6 +132,50 @@ namespace ZombieGame.Tests.PlayMode
             yield return new WaitForSeconds(5f);
 
             Assert.That(_mission.Progress.Banked, Is.EqualTo(carried));
+        }
+
+        [UnityTest]
+        public IEnumerator GettingOutTakesTheSquadHome()
+        {
+            GameObject? flowObject = GameObject.Find("Mission End");
+            Assert.That(flowObject, Is.Not.Null, "a finished run has to lead somewhere");
+            MissionEndFlow flow = flowObject!.GetComponent<MissionEndFlow>();
+
+            Assert.That(flow.IsLeaving, Is.False);
+
+            _player.position = _extraction.transform.position;
+            yield return new WaitForSeconds(5f);
+
+            // The result stays up for a moment and then the zone is left; without this the
+            // player stood in a finished zone reading a line that said they were done.
+            Assert.That(flow.IsLeaving, Is.True);
+        }
+
+        [UnityTest]
+        public IEnumerator TheZoneKnowsWhereItsWallsAre()
+        {
+            Assert.That(GameServices.TryGet(out IWallMap? walls), Is.True, "the walls were never baked");
+
+            // The corner of the map, which every drawing walls in.
+            GameObject? wallsObject = GameObject.Find("Zone Walls");
+            Assert.That(wallsObject, Is.Not.Null);
+
+            // The outer wall, which every drawing has all the way round. Counted rather than
+            // sampled once: it is the band being checked, not one particular tile.
+            int solid = 0;
+            for (float x = -12f; x <= 12f; x += 1f)
+            {
+                if (walls!.IsSolid(new Vector2(x, 10f)))
+                {
+                    solid++;
+                }
+            }
+
+            Assert.That(solid, Is.GreaterThan(20), "the top edge is not solid");
+
+            // And the yard inside it is not.
+            Assert.That(walls!.IsSolid(_extraction.transform.position), Is.False);
+            yield break;
         }
 
         [UnityTest]

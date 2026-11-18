@@ -13,6 +13,7 @@ using ZombieGame.Characters;
 using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Config;
+using ZombieGame.Core.Physics;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
 using ZombieGame.Editor.Input;
@@ -507,6 +508,15 @@ namespace ZombieGame.Editor.Scenes
             }
 
             AddWallCollision(wallMap.gameObject);
+
+            // The same walls, a third time: drawn, collided with, and now baked flat for the
+            // horde to read. Hundreds of bodies cannot each ask the physics engine every step.
+            GameObject wallsObject = SceneBuilder.CreateObject(scene, "Zone Walls");
+            ZoneWalls walls = wallsObject.AddComponent<ZoneWalls>();
+            var serializedWalls = new SerializedObject(walls);
+            serializedWalls.FindProperty("_walls").objectReferenceValue = wallMap;
+            serializedWalls.ApplyModifiedPropertiesWithoutUndo();
+
             return map;
         }
 

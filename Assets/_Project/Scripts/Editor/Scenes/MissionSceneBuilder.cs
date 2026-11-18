@@ -23,6 +23,7 @@ namespace ZombieGame.Editor.Scenes
     {
         private const string MissionAssetPath = "Assets/_Project/Data/Missions/DepotRun.asset";
         private const string CrateSprite = "Assets/_Project/Art/Sprites/Items/placeholder_crate.png";
+        private const string PadSprite = "Assets/_Project/Art/Sprites/FX/extraction_pad.png";
 
         /// <summary>Generates any missing placeholders and (re)builds the depot.</summary>
         [MenuItem("ZombieGame/Scenes/Build Depot Mission")]
@@ -66,6 +67,7 @@ namespace ZombieGame.Editor.Scenes
                 CreateLoot(scene, map);
                 ExtractionPoint extraction = CreateExtraction(scene, map.Extraction, player);
                 CreateMissionRunner(scene, mission, extraction);
+                SceneBuilder.CreateObject(scene, "Mission End").AddComponent<MissionEndFlow>();
             });
 
             Debug.Log($"[Mission] built {ProjectScenes.MissionDepot}");
@@ -108,6 +110,16 @@ namespace ZombieGame.Editor.Scenes
         {
             GameObject point = SceneBuilder.CreateObject(scene, "Extraction");
             point.transform.position = new Vector3(at.x, at.y, 0f);
+
+            // Painted on the ground, because a way out the player cannot find is a mission with
+            // its last decision missing.
+            var pad = new GameObject("Pad", typeof(SpriteRenderer));
+            pad.transform.SetParent(point.transform, worldPositionStays: false);
+            SpriteRenderer padRenderer = pad.GetComponent<SpriteRenderer>();
+            padRenderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PadSprite);
+
+            // Under the bodies but over the floor: it is floor paint, not a thing to walk round.
+            padRenderer.sortingOrder = 1;
 
             ExtractionPoint extraction = point.AddComponent<ExtractionPoint>();
             var serialized = new SerializedObject(extraction);

@@ -29,7 +29,7 @@ namespace ZombieGame.UI
 
         [Tooltip("Scene a new run starts in.")]
         [SerializeField]
-        private string _firstRunScene = GameScenes.Sandbox;
+        private string _firstRunScene = GameScenes.MissionDepot;
 
         private SceneLoader? _sceneLoader;
 

@@ -596,13 +596,14 @@ namespace ZombieGame.AI
         /// step; this is the integration loop they will drive.
         /// What it is no longer dumb about is each other — see <see cref="CrowdSettings"/>.
         /// </remarks>
-        public void Tick(float deltaSeconds)
+        public void Tick(float deltaSeconds, IWallMap? walls = null)
         {
             if (deltaSeconds <= 0f)
             {
                 return;
             }
 
+            IWallMap solid = walls ?? OpenGround.Instance;
             bool separating = _crowd.SeparationStrength > 0f && Count > 1;
             if (separating)
             {
@@ -649,7 +650,7 @@ namespace ZombieGame.AI
                 // destination still has to give way to the one walking into it.
                 if (push == Vector2.zero && step >= distance)
                 {
-                    zombie.Position = zombie.Destination;
+                    zombie.Position = Slide(zombie.Position, toTarget, zombie.Radius, solid);
                     zombie.Velocity = Vector2.zero;
                 }
                 else
@@ -665,7 +666,8 @@ namespace ZombieGame.AI
                     }
 
                     zombie.Velocity = desired;
-                    zombie.Position += desired * deltaSeconds;
+                    zombie.Position =
+                        Slide(zombie.Position, desired * deltaSeconds, zombie.Radius, solid);
                     direction = desired.sqrMagnitude > 0.000001f ? desired.normalized : direction;
                 }
 
@@ -693,6 +695,42 @@ namespace ZombieGame.AI
                     zombie.Facing = ZombieFacing.Front;
                 }
             }
+        }
+
+        /// <summary>
+        /// Moves a body by a step, keeping whichever part of it does not run into a wall.
+        /// </summary>
+        /// <remarks>
+        /// One axis at a time, which is what makes a zombie slide along a wall instead of
+        /// sticking to it: walking diagonally into a wall keeps the component that is parallel to
+        /// it. A single test of the whole step would stop the body dead at every corner, and
+        /// no test at all is what let them walk through the building.
+        /// The probe is offset by the body's radius, so a zombie stops with its shoulder against
+        /// the wall rather than with its centre inside it.
+        /// </remarks>
+        private static Vector2 Slide(Vector2 from, Vector2 step, float radius, IWallMap walls)
+        {
+            Vector2 moved = from;
+
+            if (step.x != 0f)
+            {
+                float x = moved.x + step.x;
+                if (!walls.IsSolid(new Vector2(x + (Math.Sign(step.x) * radius), moved.y)))
+                {
+                    moved.x = x;
+                }
+            }
+
+            if (step.y != 0f)
+            {
+                float y = moved.y + step.y;
+                if (!walls.IsSolid(new Vector2(moved.x, y + (Math.Sign(step.y) * radius))))
+                {
+                    moved.y = y;
+                }
+            }
+
+            return moved;
         }
 
         /// <summary>Empties the horde without raising anything. For tearing a zone down.</summary>

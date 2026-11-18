@@ -251,7 +251,10 @@ namespace ZombieGame.AI
                 _manager.Decide(_target.position, Time.fixedDeltaTime);
             }
 
-            _manager.Tick(Time.fixedDeltaTime);
+            // Looked up each step rather than cached: the zone's walls register themselves when
+            // it loads, and a director that asked once might have asked before they did.
+            GameServices.TryGet(out IWallMap? walls);
+            _manager.Tick(Time.fixedDeltaTime, walls);
         }
 
         private void LateUpdate() => SyncViews();

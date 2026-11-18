@@ -24,6 +24,9 @@ namespace ZombieGame.Editor.Art
 
         /// <summary>A round in flight: a bright streak with a hot tip.</summary>
         Bullet,
+
+        /// <summary>The way out: a hatched pad with a bright border.</summary>
+        ExtractionPad,
     }
 
     /// <summary>What one placeholder sprite should look like.</summary>
@@ -113,6 +116,9 @@ namespace ZombieGame.Editor.Art
                 case PlaceholderShape.Bullet:
                     DrawBullet(pixels, spec);
                     break;
+                case PlaceholderShape.ExtractionPad:
+                    DrawExtractionPad(pixels, spec);
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(spec), spec.Shape, "Unknown placeholder shape.");
@@ -186,6 +192,40 @@ namespace ZombieGame.Editor.Art
         /// and inner radius are fixed here rather than taken from the weapon, because this is one
         /// sprite rotated and scaled to whatever weapon swung it.
         /// </remarks>
+        /// <summary>
+        /// The way out: a hatched square with a bright border, drawn to be seen from across a room.
+        /// </summary>
+        /// <remarks>
+        /// A player who cannot find the exit is not making the decision the mission is about. The
+        /// border carries the reading at a distance and the hatching keeps it from looking like
+        /// a piece of floor once you are standing on it.
+        /// </remarks>
+        private static void DrawExtractionPad(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            int border = Math.Max(2, spec.Width / 16);
+
+            for (int y = 0; y < spec.Height; y++)
+            {
+                for (int x = 0; x < spec.Width; x++)
+                {
+                    bool edge = x < border || y < border
+                                || x >= spec.Width - border || y >= spec.Height - border;
+
+                    // Diagonal hatching, the way a loading bay is painted.
+                    bool hatch = ((x + y) / Math.Max(3, spec.Width / 12)) % 2 == 0;
+
+                    if (edge)
+                    {
+                        pixels[(y * spec.Width) + x] = spec.Accent;
+                    }
+                    else if (hatch)
+                    {
+                        pixels[(y * spec.Width) + x] = spec.Body;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// A round: a streak along the x axis with a brighter head, drawn pointing right.
         /// </summary>

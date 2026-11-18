@@ -37,6 +37,9 @@ namespace ZombieGame.Editor.Art
         // Hot and bright: a round has to read against a dark floor at a glance.
         private static readonly Color32 BulletBody = new(232, 176, 72, 255);
         private static readonly Color32 BulletAccent = new(255, 240, 198, 255);
+        // Washed-out green, the colour every game paints a way out in.
+        private static readonly Color32 ExitBody = new(74, 104, 72, 170);
+        private static readonly Color32 ExitAccent = new(132, 200, 128, 230);
         private static readonly Color32 CrateBody = new(126, 104, 74, 255);
         private static readonly Color32 CrateAccent = new(80, 64, 44, 255);
 
@@ -61,6 +64,8 @@ namespace ZombieGame.Editor.Art
                     "swing_arc", 128, 128, PlaceholderShape.SwingArc, SwingBody, SwingAccent)),
                 ("FX", new PlaceholderSpriteSpec(
                     "bullet", 24, 8, PlaceholderShape.Bullet, BulletBody, BulletAccent)),
+                ("FX", new PlaceholderSpriteSpec(
+                    "extraction_pad", 192, 192, PlaceholderShape.ExtractionPad, ExitBody, ExitAccent)),
                 ("Items", new PlaceholderSpriteSpec(
                     "placeholder_crate", 64, 64, PlaceholderShape.Box, CrateBody, CrateAccent)),
             };
