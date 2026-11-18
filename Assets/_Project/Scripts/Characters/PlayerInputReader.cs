@@ -1,5 +1,6 @@
 #nullable enable
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace ZombieGame.Characters
@@ -119,6 +120,17 @@ namespace ZombieGame.Characters
         /// <summary>Hands control back to the player's devices.</summary>
         public void ClearInputOverride() => _overridden = false;
 
+        /// <summary>
+        /// Whether the pointer is sitting on something clickable in the HUD.
+        /// </summary>
+        /// <remarks>
+        /// False when there is no event system, which is every scene that has nothing to click:
+        /// treating "no UI at all" as "the pointer is over the UI" would silently disable
+        /// attacking everywhere.
+        /// </remarks>
+        private static bool PointerIsOverTheHud() =>
+            EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
         private void Awake()
         {
             if (_actions is null)
@@ -182,14 +194,15 @@ namespace ZombieGame.Characters
                 SprintHeld = _sprint.IsPressed();
             }
 
-            if (_attack is not null)
-            {
-                AttackPressed = _attack.WasPressedThisFrame();
-            }
+            // A click that lands on the HUD belongs to the HUD. Without this, opening the map
+            // also swings the bat — and a swing is a noise, so the button that shows you where
+            // the zombies are would be the thing that fetched them.
+            bool onHud = PointerIsOverTheHud();
 
             if (_attack is not null)
             {
-                AttackHeld = _attack.IsPressed();
+                AttackPressed = !onHud && _attack.WasPressedThisFrame();
+                AttackHeld = !onHud && _attack.IsPressed();
             }
 
             if (_aim is not null && !_aimOverridden)

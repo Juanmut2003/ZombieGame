@@ -86,6 +86,8 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudStamina = new(0.55f, 0.72f, 0.44f, 1f);
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
         private static readonly Color HudHealth = new(0.74f, 0.26f, 0.24f, 1f);
+        private static readonly Color HudButton = new(0.16f, 0.17f, 0.16f, 1f);
+        private static readonly Color HudButtonText = new(0.86f, 0.86f, 0.82f, 1f);
 
         /// <summary>
         /// Which of the pack's framed icons each belt slot wears: a club, a pistol, and the third
@@ -445,6 +447,56 @@ namespace ZombieGame.Editor.Scenes
             RawImage picture = viewObject.AddComponent<RawImage>();
             picture.texture = target;
             picture.raycastTarget = false;
+
+            // The button hangs off the frame, so it follows the panel when the map opens out
+            // instead of being left behind in the corner.
+            var buttonObject = new GameObject("Minimap Toggle", typeof(RectTransform));
+            buttonObject.transform.SetParent(frameObject.transform, worldPositionStays: false);
+
+            var buttonRect = (RectTransform)buttonObject.transform;
+            buttonRect.anchorMin = new Vector2(0.5f, 0f);
+            buttonRect.anchorMax = new Vector2(0.5f, 0f);
+            buttonRect.pivot = new Vector2(0.5f, 1f);
+            buttonRect.anchoredPosition = new Vector2(0f, -2f);
+            buttonRect.sizeDelta = new Vector2(54f, 18f);
+
+            // Opaque, unlike the frame: a translucent button on dark asphalt is a smudge, and
+            // the one thing a button has to do before it does anything is look like one.
+            Image face = buttonObject.AddComponent<Image>();
+            face.color = HudButton;
+            if (panel is not null)
+            {
+                face.sprite = panel;
+                face.type = Image.Type.Sliced;
+            }
+
+            Button toggle = buttonObject.AddComponent<Button>();
+            toggle.targetGraphic = face;
+
+            Text toggleLabel = UiSceneParts.CreateLabel(
+                buttonObject.transform,
+                "Label",
+                "MAP",
+                anchoredPosition: Vector2.zero,
+                size: new Vector2(54f, 18f),
+                fontSize: 10,
+                colour: HudButtonText);
+            toggleLabel.raycastTarget = false;
+
+            var presenterObject = new GameObject("Minimap Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            MinimapPresenter presenter = presenterObject.AddComponent<MinimapPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_frame").objectReferenceValue = frameRect;
+            serialized.FindProperty("_view").objectReferenceValue = view;
+            serialized.FindProperty("_toggle").objectReferenceValue = toggle;
+            serialized.FindProperty("_toggleLabel").objectReferenceValue = toggleLabel;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // A zone had no event system, because until now nothing in it could be clicked.
+            // Without one the button is a picture of a button.
+            UiSceneParts.CreateEventSystem(scene);
         }
 
         /// <summary>The texture the minimap camera draws into, created on first use.</summary>
