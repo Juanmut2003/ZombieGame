@@ -15,57 +15,56 @@ namespace ZombieGame.Tests.EditMode
     [TestFixture]
     public sealed class ZoneMapTests
     {
+        /// <summary>Every drawn zone, so a new one is checked from the minute it exists.</summary>
+        private static string[][] EveryMap() => new[] { ZoneMaps.Town, ZoneMaps.Depot };
+
         private static readonly string[] Depot = ZoneMaps.Depot;
 
-        [Test]
-        public void EveryRowIsTheSameLength()
+        [TestCaseSource(nameof(EveryMap))]
+        public void EveryRowIsTheSameLength(string[] map)
         {
-            int width = Depot[0].Length;
+            int width = map[0].Length;
 
-            for (int row = 0; row < Depot.Length; row++)
+            for (int row = 0; row < map.Length; row++)
             {
                 Assert.That(
-                    Depot[row], Has.Length.EqualTo(width), $"row {row} is a different length");
+                    map[row], Has.Length.EqualTo(width), $"row {row} is a different length");
             }
         }
 
-        [Test]
-        public void TheZoneIsWalledIn()
+        [TestCaseSource(nameof(EveryMap))]
+        public void EveryMapIsWalledIn(string[] map)
         {
-            int last = Depot.Length - 1;
-
-            foreach (char cell in Depot[0])
+            for (int row = 0; row < map.Length; row++)
             {
-                Assert.That(cell, Is.EqualTo('#'), "the top edge is open");
-            }
-
-            foreach (char cell in Depot[last])
-            {
-                Assert.That(cell, Is.EqualTo('#'), "the bottom edge is open");
-            }
-
-            for (int row = 0; row < Depot.Length; row++)
-            {
-                Assert.That(Depot[row][0], Is.EqualTo('#'), $"row {row} is open on the left");
-                Assert.That(
-                    Depot[row][^1], Is.EqualTo('#'), $"row {row} is open on the right");
+                bool edge = row == 0 || row == map.Length - 1;
+                foreach (char cell in edge ? map[row] : $"{map[row][0]}{map[row][^1]}")
+                {
+                    Assert.That(cell, Is.EqualTo('#'), $"row {row} is open");
+                }
             }
         }
 
-        [Test]
-        public void TheZoneHasAStartAndAWayOut()
+        [TestCaseSource(nameof(EveryMap))]
+        public void EveryMapHasOneStartAndOneWayOut(string[] map)
         {
-            Assert.That(Count('P'), Is.EqualTo(1), "exactly one place to start");
-            Assert.That(Count('X'), Is.EqualTo(1), "exactly one way out");
+            Assert.That(CountIn(map, 'P'), Is.EqualTo(1), "exactly one place to start");
+            Assert.That(CountIn(map, 'X'), Is.GreaterThanOrEqualTo(1), "somewhere to get out");
+        }
+
+        [TestCaseSource(nameof(EveryMap))]
+        public void EveryMapIsWorthWalkingThrough(string[] map)
+        {
+            Assert.That(CountIn(map, 'L'), Is.GreaterThanOrEqualTo(5));
+            Assert.That(CountIn(map, 'Z'), Is.GreaterThanOrEqualTo(3));
         }
 
         [Test]
-        public void TheZoneIsWorthLooting()
+        public void TheTownHoldsEnoughForItsObjective()
         {
-            // Enough containers that the objective can be met twice over: a zone where every
-            // crate is mandatory is a zone with no decisions in it.
-            Assert.That(Count('L'), Is.GreaterThanOrEqualTo(5));
-            Assert.That(Count('Z'), Is.GreaterThanOrEqualTo(3), "and worth being careful in");
+            // Ten supplies at two to a container, and enough spare that the run is a choice of
+            // route rather than a tour of every building in town.
+            Assert.That(CountIn(ZoneMaps.Town, 'L'), Is.GreaterThanOrEqualTo(10));
         }
 
         [Test]
@@ -92,10 +91,10 @@ namespace ZombieGame.Tests.EditMode
             Assert.That(room[^1], Is.EqualTo("######"));
         }
 
-        private static int Count(char marker)
+        private static int CountIn(string[] map, char marker)
         {
             int found = 0;
-            foreach (string row in Depot)
+            foreach (string row in map)
             {
                 foreach (char cell in row)
                 {

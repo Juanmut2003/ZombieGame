@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using ZombieGame.AI;
 using ZombieGame.Characters;
 using ZombieGame.Core;
 using ZombieGame.Core.Physics;
@@ -176,6 +177,39 @@ namespace ZombieGame.Tests.PlayMode
             // And the yard inside it is not.
             Assert.That(walls!.IsSolid(_extraction.transform.position), Is.False);
             yield break;
+        }
+
+        [UnityTest]
+        public IEnumerator TheBatWorksInThisZoneToo()
+        {
+            // It did not, once. The horde subscribed to swings in Awake, which runs before the
+            // bootstrap has registered the bus in a scene where the objects happen to sit the
+            // other way round — so the bat did nothing here while the pistol, which travels a
+            // different path, was fine. One zone working is not the same as the game working.
+            GameObject? directorObject = GameObject.Find("Zombie Director");
+            Assert.That(directorObject, Is.Not.Null);
+            ZombieManager horde = directorObject!.GetComponent<ZombieDirector>().Manager;
+            Assert.That(horde.Count, Is.GreaterThan(0), "an empty zone proves nothing");
+
+            PlayerMelee melee = _player.GetComponent<PlayerMelee>();
+            Loadout loadout = _player.GetComponent<Loadout>();
+            Assert.That(loadout.Select(0), Is.True, "slot one is the bat");
+
+            int id = horde.Get(0).Id;
+            horde.Teleport(0, (Vector2)_player.position + new Vector2(0.7f, 0f));
+
+            Camera camera = Camera.main;
+            _input.SetAimOverride(
+                camera.WorldToScreenPoint((Vector2)_player.position + new Vector2(3f, 0f)));
+            yield return null;
+
+            float before = horde.Get(horde.IndexOf(id)).Health;
+            Assert.That(melee.TrySwing(), Is.True);
+            yield return null;
+
+            int index = horde.IndexOf(id);
+            float after = index < 0 ? 0f : horde.Get(index).Health;
+            Assert.That(after, Is.LessThan(before), "the swing went nowhere");
         }
 
         [UnityTest]

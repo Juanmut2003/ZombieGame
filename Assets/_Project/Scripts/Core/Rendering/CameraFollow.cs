@@ -40,7 +40,8 @@ namespace ZombieGame.Core.Rendering
             set => _target = value;
         }
 
-        private void Awake() => GameServices.TryGet(out _clock);
+        // Start rather than Awake, so the bootstrap has had its own Awake to register the clock.
+        private void Start() => GameServices.TryGet(out _clock);
 
         private void LateUpdate()
         {

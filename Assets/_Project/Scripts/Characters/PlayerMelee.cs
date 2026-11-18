@@ -74,8 +74,12 @@ namespace ZombieGame.Characters
         {
             _facing = GetComponent<CharacterFacing>();
             _actorId = ActorIds.Next();
-            GameServices.TryGet(out _bus);
         }
+
+        // Start, not Awake: the bootstrap registers the bus in its own Awake, and which of the
+        // two runs first depends on where each object sits in the scene file. Fetched too early,
+        // the swing is published to nobody — the bat stops working and nothing says why.
+        private void Start() => GameServices.TryGet(out _bus);
 
         private void Update()
         {

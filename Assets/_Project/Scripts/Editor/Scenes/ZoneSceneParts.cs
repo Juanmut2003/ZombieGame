@@ -39,6 +39,11 @@ namespace ZombieGame.Editor.Scenes
     {
         private const string FloorSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_floor.png";
         private const string WallSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_wall.png";
+        private const string GrassSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_grass.png";
+        private const string RoadSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_road.png";
+        private const string PavementSprite =
+            "Assets/_Project/Art/Sprites/Tiles/placeholder_pavement.png";
+        private const string TreeSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_tree.png";
         private const string PlayerSprite =
             "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
         private const string SwingArcSprite = "Assets/_Project/Art/Sprites/FX/swing_arc.png";
@@ -445,6 +450,10 @@ namespace ZombieGame.Editor.Scenes
 
             Tile? floor = TileAssetFactory.GetOrCreate(FloorSprite, Tile.ColliderType.None);
             Tile? wall = TileAssetFactory.GetOrCreate(WallSprite, Tile.ColliderType.Grid);
+            Tile? grass = TileAssetFactory.GetOrCreate(GrassSprite, Tile.ColliderType.None);
+            Tile? road = TileAssetFactory.GetOrCreate(RoadSprite, Tile.ColliderType.None);
+            Tile? pavement = TileAssetFactory.GetOrCreate(PavementSprite, Tile.ColliderType.None);
+            Tile? tree = TileAssetFactory.GetOrCreate(TreeSprite, Tile.ColliderType.Grid);
             if (floor is null || wall is null || rows.Length == 0)
             {
                 Debug.LogWarning("[Zone] tile placeholders are missing; the floor stays empty.");
@@ -481,13 +490,21 @@ namespace ZombieGame.Editor.Scenes
                     var cell = new Vector3Int(column - (width / 2), ((height - 1 - row) - (height / 2)), 0);
                     var at = new Vector2(cell.x, cell.y);
 
-                    if (marker == '#')
+                    // Trees are walls that look like trees: a zone has to be able to shut a
+                    // route without putting a building there.
+                    if (marker == '#' || marker == 't')
                     {
-                        wallMap.SetTile(cell, wall);
+                        wallMap.SetTile(cell, marker == 't' && tree is not null ? tree : wall);
                         continue;
                     }
 
-                    floorMap.SetTile(cell, floor);
+                    floorMap.SetTile(cell, marker switch
+                    {
+                        'g' => grass ?? floor,
+                        'r' => road ?? floor,
+                        'p' => pavement ?? floor,
+                        _ => floor,
+                    });
 
                     switch (marker)
                     {

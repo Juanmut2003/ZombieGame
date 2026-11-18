@@ -34,6 +34,16 @@ namespace ZombieGame.Editor.Art
         // looking like a light source.
         private static readonly Color32 SwingBody = new(214, 208, 190, 150);
         private static readonly Color32 SwingAccent = new(246, 243, 232, 220);
+        // A town needs its ground to read at a glance: grass, asphalt, pavement, trees.
+        private static readonly Color32 GrassBody = new(62, 84, 54, 255);
+        private static readonly Color32 GrassAccent = new(76, 100, 64, 255);
+        private static readonly Color32 RoadBody = new(52, 52, 54, 255);
+        private static readonly Color32 RoadAccent = new(64, 64, 66, 255);
+        private static readonly Color32 PavementBody = new(96, 94, 90, 255);
+        private static readonly Color32 PavementAccent = new(110, 108, 103, 255);
+        private static readonly Color32 TreeBody = new(40, 60, 38, 255);
+        private static readonly Color32 TreeAccent = new(58, 82, 52, 255);
+
         // Hot and bright: a round has to read against a dark floor at a glance.
         private static readonly Color32 BulletBody = new(232, 176, 72, 255);
         private static readonly Color32 BulletAccent = new(255, 240, 198, 255);
@@ -60,6 +70,14 @@ namespace ZombieGame.Editor.Art
                     "placeholder_floor", 64, 64, PlaceholderShape.Tile, FloorBody, FloorAccent)),
                 ("Tiles", new PlaceholderSpriteSpec(
                     "placeholder_wall", 64, 64, PlaceholderShape.Tile, WallBody, WallAccent)),
+                ("Tiles", new PlaceholderSpriteSpec(
+                    "placeholder_grass", 64, 64, PlaceholderShape.Tile, GrassBody, GrassAccent)),
+                ("Tiles", new PlaceholderSpriteSpec(
+                    "placeholder_road", 64, 64, PlaceholderShape.Tile, RoadBody, RoadAccent)),
+                ("Tiles", new PlaceholderSpriteSpec(
+                    "placeholder_pavement", 64, 64, PlaceholderShape.Tile, PavementBody, PavementAccent)),
+                ("Tiles", new PlaceholderSpriteSpec(
+                    "placeholder_tree", 64, 64, PlaceholderShape.Tile, TreeBody, TreeAccent)),
                 ("FX", new PlaceholderSpriteSpec(
                     "swing_arc", 128, 128, PlaceholderShape.SwingArc, SwingBody, SwingAccent)),
                 ("FX", new PlaceholderSpriteSpec(

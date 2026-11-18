@@ -24,6 +24,9 @@ namespace ZombieGame.Core.SceneFlow
         public const string Sandbox = "Sandbox";
 
         /// <summary>The first handcrafted mission zone: a supply depot to loot and leave.</summary>
+        public const string MissionTown = "Mission_Town";
+
+        /// <summary>The depot: a smaller, tighter zone.</summary>
         public const string MissionDepot = "Mission_Depot";
     }
 }

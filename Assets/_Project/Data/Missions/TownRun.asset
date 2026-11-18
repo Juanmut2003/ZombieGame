@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5996360b03bcc1b49a0b71ad1cb27dc5, type: 3}
+  m_Name: TownRun
+  m_EditorClassIdentifier: ZombieGame.Missions::ZombieGame.Missions.MissionDefinition
+  _displayName: Town Run
+  _objectiveText: Find ten supplies and leave through the park
+  _suppliesWanted: 10
+  _extractionSeconds: 4
+  _zombiesOnStart: 26
+  _startingHeat: 0

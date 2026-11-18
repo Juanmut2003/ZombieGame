@@ -21,29 +21,71 @@ namespace ZombieGame.Editor.Scenes
     /// </remarks>
     public static class MissionSceneBuilder
     {
-        private const string MissionAssetPath = "Assets/_Project/Data/Missions/DepotRun.asset";
+        private const string DepotMissionPath = "Assets/_Project/Data/Missions/DepotRun.asset";
+        private const string TownMissionPath = "Assets/_Project/Data/Missions/TownRun.asset";
         private const string CrateSprite = "Assets/_Project/Art/Sprites/Items/placeholder_crate.png";
         private const string PadSprite = "Assets/_Project/Art/Sprites/FX/extraction_pad.png";
 
-        /// <summary>Generates any missing placeholders and (re)builds the depot.</summary>
-        [MenuItem("ZombieGame/Scenes/Build Depot Mission")]
+        /// <summary>Generates any missing placeholders and (re)builds every mission zone.</summary>
+        [MenuItem("ZombieGame/Scenes/Build Mission Zones")]
         public static void Build()
+        {
+            BuildTown();
+            BuildDepot();
+        }
+
+        /// <summary>(Re)builds the town, which is the zone a new player starts in.</summary>
+        [MenuItem("ZombieGame/Scenes/Build Town Mission")]
+        public static void BuildTown() =>
+            BuildZone(
+                ProjectScenes.MissionTown,
+                ZoneMaps.Town,
+                TownMissionPath,
+                "Town Run",
+                "Find ten supplies and leave through the park",
+                suppliesWanted: 10,
+                zombies: 26);
+
+        /// <summary>(Re)builds the depot.</summary>
+        [MenuItem("ZombieGame/Scenes/Build Depot Mission")]
+        public static void BuildDepot() =>
+            BuildZone(
+                ProjectScenes.MissionDepot,
+                ZoneMaps.Depot,
+                DepotMissionPath,
+                "Depot Run",
+                "Strip the depot and get out through the yard",
+                suppliesWanted: 6,
+                zombies: 18);
+
+        /// <summary>
+        /// Assembles one mission zone: a drawn map, the shared systems, and what makes it a run.
+        /// </summary>
+        private static void BuildZone(
+            string scenePath,
+            string[] drawing,
+            string missionPath,
+            string missionName,
+            string objective,
+            int suppliesWanted,
+            int zombies)
         {
             PlaceholderSpriteGenerator.GenerateAll();
             ZombieSkinLibrary.Rebuild();
 
-            SceneBuilder.Build(ProjectScenes.MissionDepot, scene =>
+            SceneBuilder.Build(scenePath, scene =>
             {
                 // Loaded inside the callback on purpose. Opening a new scene unloads assets that
                 // nothing in the project is holding on to, and an asset fetched before that call
                 // comes back as a dead reference — which then saves into the scene as "none"
                 // and leaves a mission with no objective in it.
-                MissionDefinition mission = RequireMission();
+                MissionDefinition mission =
+                    RequireMission(missionPath, missionName, objective, suppliesWanted, zombies);
 
                 ZoneSceneParts.CreateStandaloneBootstrap(scene);
                 ZoneSceneParts.CreateGlobalLight(scene);
 
-                ZoneMap map = ZoneSceneParts.PaintTiles(scene, ZoneMaps.Depot);
+                ZoneMap map = ZoneSceneParts.PaintTiles(scene, drawing);
 
                 Transform? player = ZoneSceneParts.CreateActors(scene, map.PlayerStart);
                 Camera camera = CameraRigBuilder.Create(scene, player);
@@ -70,7 +112,7 @@ namespace ZombieGame.Editor.Scenes
                 SceneBuilder.CreateObject(scene, "Mission End").AddComponent<MissionEndFlow>();
             });
 
-            Debug.Log($"[Mission] built {ProjectScenes.MissionDepot}");
+            Debug.Log($"[Mission] built {scenePath}");
         }
 
         /// <summary>Puts a container on every spot the map marked.</summary>
@@ -143,31 +185,36 @@ namespace ZombieGame.Editor.Scenes
         }
 
         /// <summary>
-        /// Loads the depot run, creating an untuned one if it is missing.
+        /// Loads a mission, creating one if it is missing.
         /// </summary>
-        /// <remarks>Same rule as the weapons: the asset owns the numbers, not this file.</remarks>
-        private static MissionDefinition RequireMission()
+        /// <remarks>
+        /// What this writes into a new asset is what the zone <i>is</i> — its name, its objective
+        /// and how much it asks for — rather than how it feels to play. An asset that already
+        /// exists is left alone entirely, so tuning a mission in the inspector survives the next
+        /// time somebody rebuilds the scene.
+        /// </remarks>
+        private static MissionDefinition RequireMission(
+            string assetPath, string displayName, string objective, int suppliesWanted, int zombies)
         {
-            var existing = AssetDatabase.LoadAssetAtPath<MissionDefinition>(MissionAssetPath);
+            var existing = AssetDatabase.LoadAssetAtPath<MissionDefinition>(assetPath);
             if (existing is not null)
             {
                 return existing;
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(MissionAssetPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
             MissionDefinition mission = ScriptableObject.CreateInstance<MissionDefinition>();
 
             var serialized = new SerializedObject(mission);
-            serialized.FindProperty("_displayName").stringValue = "Depot Run";
-            serialized.FindProperty("_objectiveText").stringValue =
-                "Strip the depot and get out through the yard";
+            serialized.FindProperty("_displayName").stringValue = displayName;
+            serialized.FindProperty("_objectiveText").stringValue = objective;
+            serialized.FindProperty("_suppliesWanted").intValue = suppliesWanted;
+            serialized.FindProperty("_zombiesOnStart").intValue = zombies;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            AssetDatabase.CreateAsset(mission, MissionAssetPath);
+            AssetDatabase.CreateAsset(mission, assetPath);
             AssetDatabase.SaveAssets();
-            Debug.LogWarning(
-                $"[Mission] {MissionAssetPath} was missing and has been created untuned. "
-                + "Its numbers are the definition's defaults until someone sets them.");
+            Debug.Log($"[Mission] created {assetPath}.");
             return mission;
         }
     }

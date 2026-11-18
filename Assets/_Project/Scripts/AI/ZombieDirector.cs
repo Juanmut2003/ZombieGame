@@ -87,9 +87,6 @@ namespace ZombieGame.AI
 
         private void Awake()
         {
-            GameServices.TryGet(out EventBus? bus);
-            _bus = bus;
-
             if (_balance is null)
             {
                 Debug.LogWarning($"[Zombies] {name} has no BalanceConfig; using the defaults.");
@@ -98,9 +95,13 @@ namespace ZombieGame.AI
 
             _manager = new ZombieManager(
                 _capacity,
-                bus,
+                bus: null,
                 new CrowdSettings(_balance.ZombieSeparationStrength, _balance.ZombieCrowdCellSize),
                 _seed);
+
+            // The manager is built before anything has registered a bus, so deaths are forwarded
+            // from here instead of published by it: by the time one happens the bus is found.
+            _manager.ZombieDied += OnZombieDied;
 
             // Its own stream, so an escalation does not shuffle the opening layout: a zone that
             // laid itself out differently depending on how loud the player had been would make
@@ -138,19 +139,44 @@ namespace ZombieGame.AI
             }
         }
 
-        private void OnEnable()
-        {
-            _bus?.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
-            _bus?.Subscribe<NoiseEvent>(OnNoise);
-            _bus?.Subscribe<HeatChangedEvent>(OnHeatChanged);
-        }
+        private void OnEnable() => Listen();
 
         private void OnDisable()
         {
-            _bus?.Unsubscribe<MeleeSwungEvent>(OnMeleeSwung);
-            _bus?.Unsubscribe<NoiseEvent>(OnNoise);
-            _bus?.Unsubscribe<HeatChangedEvent>(OnHeatChanged);
+            if (_bus is null)
+            {
+                return;
+            }
+
+            _bus.Unsubscribe<MeleeSwungEvent>(OnMeleeSwung);
+            _bus.Unsubscribe<NoiseEvent>(OnNoise);
+            _bus.Unsubscribe<HeatChangedEvent>(OnHeatChanged);
+            _bus = null;
         }
+
+        /// <summary>
+        /// Subscribes as soon as there is a bus to subscribe to.
+        /// </summary>
+        /// <remarks>
+        /// Not once in <c>Awake</c>, which is where this used to be: whether the bootstrap has
+        /// registered the bus by then depends on the order objects sit in the scene file. In one
+        /// zone it worked and in the next the horde heard no swings at all — the bat did nothing
+        /// while the pistol, which goes through a different path, was fine.
+        /// </remarks>
+        private void Listen()
+        {
+            if (_bus is not null || !GameServices.TryGet(out _bus) || _bus is null)
+            {
+                return;
+            }
+
+            _bus.Subscribe<MeleeSwungEvent>(OnMeleeSwung);
+            _bus.Subscribe<NoiseEvent>(OnNoise);
+            _bus.Subscribe<HeatChangedEvent>(OnHeatChanged);
+        }
+
+        /// <summary>Passes a death on to whoever is listening for one.</summary>
+        private void OnZombieDied(DiedEvent died) => _bus?.Publish(died);
 
         /// <summary>Lets the horde hear what the zone heard.</summary>
         private void OnNoise(NoiseEvent noise) => _manager.HearNoise(noise.Origin, noise.Loudness);
@@ -240,6 +266,8 @@ namespace ZombieGame.AI
 
         private void FixedUpdate()
         {
+            Listen();
+
             if (_target is not null)
             {
                 // Perception first, movement second: looking at where the target was last frame

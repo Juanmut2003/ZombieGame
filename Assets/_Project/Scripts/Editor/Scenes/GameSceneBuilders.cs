@@ -123,6 +123,7 @@ namespace ZombieGame.Editor.Scenes
                 ProjectScenes.Boot,
                 ProjectScenes.MainMenu,
                 ProjectScenes.Sandbox,
+                ProjectScenes.MissionTown,
                 ProjectScenes.MissionDepot,
             };
 
