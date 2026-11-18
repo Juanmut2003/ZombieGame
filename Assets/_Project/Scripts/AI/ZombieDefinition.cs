@@ -83,6 +83,26 @@ namespace ZombieGame.AI
         [Range(0f, 1f)]
         private float _wanderSpeedFactor = 0.55f;
 
+        [Header("Bite")]
+        [Tooltip("What one bite takes off the squad's health.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _biteDamage = 8f;
+
+        [Tooltip("How far past its own body it can reach, in world units.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _biteReach = 0.35f;
+
+        [Tooltip("How long it needs between bites.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _biteSeconds = 1.1f;
+
+        [Tooltip("What kind of harm the bite does.")]
+        [SerializeField]
+        private DamageType _biteType = DamageType.Sharp;
+
         [Header("Resistances")]
         [Tooltip("Damage multiplier per type: blunt, sharp, ballistic, fire, toxic. 1 is full.")]
         [SerializeField]
@@ -123,6 +143,9 @@ namespace ZombieGame.AI
         /// <summary>Armour and weak points, as the combat code wants them.</summary>
         public DamageResistances Resistances =>
             new(_blunt, _sharp, _ballistic, _fire, _toxic);
+
+        /// <summary>What it does once it has reached you.</summary>
+        public ZombieBite Bite => new(_biteDamage, _biteReach, _biteSeconds, _biteType);
 
         /// <summary>What this kind can see and hear.</summary>
         public ZombieSenses Senses =>

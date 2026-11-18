@@ -26,6 +26,7 @@ namespace ZombieGame.AI
         private readonly DamageResistances[] _resistances;
         private readonly ZombieSenses[] _senses;
         private readonly ZombieInstincts[] _instincts;
+        private readonly ZombieBite[] _bites;
         private readonly EventBus? _bus;
         private readonly CrowdSettings _crowd;
         private readonly System.Random _random;
@@ -64,6 +65,7 @@ namespace ZombieGame.AI
             _resistances = new DamageResistances[capacity];
             _senses = new ZombieSenses[capacity];
             _instincts = new ZombieInstincts[capacity];
+            _bites = new ZombieBite[capacity];
             _nextInCell = new int[capacity];
             _bus = bus;
 
@@ -162,8 +164,67 @@ namespace ZombieGame.AI
             _resistances[index] = definition.Resistances;
             _senses[index] = definition.Senses;
             _instincts[index] = definition.Instincts;
+            _bites[index] = definition.Bite;
 
             return id;
+        }
+
+        /// <summary>
+        /// Lets every zombie in reach of <paramref name="target"/> bite it, and returns what they
+        /// took off between them.
+        /// </summary>
+        /// <remarks>
+        /// One pass over the array, like everything else here: with three hundred bodies a zone
+        /// cannot afford a trigger collider and an attack coroutine each. The cooldown is per
+        /// zombie, so a crowd closing in from three sides hurts three times as fast as one — the
+        /// arithmetic that makes being surrounded the thing to avoid.
+        /// Only a zombie that is actually hunting bites. One that has merely wandered into you
+        /// has not noticed you, and a corpse that gnaws at whatever it bumps into would make
+        /// sneaking past a standing crowd impossible rather than tense.
+        /// </remarks>
+        /// <param name="target">Where the squad is.</param>
+        /// <param name="targetRadius">How wide the squad is, in world units.</param>
+        /// <param name="deltaSeconds">How long since the last call.</param>
+        /// <param name="type">Set to the kind of harm done, when anything was.</param>
+        /// <returns>Raw damage dealt this step, before the target's own resistances.</returns>
+        public float BiteAt(
+            Vector2 target, float targetRadius, float deltaSeconds, out DamageType type)
+        {
+            type = DamageType.Sharp;
+            float total = 0f;
+
+            for (int i = 0; i < Count; i++)
+            {
+                ref ZombieState state = ref _states[i];
+                if (state.BiteTimer > 0f)
+                {
+                    state.BiteTimer = Mathf.Max(0f, state.BiteTimer - deltaSeconds);
+                    continue;
+                }
+
+                if (state.Behaviour != ZombieBehaviour.Chasing)
+                {
+                    continue;
+                }
+
+                ZombieBite bite = _bites[i];
+                float reach = state.Radius + targetRadius + bite.Reach;
+                if ((target - state.Position).sqrMagnitude > reach * reach)
+                {
+                    continue;
+                }
+
+                state.BiteTimer = bite.Seconds;
+                if (bite.Damage <= 0f)
+                {
+                    continue;
+                }
+
+                total += bite.Damage;
+                type = bite.Type;
+            }
+
+            return total;
         }
 
         /// <summary>Finds the slot a zombie currently sits in, or −1 when it is gone.</summary>
@@ -234,6 +295,14 @@ namespace ZombieGame.AI
                 // Not a balance number: how long a body flashes is how the hit is read on screen,
                 // and it has no effect on what the hit does.
                 _states[index].HitFlash = HitFlashSeconds;
+
+                // Being hit interrupts the bite. Without it a bat is a trade — the arc is barely
+                // longer than the reach, so every swing landed means a bite taken — and a melee
+                // weapon nobody can use without losing health is not a weapon. Hitting first now
+                // buys exactly one cycle of that zombie's own rhythm, so a Bloater reels longer
+                // than a Nurse without a second number being invented for it, and a crowd still
+                // overwhelms you because each of them has to be hit separately.
+                _states[index].BiteTimer = Math.Max(_states[index].BiteTimer, _bites[index].Seconds);
                 return applied;
             }
 
@@ -842,6 +911,7 @@ namespace ZombieGame.AI
                 _resistances[index] = _resistances[last];
                 _senses[index] = _senses[last];
                 _instincts[index] = _instincts[last];
+                _bites[index] = _bites[last];
             }
         }
 

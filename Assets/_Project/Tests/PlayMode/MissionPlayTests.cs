@@ -7,6 +7,7 @@ using UnityEngine.TestTools;
 using UnityEngine.UI;
 using ZombieGame.AI;
 using ZombieGame.Characters;
+using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Physics;
 using ZombieGame.Missions;
@@ -49,6 +50,41 @@ namespace ZombieGame.Tests.PlayMode
             _extraction = extractionObject!.GetComponent<ExtractionPoint>();
 
             yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator TheSquadCanBeHurtAndTheRunCanBeLost()
+        {
+            var vitals = _player.GetComponent<CharacterVitals>();
+            Assert.That(vitals, Is.Not.Null, "a squad that cannot be hurt cannot lose a run");
+
+            // Enough to finish anybody. The point is not the number — it is that losing the
+            // squad is what ends the mission, which nothing in the zone could do before.
+            vitals!.TakeDamage(new DamageInfo(9999f));
+            yield return null;
+
+            Assert.That(vitals.IsAlive, Is.False);
+            Assert.That(_mission.Progress.State, Is.EqualTo(MissionState.Failed));
+        }
+
+        [UnityTest]
+        public IEnumerator WhatWasCarriedDoesNotComeHome()
+        {
+            LootContainer crate =
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude)[0];
+            while (!crate.Advance(1f))
+            {
+                yield return null;
+            }
+
+            int carried = _mission.Progress.Carried;
+            Assert.That(carried, Is.GreaterThan(0), "something has to be in hand to be lost");
+
+            _player.GetComponent<CharacterVitals>()!.TakeDamage(new DamageInfo(9999f));
+            yield return null;
+
+            // The one rule the whole mission layer exists for: nothing counts until you are out.
+            Assert.That(_mission.Progress.Banked, Is.Zero);
         }
 
         [UnityTest]

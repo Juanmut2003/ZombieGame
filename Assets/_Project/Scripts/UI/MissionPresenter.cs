@@ -110,17 +110,46 @@ namespace ZombieGame.UI
                 progress.State,
                 progress.ExtractionFraction);
 
-        private void OnEnded(MissionEndedEvent ended)
+        /// <summary>Writes the debrief over the mission lines.</summary>
+        /// <remarks>
+        /// Two lines, the same two the run used: the verdict where the objective was, and the
+        /// count where the count was. Keeping them in place means the player's eyes do not have
+        /// to find anything new at the one moment they are being told how it went.
+        /// </remarks>
+        public void ShowResult(MissionEndedEvent ended)
         {
-            if (_objective is null)
+            if (_objective is not null)
+            {
+                _objective.text = ended.Outcome switch
+                {
+                    MissionOutcome.Extracted => "EXTRACTED",
+                    MissionOutcome.ExtractedShort => "OUT, BUT SHORT",
+                    MissionOutcome.SquadLost => "SQUAD LOST",
+                    _ => "RUN OVER",
+                };
+            }
+
+            if (_supplies is null)
             {
                 return;
             }
 
-            _objective.text = ended.Extracted
-                ? $"EXTRACTED WITH {ended.Banked}"
-                : "LOST EVERYTHING";
+            int minutes = Mathf.FloorToInt(ended.Seconds / 60f);
+            int seconds = Mathf.FloorToInt(ended.Seconds - (minutes * 60f));
+            string clock = $"{minutes}:{seconds:00}";
+
+            // What was carried and did not come home is the whole point of making extraction
+            // compulsory, so a lost run says the number out loud rather than just "nothing".
+            _supplies.text = ended.Outcome == MissionOutcome.SquadLost
+                ? $"LOST {ended.Lost} OF {ended.Wanted}   {clock}"
+                : $"BANKED {ended.Banked} OF {ended.Wanted}   {clock}";
+
+            _supplies.color = ended.Banked >= ended.Wanted && ended.Wanted > 0
+                ? _metColour
+                : _shortColour;
         }
+
+        private void OnEnded(MissionEndedEvent ended) => ShowResult(ended);
 
         private void OnPrompt(InteractionPromptEvent prompt) =>
             ShowPrompt(prompt.Text, prompt.Fraction);

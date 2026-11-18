@@ -25,6 +25,10 @@ MonoBehaviour:
   _wanderPauseSeconds: 1.5
   _giveUpSeconds: 3
   _wanderSpeedFactor: 0.7
+  _biteDamage: 7
+  _biteReach: 0.3
+  _biteSeconds: 0.65
+  _biteType: 1
   _blunt: 1
   _sharp: 1
   _ballistic: 1

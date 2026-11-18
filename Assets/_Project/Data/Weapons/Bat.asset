@@ -16,7 +16,7 @@ MonoBehaviour:
   _kind: 0
   _damage: 14
   _damageType: 0
-  _range: 1.1
+  _range: 1.45
   _halfAngleDegrees: 60
   _maxTargets: 3
   _staminaCost: 6

@@ -75,6 +75,41 @@ namespace ZombieGame.Tests.EditMode
         }
 
         [Test]
+        public void HidingCoolsItDownFaster()
+        {
+            HeatMeter inTheOpen = Meter();
+            HeatMeter inTheScrub = Meter();
+            inTheOpen.Hear(5f);
+            inTheScrub.Hear(5f);
+
+            inTheOpen.Tick(2f);
+            inTheScrub.Tick(2f, decayFactor: 4f);
+
+            // The whole reason to walk into a hedge rather than round it.
+            Assert.That(inTheScrub.Value, Is.LessThan(inTheOpen.Value));
+        }
+
+        [Test]
+        public void StandingStillInTheOpenIsTheUnchangedRate()
+        {
+            HeatMeter heat = Meter();
+            heat.Hear(5f);
+            float hot = heat.Value;
+
+            heat.Tick(2f, decayFactor: 1f);
+            float cooled = heat.Value;
+
+            heat.Reset();
+            heat.Hear(5f);
+            heat.Tick(2f);
+
+            // A factor of one has to mean exactly what no factor at all meant, or every balance
+            // number tuned before cover existed quietly changed meaning.
+            Assert.That(heat.Value, Is.EqualTo(cooled).Within(0.0001f));
+            Assert.That(cooled, Is.LessThan(hot));
+        }
+
+        [Test]
         public void ItNeverGoesBelowEmpty()
         {
             HeatMeter heat = Meter();

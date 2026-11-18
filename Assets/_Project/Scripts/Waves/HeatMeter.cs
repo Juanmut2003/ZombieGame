@@ -44,14 +44,20 @@ namespace ZombieGame.Waves
         }
 
         /// <summary>Lets a stretch of quiet cool the zone down.</summary>
-        public void Tick(float deltaSeconds)
+        /// <param name="deltaSeconds">How long the zone has been quiet for.</param>
+        /// <param name="decayFactor">
+        /// Multiplies the cooling. Above 1 for a squad that has gone to ground somewhere the
+        /// zone cannot see it; the hiding place is the scene's business, not the meter's.
+        /// </param>
+        public void Tick(float deltaSeconds, float decayFactor = 1f)
         {
             if (deltaSeconds <= 0f || Value <= 0f)
             {
                 return;
             }
 
-            Value = Mathf.Max(0f, Value - (_settings.DecayPerSecond * deltaSeconds));
+            float cooling = _settings.DecayPerSecond * Mathf.Max(0f, decayFactor);
+            Value = Mathf.Max(0f, Value - (cooling * deltaSeconds));
             Restage();
         }
 

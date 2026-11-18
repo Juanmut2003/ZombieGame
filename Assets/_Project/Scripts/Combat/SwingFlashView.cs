@@ -32,6 +32,7 @@ namespace ZombieGame.Combat
         private EventBus? _bus;
         private Transform _flash = null!;
         private float _remaining;
+        private bool _fresh;
         private Color _colour = Color.white;
 
         private void Awake()
@@ -68,6 +69,16 @@ namespace ZombieGame.Combat
                 return;
             }
 
+            // A swing is a seventh of a second, which a single slow frame can swallow whole: the
+            // arc would be switched on and off again without ever being drawn, and the player
+            // would see nothing at exactly the moment the game stuttered. So the frame the swing
+            // arrived in never counts against its life.
+            if (_fresh)
+            {
+                _fresh = false;
+                return;
+            }
+
             _remaining -= Time.deltaTime;
             if (_remaining <= 0f)
             {
@@ -97,6 +108,7 @@ namespace ZombieGame.Combat
             _flash.localScale = Vector3.one * Mathf.Max(0.01f, swing.Range);
 
             _remaining = _seconds;
+            _fresh = true;
             _colour.a = 1f;
             _renderer.color = _colour;
             _renderer.enabled = true;

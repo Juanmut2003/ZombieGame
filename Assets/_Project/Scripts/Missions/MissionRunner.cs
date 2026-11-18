@@ -1,7 +1,9 @@
 #nullable enable
 using UnityEngine;
+using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Events;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Missions
 {
@@ -24,9 +26,19 @@ namespace ZombieGame.Missions
         [SerializeField]
         private ExtractionPoint? _extraction;
 
+        [Tooltip("The zone's heat meter, so the debrief can say how bad it got.")]
+        [SerializeField]
+        private ZoneHeat? _heat;
+
+        [Tooltip("The squad. The run ends when they do.")]
+        [SerializeField]
+        private Transform? _squadTransform;
+
+        private IHurtable? _squad;
         private EventBus? _bus;
         private MissionProgress _progress = null!;
         private bool _announcedOnce;
+        private float _elapsed;
 
         /// <summary>How the run is going.</summary>
         public MissionProgress Progress => _progress;
@@ -44,6 +56,17 @@ namespace ZombieGame.Missions
             _progress = _mission is not null
                 ? _mission.CreateProgress()
                 : new MissionProgress(0, 0f);
+
+            if (_squadTransform is not null)
+            {
+                _squad = _squadTransform.GetComponent<IHurtable>();
+            }
+
+            if (_squad is null)
+            {
+                Debug.LogWarning(
+                    $"[Mission] {name} has nobody to lose; this run cannot be failed.");
+            }
         }
 
         private void OnEnable() => Listen();
@@ -51,6 +74,7 @@ namespace ZombieGame.Missions
         private void OnDisable()
         {
             _bus?.Unsubscribe<LootTakenEvent>(OnLootTaken);
+            _bus?.Unsubscribe<DiedEvent>(OnSomebodyDied);
             _bus = null;
         }
 
@@ -70,6 +94,19 @@ namespace ZombieGame.Missions
             }
 
             _bus.Subscribe<LootTakenEvent>(OnLootTaken);
+            _bus.Subscribe<DiedEvent>(OnSomebodyDied);
+        }
+
+        /// <summary>
+        /// Ends the run when the squad does. Zombies die on this bus too, so the one that matters
+        /// is told apart by who it was, not by what killed them.
+        /// </summary>
+        private void OnSomebodyDied(DiedEvent died)
+        {
+            if (_squad is not null && died.TargetId == _squad.OwnerId)
+            {
+                Fail();
+            }
         }
 
         private void Update()
@@ -89,6 +126,8 @@ namespace ZombieGame.Missions
                 return;
             }
 
+            _elapsed += Time.deltaTime;
+
             bool inside = _extraction is not null && _extraction.SquadInside;
             MissionState before = _progress.State;
             bool won = _progress.TickExtraction(Time.deltaTime, inside);
@@ -96,10 +135,16 @@ namespace ZombieGame.Missions
             if (won)
             {
                 Announce();
-                _bus?.Publish(new MissionEndedEvent(
-                    _mission is not null ? _mission.DisplayName : name,
-                    extracted: true,
-                    banked: _progress.Banked));
+
+                // Getting out short of the objective is still getting out, and the supplies
+                // still count. PROJECT.md §8 asks for extraction to be required, not for the
+                // objective to be — leaving early with four of six is a decision, not a failure.
+                End(
+                    _progress.Banked >= _progress.SuppliesWanted
+                        ? MissionOutcome.Extracted
+                        : MissionOutcome.ExtractedShort,
+                    banked: _progress.Banked,
+                    lost: 0);
                 return;
             }
 
@@ -119,13 +164,24 @@ namespace ZombieGame.Missions
                 return;
             }
 
+            // Read before failing: Fail clears what was being carried, and what was carried is
+            // precisely the thing worth telling the player about.
+            int lost = _progress.Carried;
+
             _progress.Fail();
             Announce();
+            End(MissionOutcome.SquadLost, banked: 0, lost: lost);
+        }
+
+        private void End(MissionOutcome outcome, int banked, int lost) =>
             _bus?.Publish(new MissionEndedEvent(
                 _mission is not null ? _mission.DisplayName : name,
-                extracted: false,
-                banked: 0));
-        }
+                outcome,
+                banked,
+                lost,
+                _progress.SuppliesWanted,
+                _elapsed,
+                _heat is not null ? _heat.Value : 0f));
 
         private void OnLootTaken(LootTakenEvent loot)
         {

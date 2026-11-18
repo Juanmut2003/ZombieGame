@@ -44,6 +44,11 @@ namespace ZombieGame.Missions
         [Range(0f, 1f)]
         private float _startingHeat;
 
+        [Tooltip("What this zone multiplies every noise by. Above 1 for a place already on edge.")]
+        [SerializeField]
+        [Range(0.1f, 4f)]
+        private float _noiseFactor = 1f;
+
         /// <summary>Shown on the world map and in the debrief.</summary>
         public string DisplayName => _displayName;
 
@@ -61,6 +66,9 @@ namespace ZombieGame.Missions
 
         /// <summary>How hot the zone is on arrival.</summary>
         public float StartingHeat => _startingHeat;
+
+        /// <summary>What this zone multiplies every noise by.</summary>
+        public float NoiseFactor => _noiseFactor;
 
         /// <summary>Builds the run's rules from this asset.</summary>
         public MissionProgress CreateProgress() => new(_suppliesWanted, _extractionSeconds);

@@ -82,6 +82,15 @@ namespace ZombieGame.AI
         public bool SeesTarget;
 
         /// <summary>
+        /// Seconds left before it can bite again. Zero means it is ready.
+        /// </summary>
+        /// <remarks>
+        /// Per zombie rather than per horde, so walking into four of them costs four bites at
+        /// once — which is the whole reason a crowd is worse than a queue.
+        /// </remarks>
+        public float BiteTimer;
+
+        /// <summary>
         /// Identifies this zombie across its life, even as it moves around in the array. Starts
         /// at one; zero means nobody.
         /// </summary>

@@ -3,6 +3,7 @@ using UnityEngine;
 using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
+using ZombieGame.Core.Physics;
 
 namespace ZombieGame.Waves
 {
@@ -23,7 +24,22 @@ namespace ZombieGame.Waves
         [SerializeField]
         private BalanceConfig? _balance;
 
+        [Tooltip("Who the zone is looking for. Leave empty and nowhere counts as hidden.")]
+        [SerializeField]
+        private Transform? _squad;
+
+        [Tooltip("How hot the zone already is when the squad arrives, 0 to 1.")]
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _startingHeat;
+
+        [Tooltip("What this zone multiplies every noise by. Above 1 for a place already on edge.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _noiseFactor = 1f;
+
         private EventBus? _bus;
+        private ICoverMap _cover = OpenSight.Instance;
         private HeatMeter _meter = null!;
         private float _lastAnnounced = float.NaN;
         private HeatStage _announcedStage = HeatStage.Calm;
@@ -48,6 +64,23 @@ namespace ZombieGame.Waves
                 _balance.HeatStirredAt,
                 _balance.HeatHuntingAt,
                 _balance.HeatStageDrop));
+
+            // A zone the squad walks into already stirred. The mission says how bad it was
+            // before anyone arrived, which is what makes two runs through the same streets
+            // different runs rather than the same one twice.
+            if (_startingHeat > 0f)
+            {
+                _meter.Hear(_startingHeat / Mathf.Max(0.0001f, _balance.HeatPerNoise));
+            }
+        }
+
+        /// <summary>
+        /// Sets this zone's heat profile. Called by the mission before the first tick.
+        /// </summary>
+        public void Profile(float startingHeat, float noiseFactor)
+        {
+            _startingHeat = Mathf.Clamp01(startingHeat);
+            _noiseFactor = Mathf.Max(0f, noiseFactor);
         }
 
         private void Start()
@@ -73,8 +106,32 @@ namespace ZombieGame.Waves
 
         private void Update()
         {
-            _meter.Tick(Time.deltaTime);
+            _meter.Tick(Time.deltaTime, Hidden ? _balance!.HeatCoverDecayFactor : 1f);
             Announce();
+        }
+
+        /// <summary>
+        /// Whether the squad has gone to ground. Looked up rather than stored, because the cover
+        /// grid is registered by the zone's own <c>Awake</c> and this component's may run first.
+        /// </summary>
+        private bool Hidden
+        {
+            get
+            {
+                if (_squad is null)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(_cover, OpenSight.Instance)
+                    && GameServices.TryGet(out ICoverMap? registered))
+                {
+                    _cover = registered!;
+                }
+
+                Vector3 at = _squad.position;
+                return _cover.Hides(new Vector2(at.x, at.y));
+            }
         }
 
         /// <summary>Feeds the meter directly. For a zone starting hot, and for tests.</summary>
@@ -84,7 +141,7 @@ namespace ZombieGame.Waves
             Announce();
         }
 
-        private void OnNoise(NoiseEvent noise) => Hear(noise.Loudness);
+        private void OnNoise(NoiseEvent noise) => Hear(noise.Loudness * _noiseFactor);
 
         /// <summary>
         /// Publishes the meter, but only when it has actually moved.

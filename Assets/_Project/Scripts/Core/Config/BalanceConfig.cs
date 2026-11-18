@@ -43,6 +43,12 @@ namespace ZombieGame.Core.Config
         [Min(1f)]
         private float _acceleration = 40f;
 
+        [Header("Health")]
+        [Tooltip("Full health for the squad. Roughly a dozen bites, so being surrounded is fatal and one mistake is not.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _survivorHealth = 100f;
+
         [Header("Stamina")]
         [Tooltip("Full stamina.")]
         [SerializeField]
@@ -111,6 +117,11 @@ namespace ZombieGame.Core.Config
         [Range(0f, 0.3f)]
         private float _heatStageDrop = 0.06f;
 
+        [Tooltip("How much faster heat falls away while the squad is hidden in scrub.")]
+        [SerializeField]
+        [Min(1f)]
+        private float _heatCoverDecayFactor = 4f;
+
         [Tooltip("How many extra zombies wander in each time the zone escalates a stage.")]
         [SerializeField]
         [Min(0)]
@@ -149,6 +160,9 @@ namespace ZombieGame.Core.Config
 
         /// <summary>Full stamina.</summary>
         public float StaminaMax => _staminaMax;
+
+        /// <summary>Full health for a survivor, the MC included.</summary>
+        public float SurvivorHealth => _survivorHealth;
 
         /// <summary>How fast stamina comes back, per second.</summary>
         public float StaminaRegenPerSecond => _staminaRegenPerSecond;
@@ -194,6 +208,9 @@ namespace ZombieGame.Core.Config
 
         /// <summary>How far heat falls back below a threshold before the stage drops.</summary>
         public float HeatStageDrop => _heatStageDrop;
+
+        /// <summary>How much faster a zone cools while the squad is out of sight in scrub.</summary>
+        public float HeatCoverDecayFactor => _heatCoverDecayFactor;
 
         /// <summary>
         /// An unsaved config carrying the values declared above, for a component that was left

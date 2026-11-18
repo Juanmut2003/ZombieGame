@@ -76,6 +76,7 @@ namespace ZombieGame.AI
         private const float RimFactor = 1.25f;
 
         private ZombieManager _manager = null!;
+        private IHurtable? _targetVitals;
         private System.Random _rimRandom = null!;
         private EventBus? _bus;
         private ObjectPool<ZombieView> _views = null!;
@@ -114,6 +115,13 @@ namespace ZombieGame.AI
             // this zone is loaded. Replace rather than Register, so loading a zone twice does not
             // throw over a service the last one left behind.
             GameServices.Replace<IProjectileHitTest>(new ZombieHitTest(_manager));
+
+            // Asked once. The horde walks towards a transform and never holds what it is biting,
+            // so all that is kept is the one thing that can be hurt.
+            if (_target is not null)
+            {
+                _targetVitals = _target.GetComponent<IHurtable>();
+            }
 
             // With no layers named, nothing blocks sight — and a zombie that sees through walls
             // would be a long afternoon of wondering why. Say so instead.
@@ -277,12 +285,40 @@ namespace ZombieGame.AI
                 // Perceive answers 'can it see you'; Decide turns that into what it does about
                 // it. Both before the tick, which only walks towards whatever was decided.
                 _manager.Decide(_target.position, Time.fixedDeltaTime);
+
+                Bite();
             }
 
             // Looked up each step rather than cached: the zone's walls register themselves when
             // it loads, and a director that asked once might have asked before they did.
             GameServices.TryGet(out IWallMap? walls);
             _manager.Tick(Time.fixedDeltaTime, walls);
+        }
+
+        /// <summary>
+        /// Lets whoever has reached the target take a bite out of it.
+        /// </summary>
+        /// <remarks>
+        /// The horde never holds the thing it is biting, only the transform it walks towards; what
+        /// can be hurt is asked for once, from that transform, and only the interface is kept. A
+        /// target with nothing hurtable on it is a legitimate zone — the sandbox is one — so this
+        /// quietly does nothing rather than warning every step.
+        /// </remarks>
+        private void Bite()
+        {
+            if (_targetVitals is null || !_targetVitals.IsAlive)
+            {
+                return;
+            }
+
+            float damage = _manager.BiteAt(
+                _target!.position, _targetRadius, Time.fixedDeltaTime, out DamageType type);
+            if (damage <= 0f)
+            {
+                return;
+            }
+
+            _targetVitals.TakeDamage(new DamageInfo(damage, type));
         }
 
         private void LateUpdate() => SyncViews();
