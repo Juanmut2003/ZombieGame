@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using NUnit.Framework;
 using ZombieGame.Editor.Scenes;
 
@@ -65,6 +66,77 @@ namespace ZombieGame.Tests.EditMode
             // Ten supplies at two to a container, and enough spare that the run is a choice of
             // route rather than a tour of every building in town.
             Assert.That(CountIn(ZoneMaps.Town, 'L'), Is.GreaterThanOrEqualTo(10));
+        }
+
+        [TestCaseSource(nameof(EveryMap))]
+        public void EverythingWorthWalkingToCanBeWalkedTo(string[] map)
+        {
+            // The check a person cannot do by eye: a wall drawn one cell too far turns a room
+            // into a sealed box, and the only sign of it is a container nobody can ever reach.
+            bool[,] reached = Flood(map);
+
+            for (int row = 0; row < map.Length; row++)
+            {
+                for (int column = 0; column < map[row].Length; column++)
+                {
+                    char cell = map[row][column];
+                    if (cell != 'L' && cell != 'X')
+                    {
+                        continue;
+                    }
+
+                    Assert.That(
+                        reached[row, column],
+                        Is.True,
+                        $"the {(cell == 'L' ? "container" : "way out")} at {column},{row} is walled in");
+                }
+            }
+        }
+
+        /// <summary>Everywhere a character can walk to from the start of a map.</summary>
+        private static bool[,] Flood(string[] map)
+        {
+            int height = map.Length, width = map[0].Length;
+            var reached = new bool[height, width];
+            var queue = new Queue<(int Row, int Column)>();
+
+            for (int row = 0; row < height; row++)
+            {
+                int column = map[row].IndexOf('P');
+                if (column < 0)
+                {
+                    continue;
+                }
+
+                reached[row, column] = true;
+                queue.Enqueue((row, column));
+            }
+
+            Assert.That(queue, Is.Not.Empty, "a map with nowhere to start");
+
+            while (queue.Count > 0)
+            {
+                (int row, int column) = queue.Dequeue();
+                foreach ((int dr, int dc) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                {
+                    int nextRow = row + dr, nextColumn = column + dc;
+                    if (nextRow < 0 || nextRow >= height || nextColumn < 0 || nextColumn >= width)
+                    {
+                        continue;
+                    }
+
+                    char cell = map[nextRow][nextColumn];
+                    if (reached[nextRow, nextColumn] || cell == '#' || cell == 't')
+                    {
+                        continue;
+                    }
+
+                    reached[nextRow, nextColumn] = true;
+                    queue.Enqueue((nextRow, nextColumn));
+                }
+            }
+
+            return reached;
         }
 
         [Test]
