@@ -31,6 +31,9 @@ namespace ZombieGame.Editor.Scenes
         /// </summary>
         public static readonly string Sandbox = PathFor(GameScenes.Sandbox);
 
+        /// <summary>The first handcrafted mission zone.</summary>
+        public static readonly string MissionDepot = PathFor(GameScenes.MissionDepot);
+
         /// <summary>The asset path of a scene with that name.</summary>
         public static string PathFor(string sceneName) => $"{Folder}/{sceneName}.unity";
     }

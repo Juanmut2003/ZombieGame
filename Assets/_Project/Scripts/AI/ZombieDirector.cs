@@ -44,6 +44,17 @@ namespace ZombieGame.AI
         [SerializeField]
         private Vector2 _spawnArea = new(5f, 3f);
 
+        [Tooltip(
+            "Spots to scatter them around instead of the box. A drawn zone wants them in the "
+            + "rooms, not spread evenly through the walls.")]
+        [SerializeField]
+        private Vector2[] _nests = System.Array.Empty<Vector2>();
+
+        [Tooltip("How far from a nest they stand.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _nestRadius = 1.6f;
+
         [Tooltip("What the horde walks towards. Usually the MC.")]
         [SerializeField]
         private Transform? _target;
@@ -206,12 +217,22 @@ namespace ZombieGame.AI
             var random = new System.Random(_seed);
             for (int i = 0; i < _spawnOnStart; i++)
             {
-                var offset = new Vector2(
-                    (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.x,
-                    (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.y);
+                // Round-robin across the nests rather than at random, so a drawn zone puts the
+                // same few zombies in every room instead of emptying one by chance.
+                Vector2 around = _nests.Length > 0
+                    ? _nests[i % _nests.Length]
+                    : (Vector2)transform.position;
+
+                Vector2 offset = _nests.Length > 0
+                    ? new Vector2(
+                        (float)((random.NextDouble() * 2d) - 1d) * _nestRadius,
+                        (float)((random.NextDouble() * 2d) - 1d) * _nestRadius)
+                    : new Vector2(
+                        (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.x,
+                        (float)((random.NextDouble() * 2d) - 1d) * _spawnArea.y);
 
                 int type = random.Next(_definitions.Length);
-                _manager.Spawn(_definitions[type], (Vector2)transform.position + offset, type);
+                _manager.Spawn(_definitions[type], around + offset, type);
             }
 
             SyncViews();

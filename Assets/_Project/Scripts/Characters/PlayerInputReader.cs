@@ -33,6 +33,7 @@ namespace ZombieGame.Characters
         private InputAction? _aim;
         private InputAction? _aimStick;
         private InputAction? _cycle;
+        private InputAction? _interact;
         private readonly InputAction?[] _slots = new InputAction?[3];
         private bool _overridden;
         private bool _aimOverridden;
@@ -66,6 +67,9 @@ namespace ZombieGame.Characters
         /// <summary>Which way the wheel turned this frame. Zero means it did not.</summary>
         public float WeaponScroll { get; private set; }
 
+        /// <summary>Whether the interact input is held. Searching is a hold, not a press.</summary>
+        public bool InteractHeld { get; private set; }
+
         /// <summary>True on the frame the reload input was pressed.</summary>
         public bool ReloadPressed { get; private set; }
 
@@ -78,7 +82,11 @@ namespace ZombieGame.Characters
         /// <c>Update</c> would read the idle devices and wipe the values straight away.
         /// </remarks>
         public void SetInputOverride(
-            Vector2 move, bool sprint, bool attack = false, bool reload = false)
+            Vector2 move,
+            bool sprint,
+            bool attack = false,
+            bool reload = false,
+            bool interact = false)
         {
             _overridden = true;
             MoveInput = move;
@@ -86,6 +94,7 @@ namespace ZombieGame.Characters
             AttackPressed = attack;
             AttackHeld = attack;
             ReloadPressed = reload;
+            InteractHeld = interact;
         }
 
         /// <summary>
@@ -132,6 +141,7 @@ namespace ZombieGame.Characters
             _aim = map.FindAction("Aim", throwIfNotFound: false);
             _aimStick = map.FindAction("AimStick", throwIfNotFound: false);
             _cycle = map.FindAction("CycleWeapon", throwIfNotFound: false);
+            _interact = map.FindAction("Interact", throwIfNotFound: false);
 
             for (int i = 0; i < _slots.Length; i++)
             {
@@ -150,6 +160,7 @@ namespace ZombieGame.Characters
             MoveInput = Vector2.zero;
             SprintHeld = false;
             AttackHeld = false;
+            InteractHeld = false;
         }
 
         private void Update()
@@ -194,6 +205,11 @@ namespace ZombieGame.Characters
             if (_cycle is not null)
             {
                 WeaponScroll = _cycle.ReadValue<float>();
+            }
+
+            if (_interact is not null)
+            {
+                InteractHeld = _interact.IsPressed();
             }
 
             SlotPressed = 0;

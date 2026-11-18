@@ -14,8 +14,8 @@ using ZombieGame.Core.Events;
 namespace ZombieGame.Tests.PlayMode
 {
     /// <summary>
-    /// Pointing and picking: that a shot goes where the mouse is, and that the belt decides what
-    /// the attack button does.
+    /// Pointing and picking: that an attack goes where the mouse is, and that the belt decides
+    /// what the attack button does.
     /// </summary>
     /// <remarks>
     /// Neither can be checked without a running scene. Aiming is a screen position turned into a
@@ -64,11 +64,11 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TheCharacterFacesThePointer()
+        public IEnumerator TheAimFollowsThePointer()
         {
             yield return PointAt((Vector2)_player.position + new Vector2(-4f, 0f));
 
-            Assert.That(_aim.Direction.x, Is.LessThan(-0.8f), "it should be looking left");
+            Assert.That(_aim.Direction.x, Is.LessThan(-0.8f), "it should be aiming left");
 
             yield return PointAt((Vector2)_player.position + new Vector2(0f, 4f));
 

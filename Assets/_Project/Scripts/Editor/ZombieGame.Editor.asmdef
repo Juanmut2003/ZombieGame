@@ -12,7 +12,8 @@
         "ZombieGame.AI",
         "UnityEngine.UI",
         "Unity.InputSystem",
-        "ZombieGame.Waves"
+        "ZombieGame.Waves",
+        "ZombieGame.Missions"
     ],
     "includePlatforms": [
         "Editor"

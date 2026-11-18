@@ -4,20 +4,20 @@ using UnityEngine;
 namespace ZombieGame.Characters
 {
     /// <summary>
-    /// Points the character at where the player is pointing, rather than at where they are walking.
+    /// Works out where the player is pointing, for the weapons to attack along.
     /// </summary>
     /// <remarks>
     /// This is what makes the game twin-stick rather than tank-controlled: PROJECT.md §9 asks for
     /// "WASD move, mouse aim/fire", and the two have to be able to disagree. Backing away from a
-    /// zombie while still facing it is the single most common thing a player does in a top-down
-    /// fight, and it is impossible when the body always faces the way it walks.
-    /// The aim is applied in <c>LateUpdate</c>, after <see cref="CharacterFacing"/> has had its
-    /// say about the direction of travel. Script order between two <c>Update</c> methods is
-    /// undefined and would make the pose flicker between walking and aiming; this way aiming
-    /// simply wins, every frame, with no execution-order settings to remember.
+    /// zombie while still swinging at it is the single most common thing a player does in a
+    /// top-down fight, and it is impossible when attacks follow the direction of travel.
+    /// The body is deliberately left alone. Which way a character is <i>turned</i> stays a
+    /// question of where they are walking — that is what the three-pose art shows and what reads
+    /// correctly at a glance — while where they <i>attack</i> follows the pointer. Letting the
+    /// pointer spin the sprite as well made the figure look like it was sliding sideways through
+    /// the room, because the pose and the direction of travel were telling different stories.
     /// </remarks>
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(CharacterFacing))]
     public sealed class PlayerAim : MonoBehaviour
     {
         [Tooltip("Who is steering.")]
@@ -32,8 +32,6 @@ namespace ZombieGame.Characters
         [SerializeField]
         [Range(0.05f, 0.9f)]
         private float _stickDeadzone = 0.25f;
-
-        private CharacterFacing _facing = null!;
 
         private Vector2 _last = Vector2.down;
 
@@ -57,15 +55,11 @@ namespace ZombieGame.Characters
 
         private void Awake()
         {
-            _facing = GetComponent<CharacterFacing>();
-
             if (_camera is null)
             {
                 Debug.LogWarning($"[Aim] {name} has no camera; it will aim where it walks.");
             }
         }
-
-        private void LateUpdate() => _facing.Face(Direction);
 
         /// <summary>
         /// Works out where the player is pointing, preferring the stick while it is pushed.

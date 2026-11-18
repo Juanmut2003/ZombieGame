@@ -5,7 +5,8 @@
         "ZombieGame.Core",
         "ZombieGame.Combat",
         "UnityEngine.UI",
-        "ZombieGame.Waves"
+        "ZombieGame.Waves",
+        "ZombieGame.Missions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

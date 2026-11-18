@@ -35,6 +35,7 @@ namespace ZombieGame.Editor.Scenes
             BuildBoot();
             BuildMainMenu();
             SandboxSceneBuilder.Build();
+            MissionSceneBuilder.Build();
             RegisterInBuildSettings();
         }
 
@@ -122,6 +123,7 @@ namespace ZombieGame.Editor.Scenes
                 ProjectScenes.Boot,
                 ProjectScenes.MainMenu,
                 ProjectScenes.Sandbox,
+                ProjectScenes.MissionDepot,
             };
 
             var scenes = new List<EditorBuildSettingsScene>();

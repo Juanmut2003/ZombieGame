@@ -89,6 +89,11 @@ namespace ZombieGame.Editor.Input
                 "AimStick", InputActionType.Value, expectedControlLayout: "Vector2");
             aimStick.AddBinding("<Gamepad>/rightStick");
 
+            // Going through things takes time, so this one is held rather than pressed.
+            InputAction interact = gameplay.AddAction("Interact", InputActionType.Button);
+            interact.AddBinding("<Keyboard>/e");
+            interact.AddBinding("<Gamepad>/buttonSouth");
+
             // The hotbar: a key per slot, and a wheel for when the player would rather not look.
             InputAction slotOne = gameplay.AddAction("Slot1", InputActionType.Button);
             slotOne.AddBinding("<Keyboard>/1");
