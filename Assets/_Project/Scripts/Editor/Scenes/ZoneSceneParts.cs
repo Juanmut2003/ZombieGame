@@ -388,7 +388,9 @@ namespace ZombieGame.Editor.Scenes
 
             Camera view = cameraObject.AddComponent<Camera>();
             view.orthographic = true;
-            view.orthographicSize = 14f;
+            // Close in. At twice this the town is a grey mosaic in a 112 pixel window: too small
+            // to tell a house from a hedge, which makes it decoration rather than a map.
+            view.orthographicSize = 7f;
             view.targetTexture = target;
             view.clearFlags = CameraClearFlags.SolidColor;
             view.backgroundColor = new Color(0.06f, 0.07f, 0.06f, 1f);
