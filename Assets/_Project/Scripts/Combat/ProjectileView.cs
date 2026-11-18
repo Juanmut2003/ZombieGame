@@ -1,6 +1,7 @@
 #nullable enable
 using UnityEngine;
 using ZombieGame.Core.Pooling;
+using ZombieGame.Core.Rendering;
 
 namespace ZombieGame.Combat
 {
@@ -34,7 +35,7 @@ namespace ZombieGame.Combat
 
             // Always above the bodies: a round hidden behind the zombie it is about to hit tells
             // the player nothing.
-            _renderer.sortingOrder = 100;
+            _renderer.sortingOrder = SortingBands.Projectile;
         }
 
         /// <summary>The sprite every round draws with.</summary>

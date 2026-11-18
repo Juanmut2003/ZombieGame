@@ -1,6 +1,7 @@
 #nullable enable
 using UnityEngine;
 using ZombieGame.Core.Pooling;
+using ZombieGame.Core.Rendering;
 
 namespace ZombieGame.AI
 {
@@ -46,8 +47,8 @@ namespace ZombieGame.AI
             }
 
             // Sorted by how far down the screen it stands, so a zombie in front of another
-            // overlaps it the right way round. Negated because y grows upwards.
-            _renderer.sortingOrder = 10 - Mathf.RoundToInt(position.y * 10f);
+            // overlaps it the right way round — inside a band that cannot reach the ground.
+            _renderer.sortingOrder = SortingBands.ForGround(position.y);
         }
 
         /// <inheritdoc />
