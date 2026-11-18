@@ -28,6 +28,7 @@ namespace ZombieGame.Tests.PlayMode
         private CharacterFacing _facing = null!;
         private Transform _player = null!;
         private ProjectileRunner _runner = null!;
+        private Loadout _loadout = null!;
 
         [UnitySetUp]
         public IEnumerator LoadSandbox()
@@ -40,7 +41,14 @@ namespace ZombieGame.Tests.PlayMode
             _player = playerObject!.transform;
             _gun = playerObject.GetComponent<PlayerGun>();
             _facing = playerObject.GetComponent<CharacterFacing>();
+            _loadout = playerObject.GetComponent<Loadout>();
             Assert.That(_gun, Is.Not.Null, "the MC should be carrying a gun");
+            Assert.That(_loadout, Is.Not.Null, "and a belt to carry it on");
+
+            // The belt starts on the quiet slot, which is the right default and the wrong one
+            // for a fixture about shooting.
+            Assert.That(_loadout.Select(1), Is.True);
+            yield return null;
 
             GameObject? runnerObject = GameObject.Find("Projectiles");
             Assert.That(runnerObject, Is.Not.Null, "the zone should run the rounds");
@@ -52,7 +60,7 @@ namespace ZombieGame.Tests.PlayMode
         [UnityTest]
         public IEnumerator FiringPutsARoundInTheAir()
         {
-            _facing.Face(Vector2.right);
+            PointRight();
 
             Assert.That(_gun.TryFire(), Is.True);
 
@@ -81,7 +89,7 @@ namespace ZombieGame.Tests.PlayMode
             // Four units away — far beyond anything the bat can reach.
             Vector2 spot = (Vector2)_player.position + new Vector2(4f, 0f);
             MoveZombieTo(targetId, spot);
-            _facing.Face(Vector2.right);
+            PointRight();
 
             float before = FindHealth(targetId);
             Assert.That(_gun.TryFire(), Is.True);
@@ -177,6 +185,17 @@ namespace ZombieGame.Tests.PlayMode
             }
 
             return kept;
+        }
+
+        /// <summary>
+        /// Puts the pointer to the right of the character, which is how a character is turned
+        /// now that aiming follows the mouse rather than the direction of travel.
+        /// </summary>
+        private void PointRight()
+        {
+            Camera camera = Camera.main;
+            Vector2 spot = (Vector2)_player.position + new Vector2(3f, 0f);
+            _player.GetComponent<PlayerInputReader>().SetAimOverride(camera.WorldToScreenPoint(spot));
         }
 
         private void MoveZombieTo(int id, Vector2 position)

@@ -55,16 +55,37 @@ namespace ZombieGame.Combat
             }
         }
 
-        private void OnEnable()
+        private void OnEnable() => Listen();
+
+        private void OnDisable()
         {
-            GameServices.TryGet(out _bus);
-            _bus?.Subscribe<ShotFiredEvent>(OnShotFired);
+            _bus?.Unsubscribe<ShotFiredEvent>(OnShotFired);
+            _bus = null;
         }
 
-        private void OnDisable() => _bus?.Unsubscribe<ShotFiredEvent>(OnShotFired);
+        /// <summary>
+        /// Subscribes as soon as there is a bus to subscribe to.
+        /// </summary>
+        /// <remarks>
+        /// Not once in <c>OnEnable</c>: whether the bootstrap has registered the bus by then
+        /// depends on where this object happens to sit in the scene file, and missing it would
+        /// mean a zone where triggers click and nothing ever comes out of the barrel. Trying
+        /// again each step costs a dictionary lookup and removes the ordering question entirely.
+        /// </remarks>
+        private void Listen()
+        {
+            if (_bus is not null || !GameServices.TryGet(out _bus) || _bus is null)
+            {
+                return;
+            }
+
+            _bus.Subscribe<ShotFiredEvent>(OnShotFired);
+        }
 
         private void FixedUpdate()
         {
+            Listen();
+
             GameServices.TryGet(out IProjectileHitTest? targets);
             _rounds.Tick(Time.fixedDeltaTime, targets, _walls);
         }

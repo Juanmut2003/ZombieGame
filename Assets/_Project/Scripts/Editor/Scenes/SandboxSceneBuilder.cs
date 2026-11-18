@@ -85,6 +85,7 @@ namespace ZombieGame.Editor.Scenes
         private static readonly Color HudMuted = new(0.6f, 0.62f, 0.59f, 1f);
         private static readonly Color HudCalm = new(0.45f, 0.55f, 0.62f, 1f);
         private static readonly Color HudAmmo = new(0.82f, 0.81f, 0.76f, 1f);
+        private static readonly Vector2 HotbarSlot = new(86f, 22f);
 
         /// <summary>Generates any missing placeholders and (re)builds the sandbox scene.</summary>
         [MenuItem("ZombieGame/Scenes/Build Sandbox Scene")]
@@ -107,6 +108,10 @@ namespace ZombieGame.Editor.Scenes
                 // a target that does not exist yet would just park it at the origin.
                 Transform? player = CreateActors(scene);
                 Camera camera = CameraRigBuilder.Create(scene, player);
+
+                // After the camera, because aiming with the mouse means turning a screen point
+                // into a world one, and that needs the camera that will be doing the looking.
+                WireAim(player, camera);
                 CreateHorde(scene, player);
                 CreateZoneHeat(scene);
                 CreateProjectileRunner(scene);
@@ -213,6 +218,65 @@ namespace ZombieGame.Editor.Scenes
 
             CreateHeatBar(canvas);
             CreateAmmoLabel(canvas);
+            CreateHotbar(canvas);
+        }
+
+        /// <summary>
+        /// The belt along the bottom of the screen, one plate per slot.
+        /// </summary>
+        /// <remarks>
+        /// Centred at the bottom, where every game with a hotbar puts one. That is not a lack of
+        /// imagination: it is the one place a player already looks for it, and the HUD is not
+        /// where a game should be original.
+        /// </remarks>
+        private static void CreateHotbar(Canvas canvas)
+        {
+            const int slotCount = 3;
+            var plates = new Image[slotCount];
+            var labels = new Text[slotCount];
+
+            for (int i = 0; i < slotCount; i++)
+            {
+                float x = ((i - ((slotCount - 1) / 2f)) * (HotbarSlot.x + 6f));
+
+                var plateObject = new GameObject($"Hotbar Slot {i + 1}", typeof(RectTransform));
+                plateObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+
+                var rect = (RectTransform)plateObject.transform;
+                rect.anchoredPosition = new Vector2(x, -228f);
+                rect.sizeDelta = HotbarSlot;
+
+                Image plate = plateObject.AddComponent<Image>();
+                plate.color = HudTrack;
+                plate.raycastTarget = false;
+                plates[i] = plate;
+
+                labels[i] = UiSceneParts.CreateLabel(
+                    plateObject.transform,
+                    "Label",
+                    string.Empty,
+                    anchoredPosition: Vector2.zero,
+                    size: HotbarSlot,
+                    fontSize: 12,
+                    colour: HudMuted);
+            }
+
+            var presenterObject = new GameObject("Hotbar Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            HotbarPresenter presenter = presenterObject.AddComponent<HotbarPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            SerializedProperty slotLabels = serialized.FindProperty("_slots");
+            SerializedProperty slotPlates = serialized.FindProperty("_plates");
+            slotLabels.arraySize = slotCount;
+            slotPlates.arraySize = slotCount;
+            for (int i = 0; i < slotCount; i++)
+            {
+                slotLabels.GetArrayElementAtIndex(i).objectReferenceValue = labels[i];
+                slotPlates.GetArrayElementAtIndex(i).objectReferenceValue = plates[i];
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -572,6 +636,20 @@ namespace ZombieGame.Editor.Scenes
             return bat;
         }
 
+        /// <summary>Hands the aim component the camera it reads the pointer through.</summary>
+        private static void WireAim(Transform? player, Camera camera)
+        {
+            PlayerAim? aim = player is null ? null : player.GetComponent<PlayerAim>();
+            if (aim is null)
+            {
+                return;
+            }
+
+            var serialized = new SerializedObject(aim);
+            serialized.FindProperty("_camera").objectReferenceValue = camera;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
 
         private static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
@@ -668,19 +746,36 @@ namespace ZombieGame.Editor.Scenes
             serializedSteps.FindProperty("_input").objectReferenceValue = input;
             serializedSteps.ApplyModifiedPropertiesWithoutUndo();
 
-            // The gun goes on the left mouse button, the bat stays on the right. Loud and finite
-            // against quiet and free, one button each.
+            // Where the player points. Its camera is filled in once the rig exists.
+            PlayerAim aim = player.AddComponent<PlayerAim>();
+            var serializedAim = new SerializedObject(aim);
+            serializedAim.FindProperty("_input").objectReferenceValue = input;
+            serializedAim.ApplyModifiedPropertiesWithoutUndo();
+
+            // The belt. One attack button, and this decides what it does — slot one is the quiet
+            // option, slot two the loud one.
+            Loadout loadout = player.AddComponent<Loadout>();
+            var serializedLoadout = new SerializedObject(loadout);
+            SerializedProperty slots = serializedLoadout.FindProperty("_slots");
+            slots.arraySize = 2;
+            slots.GetArrayElementAtIndex(0).objectReferenceValue = RequireBat();
+            slots.GetArrayElementAtIndex(1).objectReferenceValue = RequirePistol();
+            serializedLoadout.FindProperty("_input").objectReferenceValue = input;
+            serializedLoadout.ApplyModifiedPropertiesWithoutUndo();
+
             PlayerGun gun = player.AddComponent<PlayerGun>();
             var serializedGun = new SerializedObject(gun);
-            serializedGun.FindProperty("_weapon").objectReferenceValue = RequirePistol();
+            serializedGun.FindProperty("_loadout").objectReferenceValue = loadout;
             serializedGun.FindProperty("_input").objectReferenceValue = input;
+            serializedGun.FindProperty("_aim").objectReferenceValue = aim;
             serializedGun.ApplyModifiedPropertiesWithoutUndo();
 
             PlayerMelee melee = player.AddComponent<PlayerMelee>();
             var serializedMelee = new SerializedObject(melee);
-            serializedMelee.FindProperty("_weapon").objectReferenceValue = RequireBat();
+            serializedMelee.FindProperty("_loadout").objectReferenceValue = loadout;
             serializedMelee.FindProperty("_input").objectReferenceValue = input;
             serializedMelee.FindProperty("_stamina").objectReferenceValue = stamina;
+            serializedMelee.FindProperty("_aim").objectReferenceValue = aim;
             serializedMelee.ApplyModifiedPropertiesWithoutUndo();
         }
 

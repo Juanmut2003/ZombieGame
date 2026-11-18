@@ -65,20 +65,44 @@ namespace ZombieGame.Editor.Input
             // Both mouse buttons swing. Left is the reflex everyone brings to a game; right is the
             // one a player who has met a shooter expects for the melee they fall back on. Once
             // firearms arrive, Fire takes the left button and this keeps the right one.
-            // Now that firearms exist, the split the comment above always promised: the left
-            // button is the gun, the right is the melee you fall back on when it is empty or when
-            // you would rather the zone did not hear you.
+            // One button attacks, whatever is in hand. Which weapon that is belongs to the
+            // hotbar, not to the mouse: a player should never have to remember which button a
+            // particular weapon lives on, and a second attack button would be a second thing to
+            // rebind for every weapon that ever gets added.
             InputAction attack = gameplay.AddAction("Attack", InputActionType.Button);
-            attack.AddBinding("<Mouse>/rightButton");
+            attack.AddBinding("<Mouse>/leftButton");
+            attack.AddBinding("<Gamepad>/rightTrigger");
             attack.AddBinding("<Gamepad>/buttonWest");
-
-            InputAction fire = gameplay.AddAction("Fire", InputActionType.Button);
-            fire.AddBinding("<Mouse>/leftButton");
-            fire.AddBinding("<Gamepad>/rightTrigger");
 
             InputAction reload = gameplay.AddAction("Reload", InputActionType.Button);
             reload.AddBinding("<Keyboard>/r");
             reload.AddBinding("<Gamepad>/buttonNorth");
+
+            // Where the player is pointing. The mouse reports a screen position and the stick a
+            // direction, which are different things — so they are different actions, and whoever
+            // reads them decides which one is being used right now.
+            InputAction aim = gameplay.AddAction(
+                "Aim", InputActionType.Value, expectedControlLayout: "Vector2");
+            aim.AddBinding("<Mouse>/position");
+
+            InputAction aimStick = gameplay.AddAction(
+                "AimStick", InputActionType.Value, expectedControlLayout: "Vector2");
+            aimStick.AddBinding("<Gamepad>/rightStick");
+
+            // The hotbar: a key per slot, and a wheel for when the player would rather not look.
+            InputAction slotOne = gameplay.AddAction("Slot1", InputActionType.Button);
+            slotOne.AddBinding("<Keyboard>/1");
+
+            InputAction slotTwo = gameplay.AddAction("Slot2", InputActionType.Button);
+            slotTwo.AddBinding("<Keyboard>/2");
+
+            InputAction slotThree = gameplay.AddAction("Slot3", InputActionType.Button);
+            slotThree.AddBinding("<Keyboard>/3");
+
+            InputAction cycle = gameplay.AddAction(
+                "CycleWeapon", InputActionType.Value, expectedControlLayout: "Axis");
+            cycle.AddBinding("<Mouse>/scroll/y");
+            cycle.AddBinding("<Gamepad>/dpad/x");
 
             InputAction sprint = gameplay.AddAction("Sprint", InputActionType.Button);
             sprint.AddBinding("<Keyboard>/leftShift");

@@ -52,7 +52,7 @@ namespace ZombieGame.Tests.PlayMode
             // Put the victim right in front of the player and turn to face it.
             Vector2 spot = (Vector2)_player.position + new Vector2(0.8f, 0f);
             MoveZombieTo(target.Id, spot);
-            _facing.Face(Vector2.right);
+            PointRight();
 
             float healthBefore = FindHealth(target.Id);
             _melee.TrySwing();
@@ -69,7 +69,7 @@ namespace ZombieGame.Tests.PlayMode
         {
             ZombieState target = _director.Manager.Get(0);
             MoveZombieTo(target.Id, (Vector2)_player.position + new Vector2(-0.8f, 0f));
-            _facing.Face(Vector2.right);
+            PointRight();
 
             float healthBefore = FindHealth(target.Id);
             _melee.TrySwing();
@@ -81,7 +81,7 @@ namespace ZombieGame.Tests.PlayMode
         [UnityTest]
         public IEnumerator TheWeaponHasToRecoverBetweenSwings()
         {
-            _facing.Face(Vector2.right);
+            PointRight();
 
             Assert.That(_melee.TrySwing(), Is.True);
             Assert.That(_melee.TrySwing(), Is.False, "no machine-gunning the bat");
@@ -103,7 +103,7 @@ namespace ZombieGame.Tests.PlayMode
             Assert.That(arc.sprite, Is.Not.Null, "and it needs a sprite to show");
             Assert.That(arc.enabled, Is.False, "nothing should be drawn before a swing");
 
-            _facing.Face(Vector2.right);
+            PointRight();
             Assert.That(_melee.TrySwing(), Is.True);
             yield return null;
 
@@ -138,6 +138,17 @@ namespace ZombieGame.Tests.PlayMode
             yield return null;
 
             Assert.That(_melee.TrySwing(), Is.False, "a swing has to be paid for");
+        }
+
+        /// <summary>
+        /// Puts the pointer to the right of the character, which is how a character is turned
+        /// now that aiming follows the mouse rather than the direction of travel.
+        /// </summary>
+        private void PointRight()
+        {
+            Camera camera = Camera.main;
+            Vector2 spot = (Vector2)_player.position + new Vector2(3f, 0f);
+            _player.GetComponent<PlayerInputReader>().SetAimOverride(camera.WorldToScreenPoint(spot));
         }
 
         private void MoveZombieTo(int id, Vector2 position)
