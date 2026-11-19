@@ -227,6 +227,66 @@ namespace ZombieGame.AI
             return total;
         }
 
+        /// <summary>
+        /// Finds a zombie that could be taken down quietly from <paramref name="from"/>.
+        /// </summary>
+        /// <remarks>
+        /// Three conditions, and each one is a rule the player can feel. It has to be within
+        /// arm's length. It has to not be hunting — something already coming for you cannot be
+        /// crept up on, and that is what stops a takedown being a free answer to a fight. And you
+        /// have to be behind it, measured against where it is actually looking rather than where
+        /// it is walking, because a zombie that has turned to stare at a noise has its back to
+        /// wherever it was going.
+        /// The nearest eligible one wins, so walking into a pair does not pick the far one.
+        /// </remarks>
+        /// <param name="from">Where the attacker is standing.</param>
+        /// <param name="reach">How far the attacker can reach, past both bodies.</param>
+        /// <param name="behindDegrees">
+        /// How far round the back counts as behind, either way from directly astern.
+        /// </param>
+        /// <returns>The index of the zombie, or −1 when there is nobody to creep up on.</returns>
+        public int FindTakedown(Vector2 from, float reach, float behindDegrees)
+        {
+            int best = -1;
+            float nearest = float.MaxValue;
+            float behind = Mathf.Cos(Mathf.Clamp(behindDegrees, 0f, 180f) * Mathf.Deg2Rad);
+
+            for (int i = 0; i < Count; i++)
+            {
+                ref ZombieState zombie = ref _states[i];
+                if (zombie.Behaviour == ZombieBehaviour.Chasing)
+                {
+                    continue;
+                }
+
+                Vector2 toAttacker = from - zombie.Position;
+                float distance = toAttacker.magnitude;
+                if (distance > zombie.Radius + reach || distance <= 0.0001f)
+                {
+                    continue;
+                }
+
+                // Behind means: the attacker lies outside the arc the zombie is facing. Measured
+                // against its look rather than its velocity, because the two come apart the
+                // moment it hears something.
+                Vector2 look = zombie.Look.sqrMagnitude > 0.0001f ? zombie.Look.normalized : Vector2.down;
+                if (Vector2.Dot(look, toAttacker / distance) > -behind)
+                {
+                    continue;
+                }
+
+                if (distance >= nearest)
+                {
+                    continue;
+                }
+
+                nearest = distance;
+                best = i;
+            }
+
+            return best;
+        }
+
         /// <summary>Finds the slot a zombie currently sits in, or −1 when it is gone.</summary>
         public int IndexOf(int id)
         {
@@ -428,17 +488,36 @@ namespace ZombieGame.AI
         /// <param name="targetRadius">How wide the target is.</param>
         /// <param name="lineOfSight">What blocks sight. Null means nothing does.</param>
         /// <returns>How many zombies can see it.</returns>
-        public int Perceive(Vector2 target, float targetRadius, ILineOfSight? lineOfSight = null)
+        /// <param name="visibility">
+        /// How easily the target is seen at all, against a zombie's view distance. One is somebody
+        /// walking about; crouching is well under that, which is the whole of what crouching does
+        /// to a watcher. Hearing is untouched — ears have no cone and keeping low does not make a
+        /// footstep silent, only quieter, and that is the noise system's business.
+        /// </param>
+        public int Perceive(
+            Vector2 target,
+            float targetRadius,
+            ILineOfSight? lineOfSight = null,
+            float visibility = 1f)
         {
             ILineOfSight sight = lineOfSight ?? OpenLineOfSight.Instance;
             int seen = 0;
+            float seenAt = Mathf.Clamp(visibility, 0.01f, 1f);
 
             for (int i = 0; i < Count; i++)
             {
                 ref ZombieState zombie = ref _states[i];
 
+                ZombieSenses senses = seenAt >= 1f
+                    ? _senses[i]
+                    : new ZombieSenses(
+                        _senses[i].ViewDistance * seenAt,
+                        _senses[i].ViewHalfAngleDegrees,
+                        _senses[i].HearingRadius,
+                        _senses[i].ListenSeconds);
+
                 bool sees = PerceptionMath.InViewCone(
-                                zombie.Position, zombie.Look, target, targetRadius, _senses[i])
+                                zombie.Position, zombie.Look, target, targetRadius, senses)
                             && sight.IsClear(zombie.Position, target);
 
                 zombie.SeesTarget = sees;

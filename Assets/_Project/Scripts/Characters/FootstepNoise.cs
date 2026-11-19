@@ -31,6 +31,10 @@ namespace ZombieGame.Characters
         [SerializeField]
         private PlayerInputReader? _input;
 
+        [Tooltip("Whether the character is keeping low.")]
+        [SerializeField]
+        private CharacterStance? _stance;
+
         private CharacterMovement _movement = null!;
         private EventBus? _bus;
         private int _actorId;
@@ -74,10 +78,19 @@ namespace ZombieGame.Characters
                              && _input.SprintHeld
                              && _movement.Velocity.magnitude > balance.WalkSpeed * 1.05f;
 
-            _untilNextStep = sprinting ? balance.SprintStepSeconds : balance.WalkStepSeconds;
+            // Crouching beats sprinting here as well as in the movement: you cannot be both, and
+            // the quiet one is the one the player chose deliberately.
+            bool crouching = _stance != null && _stance.IsCrouching;
+
+            _untilNextStep = crouching
+                ? balance.CrouchStepSeconds
+                : sprinting ? balance.SprintStepSeconds : balance.WalkStepSeconds;
+
             _bus?.Publish(new NoiseEvent(
                 transform.position,
-                sprinting ? balance.SprintNoise : balance.WalkNoise,
+                crouching
+                    ? balance.CrouchNoise
+                    : sprinting ? balance.SprintNoise : balance.WalkNoise,
                 _actorId));
         }
     }

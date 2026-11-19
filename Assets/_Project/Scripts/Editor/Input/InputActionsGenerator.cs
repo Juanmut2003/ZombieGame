@@ -113,6 +113,20 @@ namespace ZombieGame.Editor.Input
             sprint.AddBinding("<Keyboard>/leftShift");
             sprint.AddBinding("<Gamepad>/leftStickPress");
 
+            // Held rather than toggled: crouching costs you speed every moment you are doing it,
+            // and a toggle lets the player forget they are paying.
+            InputAction crouch = gameplay.AddAction("Crouch", InputActionType.Button);
+            crouch.AddBinding("<Keyboard>/leftCtrl");
+            crouch.AddBinding("<Keyboard>/c");
+            crouch.AddBinding("<Gamepad>/buttonEast");
+
+            // Its own key rather than the attack button. A takedown that happened because a
+            // swing was mistimed would be a surprise in the one situation that is all about not
+            // being surprising.
+            InputAction takedown = gameplay.AddAction("Takedown", InputActionType.Button);
+            takedown.AddBinding("<Keyboard>/f");
+            takedown.AddBinding("<Gamepad>/buttonNorth");
+
             return asset;
         }
     }

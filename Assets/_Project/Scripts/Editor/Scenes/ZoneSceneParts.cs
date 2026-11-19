@@ -1195,11 +1195,27 @@ namespace ZombieGame.Editor.Scenes
             serializedVitals.FindProperty("_balance").objectReferenceValue = balance;
             serializedVitals.ApplyModifiedPropertiesWithoutUndo();
 
+            // Standing or keeping low. Added before the movement and the footsteps, because both
+            // of them ask it what the character is doing.
+            CharacterStance stance = player.AddComponent<CharacterStance>();
+            var serializedStance = new SerializedObject(stance);
+            serializedStance.FindProperty("_balance").objectReferenceValue = balance;
+            serializedStance.FindProperty("_input").objectReferenceValue = input;
+            serializedStance.ApplyModifiedPropertiesWithoutUndo();
+
+            PlayerTakedown takedown = player.AddComponent<PlayerTakedown>();
+            var serializedTakedown = new SerializedObject(takedown);
+            serializedTakedown.FindProperty("_balance").objectReferenceValue = balance;
+            serializedTakedown.FindProperty("_input").objectReferenceValue = input;
+            serializedTakedown.FindProperty("_stamina").objectReferenceValue = stamina;
+            serializedTakedown.ApplyModifiedPropertiesWithoutUndo();
+
             CharacterMovement movement = player.AddComponent<CharacterMovement>();
             var serializedMovement = new SerializedObject(movement);
             serializedMovement.FindProperty("_balance").objectReferenceValue = balance;
             serializedMovement.FindProperty("_input").objectReferenceValue = input;
             serializedMovement.FindProperty("_stamina").objectReferenceValue = stamina;
+            serializedMovement.FindProperty("_stance").objectReferenceValue = stance;
             serializedMovement.ApplyModifiedPropertiesWithoutUndo();
 
             // Three poses, picked from the direction of travel. Not a walk cycle — the packs ship
@@ -1218,6 +1234,7 @@ namespace ZombieGame.Editor.Scenes
             var serializedSteps = new SerializedObject(steps);
             serializedSteps.FindProperty("_balance").objectReferenceValue = balance;
             serializedSteps.FindProperty("_input").objectReferenceValue = input;
+            serializedSteps.FindProperty("_stance").objectReferenceValue = stance;
             serializedSteps.ApplyModifiedPropertiesWithoutUndo();
 
             // Where the player points. Its camera is filled in once the rig exists.

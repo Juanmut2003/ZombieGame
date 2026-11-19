@@ -35,6 +35,8 @@ namespace ZombieGame.Characters
         private InputAction? _aimStick;
         private InputAction? _cycle;
         private InputAction? _interact;
+        private InputAction? _crouch;
+        private InputAction? _takedown;
         private readonly InputAction?[] _slots = new InputAction?[3];
         private bool _overridden;
         private bool _aimOverridden;
@@ -70,6 +72,12 @@ namespace ZombieGame.Characters
 
         /// <summary>Whether the interact input is held. Searching is a hold, not a press.</summary>
         public bool InteractHeld { get; private set; }
+
+        /// <summary>Whether the crouch input is held. Keeping low is a hold, never a toggle.</summary>
+        public bool CrouchHeld { get; private set; }
+
+        /// <summary>True on the frame a silent takedown was asked for.</summary>
+        public bool TakedownPressed { get; private set; }
 
         /// <summary>True on the frame the reload input was pressed.</summary>
         public bool ReloadPressed { get; private set; }
@@ -154,6 +162,8 @@ namespace ZombieGame.Characters
             _aimStick = map.FindAction("AimStick", throwIfNotFound: false);
             _cycle = map.FindAction("CycleWeapon", throwIfNotFound: false);
             _interact = map.FindAction("Interact", throwIfNotFound: false);
+            _crouch = map.FindAction("Crouch", throwIfNotFound: false);
+            _takedown = map.FindAction("Takedown", throwIfNotFound: false);
 
             for (int i = 0; i < _slots.Length; i++)
             {
@@ -173,6 +183,7 @@ namespace ZombieGame.Characters
             SprintHeld = false;
             AttackHeld = false;
             InteractHeld = false;
+            CrouchHeld = false;
         }
 
         private void Update()
@@ -223,6 +234,16 @@ namespace ZombieGame.Characters
             if (_interact is not null)
             {
                 InteractHeld = _interact.IsPressed();
+            }
+
+            if (_crouch is not null)
+            {
+                CrouchHeld = _crouch.IsPressed();
+            }
+
+            if (_takedown is not null)
+            {
+                TakedownPressed = !onHud && _takedown.WasPressedThisFrame();
             }
 
             SlotPressed = 0;

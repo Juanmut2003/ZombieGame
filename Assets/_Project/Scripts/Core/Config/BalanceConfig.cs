@@ -91,6 +91,47 @@ namespace ZombieGame.Core.Config
         [Min(0.05f)]
         private float _sprintStepSeconds = 0.32f;
 
+        [Header("Stealth")]
+        [Tooltip("What crouching multiplies walking speed by.")]
+        [SerializeField]
+        [Range(0.1f, 1f)]
+        private float _crouchSpeedFactor = 0.45f;
+
+        [Tooltip("How loud one crouched step is. Walking is the yardstick at 1.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _crouchNoise = 0.1f;
+
+        [Tooltip("Seconds between crouched steps.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _crouchStepSeconds = 0.9f;
+
+        [Tooltip("What crouching multiplies a zombie's view distance by. Lower is harder to see.")]
+        [SerializeField]
+        [Range(0.1f, 1f)]
+        private float _crouchVisibility = 0.45f;
+
+        [Tooltip("How far a silent takedown reaches, in world units.")]
+        [SerializeField]
+        [Min(0.1f)]
+        private float _takedownReach = 0.95f;
+
+        [Tooltip("How far round the back of a zombie counts as behind it, in degrees either way.")]
+        [SerializeField]
+        [Range(10f, 180f)]
+        private float _takedownBehindDegrees = 75f;
+
+        [Tooltip("Stamina one takedown costs. It is quiet, not free.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _takedownStamina = 14f;
+
+        [Tooltip("How loud a takedown is. Far below a swing, but not nothing.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _takedownNoise = 0.3f;
+
         [Header("Zone heat")]
         [Tooltip("How much of a full meter one ordinary noise adds.")]
         [SerializeField]
@@ -163,6 +204,30 @@ namespace ZombieGame.Core.Config
 
         /// <summary>Full health for a survivor, the MC included.</summary>
         public float SurvivorHealth => _survivorHealth;
+
+        /// <summary>What crouching multiplies walking speed by.</summary>
+        public float CrouchSpeedFactor => _crouchSpeedFactor;
+
+        /// <summary>How loud one crouched step is.</summary>
+        public float CrouchNoise => _crouchNoise;
+
+        /// <summary>Seconds between crouched steps.</summary>
+        public float CrouchStepSeconds => _crouchStepSeconds;
+
+        /// <summary>What crouching multiplies a zombie's view distance by.</summary>
+        public float CrouchVisibility => _crouchVisibility;
+
+        /// <summary>How far a silent takedown reaches.</summary>
+        public float TakedownReach => _takedownReach;
+
+        /// <summary>How far round the back of a zombie counts as behind it.</summary>
+        public float TakedownBehindDegrees => _takedownBehindDegrees;
+
+        /// <summary>Stamina one takedown costs.</summary>
+        public float TakedownStamina => _takedownStamina;
+
+        /// <summary>How loud a takedown is.</summary>
+        public float TakedownNoise => _takedownNoise;
 
         /// <summary>How fast stamina comes back, per second.</summary>
         public float StaminaRegenPerSecond => _staminaRegenPerSecond;

@@ -29,6 +29,10 @@ namespace ZombieGame.Characters
         [SerializeField]
         private CharacterStamina? _stamina;
 
+        [Tooltip("Whether the character is keeping low.")]
+        [SerializeField]
+        private CharacterStance? _stance;
+
         private Rigidbody2D _body = null!;
         private MovementSettings _settings;
         private float _sprintCostPerSecond;
@@ -66,8 +70,18 @@ namespace ZombieGame.Characters
                 sprinting = _stamina.Drain(_sprintCostPerSecond, Time.fixedDeltaTime) > 0f;
             }
 
-            _body.linearVelocity = MovementMath.Advance(
+            // Crouching cannot be sprinted out of: keeping low is slower, and a player who could
+            // hold both would simply hold both.
+            bool crouching = _stance != null && _stance.IsCrouching;
+            if (crouching)
+            {
+                sprinting = false;
+            }
+
+            Vector2 moved = MovementMath.Advance(
                 _body.linearVelocity, input, sprinting, _settings, Time.fixedDeltaTime);
+
+            _body.linearVelocity = crouching ? moved * _stance!.SpeedFactor : moved;
         }
     }
 }

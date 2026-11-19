@@ -77,6 +77,7 @@ namespace ZombieGame.AI
 
         private ZombieManager _manager = null!;
         private IHurtable? _targetVitals;
+        private IConcealable? _targetCover;
         private Vector2? _sweptFor;
         private System.Random _rimRandom = null!;
         private EventBus? _bus;
@@ -117,11 +118,16 @@ namespace ZombieGame.AI
             // throw over a service the last one left behind.
             GameServices.Replace<IProjectileHitTest>(new ZombieHitTest(_manager));
 
+            // And who can be crept up on. Registered together, because both are the horde
+            // answering a question asked by somebody who must not know it exists.
+            GameServices.Replace<ISilentKill>(new ZombieTakedown(_manager));
+
             // Asked once. The horde walks towards a transform and never holds what it is biting,
             // so all that is kept is the one thing that can be hurt.
             if (_target is not null)
             {
                 _targetVitals = _target.GetComponent<IHurtable>();
+                _targetCover = _target.GetComponent<IConcealable>();
             }
 
             // With no layers named, nothing blocks sight — and a zombie that sees through walls
@@ -281,7 +287,11 @@ namespace ZombieGame.AI
             {
                 // Perception first, movement second: looking at where the target was last frame
                 // would show a zombie reacting to a position the player has already left.
-                _manager.Perceive(_target.position, _targetRadius, _lineOfSight);
+                _manager.Perceive(
+                    _target.position,
+                    _targetRadius,
+                    _lineOfSight,
+                    _targetCover is null ? 1f : _targetCover.Visibility);
 
                 // Perceive answers 'can it see you'; Decide turns that into what it does about
                 // it. Both before the tick, which only walks towards whatever was decided.
