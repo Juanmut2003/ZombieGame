@@ -742,6 +742,10 @@ namespace ZombieGame.Editor.Scenes
             Tilemap scrubMap =
                 CreateTilemapLayer(gridObject.transform, "Tilemap_Scrub", SortingBands.Scrub);
 
+            // Empty, and left empty: this is the layer a person paints into from the Tile
+            // Palette, and the one a rebuild carries across instead of throwing away.
+            HandPaintedLayer.Create(scene);
+
             int height = rows.Length;
             int width = rows[0].Length;
 

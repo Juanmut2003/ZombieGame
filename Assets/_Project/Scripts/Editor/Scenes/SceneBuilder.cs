@@ -45,8 +45,12 @@ namespace ZombieGame.Editor.Scenes
                 Directory.CreateDirectory(directory!);
             }
 
+            // Taken out of the old scene before it is thrown away, and put back afterwards.
+            HandPaintedLayer kept = HandPaintedLayer.Lift(assetPath);
+
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             populate(scene);
+            kept.LayInto(scene);
 
             if (!EditorSceneManager.SaveScene(scene, assetPath))
             {
