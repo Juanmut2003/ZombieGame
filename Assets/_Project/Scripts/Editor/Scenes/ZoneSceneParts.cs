@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 using ZombieGame.AI;
+using ZombieGame.Audio;
 using ZombieGame.Characters;
 using ZombieGame.Combat;
 using ZombieGame.Core;
@@ -664,6 +665,30 @@ namespace ZombieGame.Editor.Scenes
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             return heat;
+        }
+
+        /// <summary>
+        /// The speakers and the thing that decides what they play.
+        /// </summary>
+        /// <remarks>
+        /// Two objects on purpose. The service owns the audio sources and knows nothing about the
+        /// game; the router knows what a swing is and nothing about speakers. Keeping them apart
+        /// is what lets a zone be silenced without changing anything that makes a noise.
+        /// </remarks>
+        internal static void CreateAudio(Scene scene, Transform? squad)
+        {
+            GameObject audioObject = SceneBuilder.CreateObject(scene, "Audio");
+            AudioService service = audioObject.AddComponent<AudioService>();
+
+            var serializedService = new SerializedObject(service);
+            serializedService.FindProperty("_bank").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<SoundBank>(SoundBankBuilder.AssetPath);
+            serializedService.ApplyModifiedPropertiesWithoutUndo();
+
+            SoundRouter router = audioObject.AddComponent<SoundRouter>();
+            var serializedRouter = new SerializedObject(router);
+            serializedRouter.FindProperty("_squad").objectReferenceValue = squad;
+            serializedRouter.ApplyModifiedPropertiesWithoutUndo();
         }
 
         internal static void CreateGlobalLight(Scene scene)

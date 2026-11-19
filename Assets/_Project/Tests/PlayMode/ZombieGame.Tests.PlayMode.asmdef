@@ -12,6 +12,7 @@
         "UnityEditor.TestRunner",
         "ZombieGame.Waves",
         "ZombieGame.Missions",
+        "ZombieGame.Audio",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

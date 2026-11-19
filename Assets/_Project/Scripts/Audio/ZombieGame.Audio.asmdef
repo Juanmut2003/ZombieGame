@@ -1,0 +1,19 @@
+{
+    "name": "ZombieGame.Audio",
+    "rootNamespace": "ZombieGame.Audio",
+    "references": [
+        "ZombieGame.Core",
+        "ZombieGame.Combat",
+        "ZombieGame.Missions",
+        "ZombieGame.Waves"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

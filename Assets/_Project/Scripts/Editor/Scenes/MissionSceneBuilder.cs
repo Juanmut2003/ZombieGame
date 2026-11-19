@@ -109,6 +109,7 @@ namespace ZombieGame.Editor.Scenes
                 // streets run cold on a first job and already stirred on a later one.
                 heat.Profile(mission.StartingHeat, mission.NoiseFactor);
                 EditorUtility.SetDirty(heat);
+                ZoneSceneParts.CreateAudio(scene, player);
                 ZoneSceneParts.CreateProjectileRunner(scene);
                 ZoneSceneParts.CreateSwingFlash(scene);
                 ZoneSceneParts.CreateHud(scene, camera, player);
