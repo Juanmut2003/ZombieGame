@@ -199,6 +199,62 @@ namespace ZombieGame.Editor.Scenes
             CreateAmmoLabel(canvas);
             CreateHotbar(canvas);
             CreateMissionLines(canvas);
+            CreateResultPanel(canvas);
+        }
+
+        /// <summary>
+        /// The screen that covers the zone the moment a run ends.
+        /// </summary>
+        /// <remarks>
+        /// Built switched off and raised by an event. Not its own scene: changing scene would
+        /// throw the zone away, and seeing where you died is half of what a result is for.
+        /// </remarks>
+        private static void CreateResultPanel(Canvas canvas)
+        {
+            var panelObject = new GameObject("Mission Result", typeof(RectTransform));
+            panelObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+
+            var panelRect = (RectTransform)panelObject.transform;
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.offsetMin = Vector2.zero;
+            panelRect.offsetMax = Vector2.zero;
+
+            // Dark rather than opaque: the zone stays readable behind it, which is the point of
+            // not changing scene.
+            Image shade = panelObject.AddComponent<Image>();
+            shade.color = new Color(0.03f, 0.04f, 0.04f, 0.82f);
+            shade.raycastTarget = false;
+
+            Text verdict = UiSceneParts.CreateLabel(
+                panelObject.transform,
+                "Verdict",
+                string.Empty,
+                anchoredPosition: new Vector2(0f, 24f),
+                size: new Vector2(600f, 48f),
+                fontSize: 34,
+                colour: HudMuted);
+
+            Text detail = UiSceneParts.CreateLabel(
+                panelObject.transform,
+                "Detail",
+                string.Empty,
+                anchoredPosition: new Vector2(0f, -20f),
+                size: new Vector2(600f, 26f),
+                fontSize: 14,
+                colour: HudMuted);
+
+            var presenterObject = new GameObject("Mission Result Presenter", typeof(RectTransform));
+            presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
+            MissionResultPanel presenter = presenterObject.AddComponent<MissionResultPanel>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_panel").objectReferenceValue = panelObject;
+            serialized.FindProperty("_verdict").objectReferenceValue = verdict;
+            serialized.FindProperty("_detail").objectReferenceValue = detail;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            panelObject.SetActive(false);
         }
 
         /// <summary>
@@ -1202,6 +1258,11 @@ namespace ZombieGame.Editor.Scenes
             serializedStance.FindProperty("_balance").objectReferenceValue = balance;
             serializedStance.FindProperty("_input").objectReferenceValue = input;
             serializedStance.ApplyModifiedPropertiesWithoutUndo();
+
+            SquadStandDown standDown = player.AddComponent<SquadStandDown>();
+            var serializedStandDown = new SerializedObject(standDown);
+            serializedStandDown.FindProperty("_input").objectReferenceValue = input;
+            serializedStandDown.ApplyModifiedPropertiesWithoutUndo();
 
             PlayerTakedown takedown = player.AddComponent<PlayerTakedown>();
             var serializedTakedown = new SerializedObject(takedown);

@@ -4,6 +4,7 @@ using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
+using ZombieGame.Missions;
 using ZombieGame.Waves;
 
 namespace ZombieGame.Characters
@@ -36,6 +37,7 @@ namespace ZombieGame.Characters
 
         private EventBus? _bus;
         private int _actorId;
+        private bool _offered;
 
         /// <summary>How many have been taken down this run. For tests and, later, a debrief.</summary>
         public int Count { get; private set; }
@@ -55,12 +57,62 @@ namespace ZombieGame.Characters
 
         private void Update()
         {
+            Offer();
+
             if (_input is null || !_input.TakedownPressed)
             {
                 return;
             }
 
             TryTakedown();
+        }
+
+        /// <summary>
+        /// Tells the HUD when the move is on, and stops telling it when it is not.
+        /// </summary>
+        /// <remarks>
+        /// Three conditions have to hold at once and none of them is visible on screen. Without a
+        /// prompt the player presses the key, nothing happens, and there is no way to tell
+        /// whether they were too far, not far enough round the back, or had already been seen —
+        /// which reads as a broken key rather than as a rule.
+        /// Published only on a change, so it does not put sixty identical lines a second on the
+        /// bus, and it leaves the looting prompt alone by saying nothing when there is nothing
+        /// to say.
+        /// </remarks>
+        private void Offer()
+        {
+            bool available = _bus is not null
+                             && GameServices.TryGet(out ISilentKill? horde)
+                             && horde is not null
+                             && CanAfford()
+                             && horde.CanTakedown(
+                                 _balance!.TakedownReach,
+                                 _balance.TakedownBehindDegrees,
+                                 At());
+
+            if (available == _offered)
+            {
+                return;
+            }
+
+            _offered = available;
+            if (available)
+            {
+                _bus?.Publish(new InteractionPromptEvent("F  TAKEDOWN", 0f));
+            }
+            else
+            {
+                _bus?.Publish(new InteractionPromptEvent(string.Empty, 0f));
+            }
+        }
+
+        private bool CanAfford() =>
+            _stamina is null || _stamina.CanSpend(_balance!.TakedownStamina);
+
+        private Vector2 At()
+        {
+            Vector3 at = transform.position;
+            return new Vector2(at.x, at.y);
         }
 
         /// <summary>Attempts a takedown from where the character is standing.</summary>
@@ -81,11 +133,10 @@ namespace ZombieGame.Characters
                 return false;
             }
 
-            Vector3 at = transform.position;
             if (!horde.TryTakedown(
                     balance.TakedownReach,
                     balance.TakedownBehindDegrees,
-                    new Vector2(at.x, at.y),
+                    At(),
                     out Vector2 where))
             {
                 return false;

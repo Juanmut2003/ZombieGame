@@ -37,6 +37,15 @@ namespace ZombieGame.AI
         private readonly int[] _nextInCell;
 
         private int _nextId = 1;
+        private Vector2 _target;
+        private bool _hasTarget;
+
+        /// <summary>
+        /// How wide the thing they are hunting is, for keeping them off it. Not a balance number:
+        /// it is the same body radius the sight tests already measure to, and a crowd that stood
+        /// inside the player would be a rendering fault rather than a difficulty setting.
+        /// </summary>
+        private const float TargetRadius = 0.3f;
 
         /// <param name="capacity">
         /// The most zombies that can be alive at once. Fixed on purpose: the array is allocated
@@ -570,6 +579,8 @@ namespace ZombieGame.AI
         public int Decide(Vector2 target, float deltaSeconds)
         {
             int chasing = 0;
+            _target = target;
+            _hasTarget = true;
 
             for (int i = 0; i < Count; i++)
             {
@@ -581,7 +592,13 @@ namespace ZombieGame.AI
                     zombie.Behaviour = ZombieBehaviour.Chasing;
                     zombie.BehaviourTimer = instincts.GiveUpSeconds;
                     zombie.LastKnown = target;
-                    zombie.Destination = target;
+
+                    // Walked to the edge of the target rather than its middle. Aiming at the
+                    // middle means every zombie in a crowd is still trying to get closer once it
+                    // is already touching, and the pile that makes is what the player sees as
+                    // zombies standing inside them. The bite measures to the same edge, so
+                    // stopping here costs them nothing.
+                    zombie.Destination = EdgeOf(target, zombie);
                     zombie.SpeedFactor = 1f;
                     chasing++;
                     continue;
@@ -792,7 +809,18 @@ namespace ZombieGame.AI
                 float speed = zombie.Speed * zombie.SpeedFactor;
                 float step = speed * deltaSeconds;
 
-                Vector2 push = separating ? SeparationFor(i) : Vector2.zero;
+                // How hard a crowd shoves itself apart is a balance number and belongs to the
+                // crowd. Being kept out of the target's body is not: it is the difference
+                // between standing next to somebody and standing in them.
+                Vector2 push = separating
+                    ? SeparationFor(i) * _crowd.SeparationStrength
+                    : Vector2.zero;
+
+                // They push each other apart but used to walk straight into the target and stop
+                // inside it, so a crowd closing in ended up as one pile of bodies on a single
+                // tile with the player somewhere underneath. This makes them gather round
+                // instead of on top, whatever the crowd setting says.
+                push += AwayFromTarget(zombie);
 
                 if ((distance <= 0.0001f || step <= 0f) && push == Vector2.zero)
                 {
@@ -827,8 +855,9 @@ namespace ZombieGame.AI
                 }
                 else
                 {
-                    Vector2 desired = (direction * speed) +
-                                      (push * speed * _crowd.SeparationStrength);
+                    // The crowd's own strength is already in the push; what is left here is only
+                    // turning it into a speed.
+                    Vector2 desired = (direction * speed) + (push * speed);
 
                     // Clamped to walking speed, so being crowded never makes a zombie faster than
                     // it is supposed to be able to move.
@@ -996,6 +1025,56 @@ namespace ZombieGame.AI
             CellKey(
                 Mathf.FloorToInt(position.x / _crowd.CellSize),
                 Mathf.FloorToInt(position.y / _crowd.CellSize));
+
+        /// <summary>
+        /// The point on the rim of the target nearest this zombie: where it should stop.
+        /// </summary>
+        private Vector2 EdgeOf(Vector2 target, in ZombieState zombie)
+        {
+            Vector2 away = zombie.Position - target;
+            float distance = away.magnitude;
+            float touching = zombie.Radius + TargetRadius;
+
+            return distance <= 0.0001f
+                ? target + (Vector2.down * touching)
+                : target + (away / distance * touching);
+        }
+
+        /// <summary>
+        /// A shove out of the target's own body, for a zombie that has walked into it.
+        /// </summary>
+        /// <remarks>
+        /// Only while overlapping, and it grows as the overlap does, so one standing at arm's
+        /// length is left alone and one that has climbed inside is pushed straight back out. They
+        /// still reach far enough to bite — the bite measures to the edge of both bodies, which
+        /// is exactly where this leaves them.
+        /// </remarks>
+        private Vector2 AwayFromTarget(in ZombieState zombie)
+        {
+            if (!_hasTarget)
+            {
+                return Vector2.zero;
+            }
+
+            Vector2 away = zombie.Position - _target;
+            float distance = away.magnitude;
+            float touching = zombie.Radius + TargetRadius;
+
+            if (distance >= touching)
+            {
+                return Vector2.zero;
+            }
+
+            // Standing exactly on it, where there is no "away" to speak of. Downwards, and
+            // downwards is also where EdgeOf sends it: the two have to agree, or the shove out
+            // and the walk to the rim cancel each other and the body sits inside for ever.
+            if (distance <= 0.0001f)
+            {
+                return Vector2.down;
+            }
+
+            return away / distance * ((touching - distance) / touching);
+        }
 
         private static long CellKey(int x, int y) => ((long)x << 32) ^ (uint)y;
 

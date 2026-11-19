@@ -18,6 +18,10 @@ namespace ZombieGame.AI
         public ZombieTakedown(ZombieManager horde) => _horde = horde;
 
         /// <inheritdoc />
+        public bool CanTakedown(float reach, float behindDegrees, Vector2 from) =>
+            _horde.FindTakedown(from, reach, behindDegrees) >= 0;
+
+        /// <inheritdoc />
         public bool TryTakedown(float reach, float behindDegrees, Vector2 from, out Vector2 where)
         {
             where = from;

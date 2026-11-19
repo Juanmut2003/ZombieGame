@@ -99,7 +99,18 @@ namespace ZombieGame.Tests.EditMode
             Step(target, 0.1f);
 
             Assert.That(_manager.Get(index).Behaviour, Is.EqualTo(ZombieBehaviour.Chasing));
-            Assert.That(_manager.Get(index).Destination, Is.EqualTo(target));
+
+            // Not the target itself: a chase walks to the edge of a body rather than its middle,
+            // or a crowd keeps trying to get closer once it is already touching and ends up
+            // standing inside whoever it is hunting.
+            Assert.That(
+                Vector2.Distance(_manager.Get(index).Destination, target),
+                Is.EqualTo(0.6f).Within(0.01f));
+
+            Assert.That(
+                _manager.Get(index).Destination.x,
+                Is.LessThan(target.x),
+                "and on the near side of it");
         }
 
         [Test]

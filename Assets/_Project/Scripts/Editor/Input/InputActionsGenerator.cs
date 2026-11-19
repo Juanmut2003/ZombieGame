@@ -116,8 +116,10 @@ namespace ZombieGame.Editor.Input
             // Held rather than toggled: crouching costs you speed every moment you are doing it,
             // and a toggle lets the player forget they are paying.
             InputAction crouch = gameplay.AddAction("Crouch", InputActionType.Button);
-            crouch.AddBinding("<Keyboard>/leftCtrl");
+            // Not on control. In the editor Ctrl plus a movement key is a menu shortcut, and
+            // crouch-walking down the screen tries to save the scene.
             crouch.AddBinding("<Keyboard>/c");
+            crouch.AddBinding("<Keyboard>/leftAlt");
             crouch.AddBinding("<Gamepad>/buttonEast");
 
             // Its own key rather than the attack button. A takedown that happened because a

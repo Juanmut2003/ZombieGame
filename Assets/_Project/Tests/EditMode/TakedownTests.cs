@@ -113,6 +113,35 @@ namespace ZombieGame.Tests.EditMode
         }
 
         [Test]
+        public void TheHordeGathersRoundYouRatherThanInsideYou()
+        {
+            // What the player sees when this is missing: a crowd closing in ends as one pile of
+            // bodies on a single tile with the character somewhere underneath it.
+            var player = new Vector2(5f, 5f);
+            for (int i = 0; i < 6; i++)
+            {
+                _manager.Spawn(_definition, player + new Vector2(0.01f * i, 0f));
+            }
+
+            for (int step = 0; step < 60; step++)
+            {
+                _manager.Perceive(player, 0.25f);
+                _manager.Decide(player, 0.05f);
+                _manager.Tick(0.05f);
+            }
+
+            for (int i = 0; i < 6; i++)
+            {
+                ZombieState zombie = _manager.Get(i);
+                Assert.That(
+                    Vector2.Distance(zombie.Position, player),
+                    Is.GreaterThan(0.2f),
+                    $"zombie {i} is standing in the squad: {zombie.Behaviour}, "
+                    + $"at {zombie.Position}, heading for {zombie.Destination}");
+            }
+        }
+
+        [Test]
         public void AnEmptyZoneOffersNobody()
         {
             Assert.That(_manager.FindTakedown(Vector2.zero, Reach, Behind), Is.EqualTo(-1));
