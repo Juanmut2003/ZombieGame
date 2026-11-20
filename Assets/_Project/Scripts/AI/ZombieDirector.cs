@@ -458,6 +458,22 @@ namespace ZombieGame.AI
         {
             var body = new GameObject("Zombie", typeof(SpriteRenderer), typeof(ZombieView));
             body.transform.SetParent(transform, worldPositionStays: true);
+
+            // On the layer the map is not allowed to look at. Set here, where bodies are made,
+            // rather than in the scene: they come out of a pool and nothing else ever touches
+            // them, so this is the only place that could forget.
+            int horde = GameLayers.HordeIndex;
+            if (horde >= 0)
+            {
+                body.layer = horde;
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[Zombies] the project has no '{GameLayers.Horde}' layer; "
+                    + "the minimap will show every zombie in the zone.");
+            }
+
             return body.GetComponent<ZombieView>();
         }
     }

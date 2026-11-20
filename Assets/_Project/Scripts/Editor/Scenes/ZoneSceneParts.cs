@@ -453,7 +453,10 @@ namespace ZombieGame.Editor.Scenes
             view.targetTexture = target;
             view.clearFlags = CameraClearFlags.SolidColor;
             view.backgroundColor = new Color(0.06f, 0.07f, 0.06f, 1f);
-            view.cullingMask = ~0;
+            // Everything the map is allowed to show, which is everything except the horde. A map
+            // that listed every zombie in the zone would undo the sight cones, the line of sight
+            // and the crouching all at once: you would never need to look, only to glance.
+            view.cullingMask = GameLayers.EverythingButTheHorde;
 
             // Rendered before the camera the player is looking through, so the texture the HUD
             // samples is this frame's rather than last frame's.

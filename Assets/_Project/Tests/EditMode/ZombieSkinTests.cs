@@ -161,5 +161,34 @@ namespace ZombieGame.Tests.EditMode
                 $"'{GameLayers.Walls}' is missing from the project's layers");
             Assert.That(GameLayers.WallsMask, Is.Not.Zero);
         }
+
+        [Test]
+        public void TheProjectHasAHordeLayer()
+        {
+            // The minimap is told to skip this layer. Without it the mask is zero, the skip
+            // skips nothing, and the map lists every zombie in the zone — which quietly undoes
+            // the sight cones, the line of sight and the crouching all at once.
+            // Both of these guard a project settings file, which an imported package has
+            // overwritten once before.
+            Assert.That(
+                GameLayers.HordeIndex,
+                Is.GreaterThanOrEqualTo(0),
+                $"'{GameLayers.Horde}' is missing from the project's layers");
+            Assert.That(GameLayers.HordeMask, Is.Not.Zero);
+        }
+
+        [Test]
+        public void AMapShowsEverythingButTheHorde()
+        {
+            Assert.That(
+                GameLayers.EverythingButTheHorde & GameLayers.HordeMask,
+                Is.Zero,
+                "the horde must not be in what a map may show");
+
+            Assert.That(
+                GameLayers.EverythingButTheHorde & GameLayers.WallsMask,
+                Is.Not.Zero,
+                "but the walls must be, or the map is blank");
+        }
     }
 }

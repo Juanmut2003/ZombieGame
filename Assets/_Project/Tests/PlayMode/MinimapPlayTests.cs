@@ -92,6 +92,46 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator TheMapDoesNotGiveAwayTheHorde()
+        {
+            GameObject? cameraObject = GameObject.Find("Minimap Camera");
+            Assert.That(cameraObject, Is.Not.Null);
+            var view = cameraObject!.GetComponent<Camera>();
+
+            Assert.That(
+                view.cullingMask & ZombieGame.Core.GameLayers.HordeMask,
+                Is.Zero,
+                "a map that lists every zombie is a radar, and makes sneaking pointless");
+
+            // And it still shows the world, or the fix would be a blank square.
+            Assert.That(view.cullingMask, Is.Not.Zero);
+
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator TheBodiesAreOnTheLayerTheMapSkips()
+        {
+            // The camera skipping a layer only helps if the bodies are actually on it, and they
+            // are put there once, where they are made, rather than in the scene.
+            yield return new WaitForSeconds(0.5f);
+
+            GameObject? director = GameObject.Find("Zombie Director");
+            Assert.That(director, Is.Not.Null);
+
+            var views = director!.GetComponentsInChildren<ZombieGame.AI.ZombieView>(true);
+            Assert.That(views, Is.Not.Empty, "the town should have a horde in it");
+
+            foreach (ZombieGame.AI.ZombieView body in views)
+            {
+                Assert.That(
+                    body.gameObject.layer,
+                    Is.EqualTo(ZombieGame.Core.GameLayers.HordeIndex),
+                    $"'{body.name}' would show up on the map");
+            }
+        }
+
+        [UnityTest]
         public IEnumerator TheWideMapIsBiggerOnScreen()
         {
             GameObject? frame = GameObject.Find("Minimap");
