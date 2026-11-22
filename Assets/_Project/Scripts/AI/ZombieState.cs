@@ -105,5 +105,19 @@ namespace ZombieGame.AI
         /// zombie, not to the body currently drawing it.
         /// </remarks>
         public float HitFlash;
+
+        /// <summary>
+        /// How far this one has walked in all, in world units.
+        /// </summary>
+        /// <remarks>
+        /// The horde's gait comes off the ground it covers rather than off a clock, so that a
+        /// bloater at half speed shambles at half the rate and one wedged in a crowd stops
+        /// moving its legs instead of marching on the spot. Kept here with the flash and for
+        /// the same reason: the bodies are pooled and get handed around, so anything the eye
+        /// would notice jumping has to belong to the zombie.
+        /// Wrapped by <see cref="ZombieManager"/> long before a float starts losing the small
+        /// change, which at this scale would show up as a gait that slowly stops moving.
+        /// </remarks>
+        public float Walked;
     }
 }

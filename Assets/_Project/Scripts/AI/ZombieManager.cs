@@ -47,6 +47,15 @@ namespace ZombieGame.AI
         /// </summary>
         private const float TargetRadius = 0.3f;
 
+        /// <summary>
+        /// Where the walked-distance tally starts over, in world units. Not a balance number:
+        /// it is a float running out of small change, and nothing about the game changes if it
+        /// is moved. Far enough out that a zombie would have to walk for a quarter of an hour
+        /// to reach it, and the one frame of gait it skips on the way past is a couple of
+        /// pixels of lift on one body.
+        /// </summary>
+        private const float WalkedWrap = 4096f;
+
         /// <param name="capacity">
         /// The most zombies that can be alive at once. Fixed on purpose: the array is allocated
         /// once, and a zone that wants more has a design problem, not a memory problem.
@@ -894,6 +903,16 @@ namespace ZombieGame.AI
                 else
                 {
                     zombie.Facing = ZombieFacing.Front;
+                }
+
+                // How far it has walked, which is what its gait is drawn from. Wrapped rather
+                // than left to grow: a float that has reached six figures can no longer tell a
+                // centimetre of walking from none, and the bodies would quietly stop bobbing
+                // after a long enough run.
+                zombie.Walked += zombie.Velocity.magnitude * deltaSeconds;
+                if (zombie.Walked > WalkedWrap)
+                {
+                    zombie.Walked -= WalkedWrap;
                 }
             }
         }

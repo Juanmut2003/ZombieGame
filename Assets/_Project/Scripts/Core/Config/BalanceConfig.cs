@@ -132,6 +132,58 @@ namespace ZombieGame.Core.Config
         [Min(0f)]
         private float _takedownNoise = 0.3f;
 
+        [Header("Gait")]
+        [Tooltip("How far one footfall carries a zombie, in world units. Zero stops the bobbing.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _hordeStride = 0.55f;
+
+        [Tooltip("How far a walking body lifts between footfalls, in world units.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _gaitBob = 0.031f;
+
+        [Tooltip("How far a walking body rocks towards the planted foot, in degrees.")]
+        [SerializeField]
+        [Range(0f, 15f)]
+        private float _gaitLean = 2.5f;
+
+        [Header("Colony stores")]
+        [Tooltip("Salvage a colony starts with. Roughly two of the cheaper buildings.")]
+        [SerializeField]
+        [Min(0)]
+        private int _startingMaterials = 120;
+
+        [Tooltip("Food a colony starts with.")]
+        [SerializeField]
+        [Min(0)]
+        private int _startingFood = 40;
+
+        [Tooltip("Water a colony starts with.")]
+        [SerializeField]
+        [Min(0)]
+        private int _startingWater = 40;
+
+        [Tooltip("Fuel a colony starts with. Scarce on purpose.")]
+        [SerializeField]
+        [Min(0)]
+        private int _startingFuel = 20;
+
+        [Tooltip("What one person eats in a day.")]
+        [SerializeField]
+        [Min(0)]
+        private int _foodPerPersonPerDay = 2;
+
+        [Tooltip("What share of everything paid comes back when a building is torn down.")]
+        [SerializeField]
+        [Range(0f, 1f)]
+        private float _demolitionRefund = 0.5f;
+
+        [Tooltip("What one person drinks in a day.")]
+        [SerializeField]
+        [Min(0)]
+        private int _waterPerPersonPerDay = 1;
+
         [Header("Zone heat")]
         [Tooltip("How much of a full meter one ordinary noise adds.")]
         [SerializeField]
@@ -273,6 +325,50 @@ namespace ZombieGame.Core.Config
 
         /// <summary>How far heat falls back below a threshold before the stage drops.</summary>
         public float HeatStageDrop => _heatStageDrop;
+
+        /// <summary>How far one footfall carries a zombie, in world units.</summary>
+        public float HordeStride => _hordeStride;
+
+        /// <summary>
+        /// How far a walking body lifts between footfalls, in world units.
+        /// </summary>
+        /// <remarks>
+        /// Two pixels, at the game's 64 pixels to the unit. Small enough that nobody notices it
+        /// happening and large enough that its absence is what made every figure look like it
+        /// was being slid across the floor.
+        /// </remarks>
+        public float GaitBob => _gaitBob;
+
+        /// <summary>How far a walking body rocks towards the planted foot, in degrees.</summary>
+        public float GaitLean => _gaitLean;
+
+        /// <summary>
+        /// What share of everything paid for a building comes back when it is torn down.
+        /// </summary>
+        /// <remarks>
+        /// Not the sixty per cent of PROJECT.md 4.1: that is for moving house, where a colony
+        /// takes a building apart carefully and carries it. Pulling one down to make room is a
+        /// worse deal on purpose, so that where things are put down stays a decision.
+        /// </remarks>
+        public float DemolitionRefund => _demolitionRefund;
+
+        /// <summary>What one person drinks in a day.</summary>
+        public int WaterPerPersonPerDay => _waterPerPersonPerDay;
+
+        /// <summary>What one person eats in a day.</summary>
+        public int FoodPerPersonPerDay => _foodPerPersonPerDay;
+
+        /// <summary>Salvage a colony starts with.</summary>
+        public int StartingMaterials => _startingMaterials;
+
+        /// <summary>Food a colony starts with.</summary>
+        public int StartingFood => _startingFood;
+
+        /// <summary>Water a colony starts with.</summary>
+        public int StartingWater => _startingWater;
+
+        /// <summary>Fuel a colony starts with.</summary>
+        public int StartingFuel => _startingFuel;
 
         /// <summary>How much faster a zone cools while the squad is out of sight in scrub.</summary>
         public float HeatCoverDecayFactor => _heatCoverDecayFactor;

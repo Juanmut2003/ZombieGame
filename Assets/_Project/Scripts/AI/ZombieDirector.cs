@@ -6,6 +6,7 @@ using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
 using ZombieGame.Core.Physics;
 using ZombieGame.Core.Pooling;
+using ZombieGame.Core.Rendering;
 using ZombieGame.Core;
 using ZombieGame.Waves;
 
@@ -88,9 +89,17 @@ namespace ZombieGame.AI
         /// <summary>The horde itself, for tests and for whatever shoots at it.</summary>
         public ZombieManager Manager => _manager;
 
+        /// <summary>
+        /// Below this much speed squared a body counts as standing still, for the gait only.
+        /// Not a balance number: it is a twentieth of a unit a second, which is slower than
+        /// anything in the game walks and far above what the solver leaves behind when it
+        /// stops something against a wall.
+        /// </summary>
+        private const float StandingStill = 0.0025f;
+
         private void Awake()
         {
-            if (_balance is null)
+            if (_balance == null)
             {
                 Debug.LogWarning($"[Zombies] {name} has no BalanceConfig; using the defaults.");
                 _balance = BalanceConfig.CreateDefault();
@@ -394,17 +403,35 @@ namespace ZombieGame.AI
                 _active.RemoveAt(last);
             }
 
+            // Read once for the whole horde rather than per body: three property calls times
+            // three hundred zombies times sixty frames is a lot of nothing.
+            BalanceConfig balance = _balance!;
+            float stride = balance.HordeStride;
+            float bobHeight = balance.GaitBob;
+            float leanDegrees = balance.GaitLean;
+
             System.ReadOnlySpan<ZombieState> states = _manager.States;
             for (int i = 0; i < live; i++)
             {
                 ZombieDefinition type = _definitions[Mathf.Clamp(states[i].TypeId, 0, _definitions.Length - 1)];
+
+                // A zombie standing still stands still. Its tally of walked ground stops where
+                // it stopped, and drawing the gait from it regardless would leave the body
+                // frozen halfway through a step, lifted off its own feet and leaning.
+                bool walking = states[i].Velocity.sqrMagnitude > StandingStill;
+                float phase = walking
+                    ? StepCycle.FromDistance(states[i].Walked, stride)
+                    : 0f;
+
                 _active[i].Show(
                     states[i].Position,
                     type.SpriteFor(
                         states[i].SkinId,
                         states[i].Facing,
                         states[i].Behaviour == ZombieBehaviour.Chasing),
-                    states[i].HitFlash > 0f);
+                    states[i].HitFlash > 0f,
+                    StepCycle.Bob(phase, bobHeight),
+                    StepCycle.Lean(phase, leanDegrees));
             }
         }
 

@@ -45,7 +45,11 @@ namespace ZombieGame.Core.Rendering
 
         private void LateUpdate()
         {
-            if (_target is null)
+            // Unity's own operator rather than `is null`, which does not see a destroyed object:
+            // a target that has been torn down — a scene changing underneath the camera, a
+            // pooled body returned — leaves a live wrapper around nothing, and asking it for a
+            // position throws every single frame from then on.
+            if (_target == null)
             {
                 return;
             }
@@ -73,7 +77,7 @@ namespace ZombieGame.Core.Rendering
         /// <remarks>Used when a scene starts or the view jumps somewhere else entirely.</remarks>
         public void SnapToTarget()
         {
-            if (_target is null)
+            if (_target == null)
             {
                 return;
             }
