@@ -34,6 +34,16 @@ namespace ZombieGame.Editor.Art
         /// running the other way.
         /// </summary>
         RoadDash,
+
+        /// <summary>
+        /// One quarter of the ring the building menu is drawn as: a 90 degree slice of an
+        /// annulus, pointing straight up, with a seam left on either side so four of them
+        /// rotated into place read as four buttons rather than one disc.
+        /// </summary>
+        WheelWedge,
+
+        /// <summary>The hole in the middle of that ring, where the building itself shows.</summary>
+        WheelHub,
     }
 
     /// <summary>What one placeholder sprite should look like.</summary>
@@ -128,6 +138,12 @@ namespace ZombieGame.Editor.Art
                     break;
                 case PlaceholderShape.RoadDash:
                     DrawRoadDash(pixels, spec);
+                    break;
+                case PlaceholderShape.WheelWedge:
+                    DrawWheelWedge(pixels, spec);
+                    break;
+                case PlaceholderShape.WheelHub:
+                    DrawWheelHub(pixels, spec);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(
@@ -327,6 +343,93 @@ namespace ZombieGame.Editor.Art
                     float depth = (distance - innerRadius) / (outerRadius - innerRadius);
                     Color32 colour = depth > 0.72f ? spec.Accent : spec.Body;
                     Set(pixels, spec, x, y, colour);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A quarter of a ring, opening straight up.
+        /// </summary>
+        /// <remarks>
+        /// Drawn once and rotated four times rather than drawn four times, so the four buttons
+        /// of the building menu cannot drift apart by a pixel. The half-angle is a little under
+        /// 45 degrees on purpose: the gap it leaves is what makes the ring read as separate
+        /// slices you can click rather than a single dial.
+        /// </remarks>
+        private static void DrawWheelWedge(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            const float halfAngleDegrees = 42f;
+            const float innerFraction = 0.4f;
+            const float rimFraction = 0.9f;
+
+            float centreX = (spec.Width - 1) * 0.5f;
+            float centreY = (spec.Height - 1) * 0.5f;
+            float outerRadius = Math.Min(centreX, centreY);
+            float innerRadius = outerRadius * innerFraction;
+            float rimRadius = outerRadius * rimFraction;
+            double radians = halfAngleDegrees * Math.PI / 180.0;
+            float cosLimit = (float)Math.Cos(radians);
+            float sinLimit = (float)Math.Sin(radians);
+            // Scaled with the texture, so the outline reads the same whatever size the wheel is
+            // drawn at, and never thinner than the two pixels a line needs to exist at all.
+            float edgeWidth = Math.Max(2f, outerRadius * 0.05f);
+
+            for (int y = 0; y < spec.Height; y++)
+            {
+                for (int x = 0; x < spec.Width; x++)
+                {
+                    float dx = x - centreX;
+                    float dy = y - centreY;
+                    float distance = (float)Math.Sqrt((dx * dx) + (dy * dy));
+
+                    if (distance < innerRadius || distance > outerRadius || distance <= 0.001f)
+                    {
+                        continue;
+                    }
+
+                    // The slice opens towards +y, so the cosine of the angle to that axis is
+                    // the normalised y and no trigonometry is needed per pixel.
+                    if (dy / distance < cosLimit)
+                    {
+                        continue;
+                    }
+
+                    // An edge all the way round: the two arcs, and a line down each straight
+                    // side. The straight ones are measured as the distance to the boundary
+                    // itself rather than as an angle, or the line would thin out to nothing
+                    // towards the middle, where the two sides are closest together.
+                    float toRight = Math.Abs((dx * cosLimit) - (dy * sinLimit));
+                    float toLeft = Math.Abs((dx * cosLimit) + (dy * sinLimit));
+                    bool edge = distance > rimRadius
+                        || distance < innerRadius + edgeWidth
+                        || toRight < edgeWidth
+                        || toLeft < edgeWidth;
+                    Set(pixels, spec, x, y, edge ? spec.Accent : spec.Body);
+                }
+            }
+        }
+
+        /// <summary>The disc in the middle of the wheel, with a ring around it.</summary>
+        private static void DrawWheelHub(Color32[] pixels, PlaceholderSpriteSpec spec)
+        {
+            float centreX = (spec.Width - 1) * 0.5f;
+            float centreY = (spec.Height - 1) * 0.5f;
+            float outerRadius = Math.Min(centreX, centreY);
+            float ringRadius = outerRadius - Math.Max(2f, outerRadius * 0.08f);
+
+            for (int y = 0; y < spec.Height; y++)
+            {
+                for (int x = 0; x < spec.Width; x++)
+                {
+                    float dx = x - centreX;
+                    float dy = y - centreY;
+                    float distance = (float)Math.Sqrt((dx * dx) + (dy * dy));
+                    if (distance > outerRadius)
+                    {
+                        continue;
+                    }
+
+                    Set(pixels, spec, x, y, distance > ringRadius ? spec.Accent : spec.Body);
                 }
             }
         }

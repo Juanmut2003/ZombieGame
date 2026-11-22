@@ -158,6 +158,10 @@ unlock thresholds live in SO assets or in a `BalanceConfig` SO. Code reads them;
   the EditMode tests.
 - Claude cannot open the Unity Editor. **Do not claim something is visually verified.** State plainly
   what was and was not tested, and list the manual steps the user should run in the Editor.
+- **Every change to the game ends with how to see it.** Green tests say the code is right; they do
+  not say the game got better. Name the scene to open, what to press, and what should now look or
+  behave differently — concretely enough to follow without reading the diff. A change with nothing
+  to look at (a refactor, a test, a build script) says that instead of inventing a step.
 
 ---
 
@@ -179,6 +183,9 @@ unlock thresholds live in SO assets or in a `BalanceConfig` SO. Code reads them;
 7. When a feature spans base + mission layers, implement the shared logic once in `Core/` or the
    owning domain, never twice.
 8. Prefer small, reviewable commits over one large change.
+9. **Close every reply that changed the game with how to try it** — scene, keys, what to watch for.
+   See section 6. The user plays the build; Claude only ever reads it, so the handover is theirs to
+   act on and has to stand on its own.
 
 ---
 

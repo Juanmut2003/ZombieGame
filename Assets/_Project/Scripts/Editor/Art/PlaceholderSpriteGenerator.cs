@@ -57,6 +57,16 @@ namespace ZombieGame.Editor.Art
         private static readonly Color32 CrateBody = new(126, 104, 74, 255);
         private static readonly Color32 CrateAccent = new(80, 64, 44, 255);
 
+        // Every building had a stand-in box here until the concept sheets in Docs/Buildings
+        // were cut into real sprites. None of them needs one now.
+
+        // The building menu's ring. Drawn in code rather than painted because it is geometry:
+        // four identical quarters that have to meet exactly, at whatever size the HUD wants.
+        private static readonly Color32 WheelBody = new(34, 40, 38, 232);
+        private static readonly Color32 WheelEdge = new(126, 142, 122, 255);
+        private static readonly Color32 HubBody = new(22, 26, 25, 240);
+        private static readonly Color32 HubEdge = new(158, 176, 150, 255);
+
         /// <summary>
         /// Every placeholder the project ships, with the folder each one belongs in.
         /// </summary>
@@ -92,6 +102,10 @@ namespace ZombieGame.Editor.Art
                     "extraction_pad", 192, 192, PlaceholderShape.ExtractionPad, ExitBody, ExitAccent)),
                 ("Items", new PlaceholderSpriteSpec(
                     "placeholder_crate", 64, 64, PlaceholderShape.Box, CrateBody, CrateAccent)),
+                ("UI", new PlaceholderSpriteSpec(
+                    "ui_wheel_wedge", 256, 256, PlaceholderShape.WheelWedge, WheelBody, WheelEdge)),
+                ("UI", new PlaceholderSpriteSpec(
+                    "ui_wheel_hub", 128, 128, PlaceholderShape.WheelHub, HubBody, HubEdge)),
             };
 
         /// <summary>Writes any placeholder that is not on disk yet.</summary>

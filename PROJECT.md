@@ -89,6 +89,9 @@ Bases are **claimed sites on the strategic map**, not built from scratch on open
 graded in tiers; higher tiers unlock when the colony meets thresholds across several axes at once —
 never a single number.
 
+The **max residents** column is the most a plot could ever support. What a base can actually house
+is the bed capacity of the barracks standing on it — see 4.2.1.
+
 | Tier | Example sites | Max residents | Build slots | Unlock requirements (all must be met) |
 |------|---------------|---------------|-------------|----------------------------|
 | 1 | Petrol station, farmhouse | 6 | small plot | Prologue complete |
@@ -117,7 +120,8 @@ A claimed site is a grid-based editable space. Buildings are placed freely on bu
   (chickens, goats), water trough. Yields depend on soil fertility, season, worker Farming skill,
   water supply.
 - **Barracks** — beds and living space. Caps residents; bed quality and privacy affect morale and
-  rest quality. Variants: bunk room (cheap, crowded) → dorm → private quarters.
+  rest quality. The bunk room → dorm → private quarters progression is the level ladder in 4.2.1,
+  not three separate buildings.
 - **Factory / Workshop** — the crafting building. Recipe-based production queue: ammo, medicine,
   building materials, tools, traps, fuel refining. Tiered workbenches gate recipe tiers. Loud.
 - **Armory** — weapon and ammo storage, weapon repair and modding bench, squad loadout station.
@@ -132,6 +136,121 @@ A claimed site is a grid-based editable space. Buildings are placed freely on bu
 - Social: canteen, common room, chapel/memorial, radio tower (recruitment, faction comms, +noise).
 - Defence: wooden/metal/concrete walls, gates, watchtowers, spike traps, noise traps (lure zombies
   away), floodlights (vision at night, +noise), sandbag fighting positions, auto-turrets (late).
+
+#### 4.2.1 Building levels
+
+Each of the four main buildings is **upgraded in place through four levels** rather than replaced
+by a bigger variant. A level costs materials and time; what it buys is capacity, worker posts and
+unlocked stations. The reference sheets are in `Docs/Buildings/` — one image per building, all four
+levels side by side, and they are the authority on what each level contains and looks like.
+
+**Farm** (`Docs/Buildings/farm_levels.webp`)
+
+| Level | Plots | Crates | Water | Processing | Workers |
+|-------|-------|--------|-------|------------|---------|
+| 1 | 4 | 1 | barrel | — | 1 |
+| 2 | 8 | 2 | tank | compost | 2 |
+| 3 | 12 | 3 | tank (improved) | 1 station | 3 |
+| 4 | 16 | 4 | irrigation | 1 station (improved) | 4 |
+
+**Barracks** (`Docs/Buildings/barracks_levels.webp`)
+
+| Level | Beds | Chests | Lockers | Extra | Residents |
+|-------|------|--------|---------|-------|-----------|
+| 1 | 2 | 1 | — | — | 2 |
+| 2 | 4 | 2 | 1 | — | 4 |
+| 3 | 6 | 3 | 2 | equipment area | 6 |
+| 4 | 8 | 4 | 3 | equipment + medical area | 8 |
+
+**Factory / Workshop** (`Docs/Buildings/factory_levels.webp`)
+
+| Level | Workbench | Crates | Production stations | Research | Workers |
+|-------|-----------|--------|---------------------|----------|---------|
+| 1 | basic | 1 | — | — | 1 |
+| 2 | improved | 2 | 1 (tool parts) | — | 2 |
+| 3 | advanced | 3 | 2 (weapon + tool parts) | 1 (upgrades) | 3 |
+| 4 | industrial | 4 | 3 (weapons, armour, ammunition) | 1 (improved) | 4 |
+
+**Armory** (`Docs/Buildings/armory_levels.webp`)
+
+| Level | Racks | Ammunition | Unlocks | Workers |
+|-------|-------|------------|---------|---------|
+| 1 | 2 | 200 | weapon production, maintenance | 1 |
+| 2 | 4 | 400 | + weapon cabinet, workbench | 2 |
+| 3 | 6 | 700 | + weapon upgrades | 3 |
+| 4 | 8 | 1200 | + master workshop (unique mods) | 4 |
+
+The racks and ammunition figures are not on the sheet; they are set here to the same ladder the
+other three follow — one more worker per level, capacity roughly doubling at first and then
+tapering. **Racks** cap how many weapons can be stored without degrading; squad loadouts are drawn
+from them. Weapons kept over that cap wear out at the normal rate instead of the slowed one.
+
+**Generator** (`Docs/Buildings/generator_levels.webp`)
+
+| Level | Power / day | Machinery | Storage | Workers |
+|-------|-------------|-----------|---------|---------|
+| 1 | +10 | 1 generator (small) | 1 fuel tank | 1 |
+| 2 | +25 | 2 generators (improved) | 2 fuel tanks, distribution box | 2 |
+| 3 | +50 | 1 generator (large) | 3 battery banks, control room | 3 |
+| 4 | +100 | 1 main generator (industrial) | 6 battery banks, switchgear, standby set | 4 |
+
+**Well** (`Docs/Buildings/well_levels.webp`)
+
+| Level | Water / day | Pump | Storage | Workers |
+|-------|-------------|------|---------|---------|
+| 1 | +10 | hand pump | 1 barrel | 1 |
+| 2 | +25 | well (improved) | 3 barrels, 1 tank | 2 |
+| 3 | +50 | electric pump | 2 tanks, 1 filter | 3 |
+| 4 | +100 | treatment plant | 3 large tanks, improved filter, pipework | 4 |
+
+Both figures are the building's output **at full staffing**; the yield per worker in the asset is
+that figure shared out over the posts, so a half-crewed well brings in roughly half as much. The
+well's pump is electric from level 3, which is where fresh water starts costing power.
+
+The generator's worker column is **not modelled yet**. A generator's output is a property of the
+machine rather than of who is standing beside it, so giving it posts today would be a job that
+changes nothing. It gets posts when a generator can be run badly — maintenance, fuel efficiency,
+or a breakdown that a crew prevents.
+
+Every sheet draws the building with its **entrance at the bottom**, which is the facing the sprites
+are expected to keep.
+
+**How much ground a level takes.** The panels are drawn bigger at every level, and the footprints
+follow them. For the four main buildings: **L1 3x5, L2 4x5, L3 4x6, L4 5x6 cells.** The two
+support structures are drawn to their own proportions — the generator **2x2, 3x3, 4x4, 5x4** and
+the well **2x3, 3x4, 4x5, 5x5**. An upgrade therefore needs free ground
+beside and above the building — a barracks hemmed in on all four sides cannot be upgraded until
+something next to it moves. That is deliberate: on a small plot, where things are put down is a
+decision that is still being paid for twenty levels later.
+
+A Tier-1 plot of 14x8 holds four level-1 buildings side by side and almost nothing else. Upgrading
+all four is impossible there, which is one of the reasons to go looking for a Tier-2 site.
+
+**Residents are capped by barracks, not by the site.** The number of people who can live at a base
+is the sum of the bed capacity of every barracks standing on it — 2 at level 1, rising to 8 at
+level 4. The "max residents" column in 4.1 is the *ceiling the plot can physically support*, not a
+figure handed out for free: a site with no barracks houses nobody, however large it is.
+
+**Still open:**
+
+- The sheets are concept art at illustration resolution. They have been cut into tile-aligned
+  sprites in `Art/Sprites/Buildings/` (`building_<name>_<level>.png`), one per level, but the
+  originals in `Docs/Buildings/` stay the reference.
+- The generator and the well now have sheets of their own and the same four-level treatment.
+  Storage and defence structures still have none.
+
+#### 4.2.2 The building menu
+
+Clicking a standing building opens a **ring of four options around it**, rather than putting a
+line of keys at the bottom of the screen: improve (upper left, with the price), put somebody to
+work (upper right, with how many posts are filled), send one worker home (lower right), tear it
+down (lower left, with what comes back). A slice that cannot be pressed is greyed out **and still
+says why** — "NO ROOM", "AT ITS BEST", "NO JOBS HERE" — because a slice that goes blank reads as
+a broken menu rather than as an answer.
+
+The keys `G` and `X` still improve and tear down for anyone who has learnt them; the ring is how
+the rest of it is found at all. Nothing on the plot acts on a click that landed on the HUD, so
+pressing a slice never also puts a building down behind it.
 
 ### 4.3 Colony systems
 

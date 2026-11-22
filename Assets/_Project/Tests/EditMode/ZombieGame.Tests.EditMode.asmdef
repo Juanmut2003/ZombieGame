@@ -12,7 +12,9 @@
         "UnityEditor.TestRunner",
         "ZombieGame.Waves",
         "ZombieGame.Missions",
-        "ZombieGame.Audio"
+        "ZombieGame.Audio",
+        "ZombieGame.Base",
+        "ZombieGame.Economy"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f8371fa7be45434aa89eecaacf6d0fa, type: 3}
+  m_Name: Farm
+  m_EditorClassIdentifier: ZombieGame.Base::ZombieGame.Base.BuildingDefinition
+  _displayName: Farm
+  _blurb: Crop plots and a water trough. Feeds the colony.
+  _category: 0
+  _cost:
+  - _kind: 0
+    _amount: 45
+  - _kind: 2
+    _amount: 10
+  _levels:
+  - _sprite: {fileID: 21300000, guid: 3abb187cb9d6d64478ed840952e9842c, type: 3}
+    _width: 3
+    _height: 5
+    _beds: 0
+    _workPosts: 1
+    _yieldPerWorker:
+    - _kind: 1
+      _amount: 6
+    _upgradeCost: []
+    _powerDraw: 0
+    _powerSupply: 0
+    _fuelPerDay: 0
+    _waterPerDay: 4
+  - _sprite: {fileID: 21300000, guid: a469cd6c8fefcf24093418bf57771220, type: 3}
+    _width: 4
+    _height: 5
+    _beds: 0
+    _workPosts: 2
+    _yieldPerWorker:
+    - _kind: 1
+      _amount: 6
+    _upgradeCost:
+    - _kind: 0
+      _amount: 60
+    - _kind: 2
+      _amount: 10
+    _powerDraw: 0
+    _powerSupply: 0
+    _fuelPerDay: 0
+    _waterPerDay: 6
+  - _sprite: {fileID: 21300000, guid: ce4e8930f9f0327498f567bc5fa0af38, type: 3}
+    _width: 4
+    _height: 6
+    _beds: 0
+    _workPosts: 3
+    _yieldPerWorker:
+    - _kind: 1
+      _amount: 6
+    _upgradeCost:
+    - _kind: 0
+      _amount: 90
+    - _kind: 2
+      _amount: 15
+    _powerDraw: 3
+    _powerSupply: 0
+    _fuelPerDay: 0
+    _waterPerDay: 8
+  - _sprite: {fileID: 21300000, guid: fe2964ae97dc76b44b03a2be17308a1f, type: 3}
+    _width: 5
+    _height: 6
+    _beds: 0
+    _workPosts: 4
+    _yieldPerWorker:
+    - _kind: 1
+      _amount: 6
+    _upgradeCost:
+    - _kind: 0
+      _amount: 130
+    - _kind: 2
+      _amount: 20
+    _powerDraw: 5
+    _powerSupply: 0
+    _fuelPerDay: 0
+    _waterPerDay: 10

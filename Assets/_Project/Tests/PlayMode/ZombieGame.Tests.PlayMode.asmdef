@@ -13,6 +13,8 @@
         "ZombieGame.Waves",
         "ZombieGame.Missions",
         "ZombieGame.Audio",
+        "ZombieGame.Base",
+        "ZombieGame.Economy",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

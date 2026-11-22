@@ -6,7 +6,9 @@
         "ZombieGame.Combat",
         "UnityEngine.UI",
         "ZombieGame.Waves",
-        "ZombieGame.Missions"
+        "ZombieGame.Missions",
+        "ZombieGame.Economy",
+        "ZombieGame.Base"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

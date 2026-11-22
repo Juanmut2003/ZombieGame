@@ -1,0 +1,16 @@
+{
+    "name": "ZombieGame.Economy",
+    "rootNamespace": "ZombieGame.Economy",
+    "references": [
+        "ZombieGame.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
