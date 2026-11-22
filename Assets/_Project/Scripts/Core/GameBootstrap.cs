@@ -4,6 +4,7 @@ using UnityEngine;
 using ZombieGame.Core.Clock;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Events;
+using ZombieGame.Core.Roster;
 using ZombieGame.Core.Saving;
 using ZombieGame.Core.SceneFlow;
 
@@ -62,6 +63,11 @@ namespace ZombieGame.Core
 
             _sceneLoader = new SceneLoader(new UnitySceneLoadBackend(), bus);
             GameServices.Register(_sceneLoader);
+
+            // Empty until the menu fills it. It has to exist before then so that the menu has
+            // somewhere to put the player's choice, and it has to outlive the menu so that the
+            // zone loading afterwards can read it.
+            GameServices.Register(new CharacterSelection());
 
             Debug.Log($"[Boot] {GameServices.Count} services up.");
         }
