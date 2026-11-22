@@ -78,7 +78,10 @@ namespace ZombieGame.Tests.PlayMode
             Assert.That(GameServices.TryGet(out EventBus? bus), Is.True);
 
             int before = _audio.Played;
-            bus!.Publish(new LootTakenEvent(Vector2.zero, supplies: 2, ammo: 0));
+            bus!.Publish(new LootTakenEvent(
+                Vector2.zero,
+                new[] { new ZombieGame.Economy.ResourceAmount(ZombieGame.Economy.ResourceKind.Materials, 2) },
+                ammo: 0));
 
             yield return null;
 

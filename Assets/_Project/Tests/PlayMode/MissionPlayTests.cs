@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections;
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +12,7 @@ using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Physics;
 using ZombieGame.Core.SceneFlow;
+using ZombieGame.Economy;
 using ZombieGame.Missions;
 
 namespace ZombieGame.Tests.PlayMode
@@ -95,6 +97,33 @@ namespace ZombieGame.Tests.PlayMode
                 Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude);
 
             Assert.That(crates, Has.Length.GreaterThanOrEqualTo(5));
+            yield break;
+        }
+
+        [UnityTest]
+        public IEnumerator TheCratesHoldNamedStoresAndNotJustSalvage()
+        {
+            LootContainer[] crates =
+                Object.FindObjectsByType<LootContainer>(FindObjectsInactive.Exclude);
+
+            var kinds = new HashSet<ResourceKind>();
+            foreach (LootContainer crate in crates)
+            {
+                Assert.That(crate.Contents, Is.Not.Empty, $"{crate.name} holds nothing");
+                foreach (ResourceAmount amount in crate.Contents)
+                {
+                    Assert.That(amount.Amount, Is.GreaterThan(0), $"{crate.name} holds a zero");
+                    kinds.Add(amount.Kind);
+                }
+            }
+
+            // The loot table was dealt round the containers, so a zone with crates in it has
+            // more than one store in it. One kind everywhere means the table never reached them.
+            Assert.That(
+                kinds.Count,
+                Is.GreaterThan(1),
+                "every crate in the zone holds the same thing");
+
             yield break;
         }
 

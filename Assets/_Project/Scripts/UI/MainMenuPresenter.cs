@@ -1,6 +1,7 @@
 #nullable enable
 using UnityEngine;
 using UnityEngine.UI;
+using ZombieGame.Base;
 using ZombieGame.Core;
 using ZombieGame.Core.SceneFlow;
 
@@ -29,7 +30,7 @@ namespace ZombieGame.UI
 
         [Tooltip("Scene a new run starts in.")]
         [SerializeField]
-        private string _firstRunScene = GameScenes.MissionTown;
+        private string _firstRunScene = GameScenes.Base;
 
         private SceneLoader? _sceneLoader;
 
@@ -71,6 +72,11 @@ namespace ZombieGame.UI
                 Debug.LogWarning("[MainMenu] no scene loader — start from the Boot scene.");
                 return;
             }
+
+            // Here and nowhere else. A run starting is what makes the colony that follows one
+            // colony across however many scenes it lives through, and pressing START is the only
+            // moment in the game that means "forget the last one".
+            ColonyRuns.Begin();
 
             _sceneLoader.Load(_firstRunScene);
         }

@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using ZombieGame.Economy;
 using ZombieGame.Waves;
 
 namespace ZombieGame.Missions
@@ -48,10 +49,18 @@ namespace ZombieGame.Missions
         /// <summary>The itemised lines, in reading order.</summary>
         public static IReadOnlyList<DebriefRow> Rows(in MissionEndedEvent ended)
         {
-            var rows = new List<DebriefRow>(4)
+            var rows = new List<DebriefRow>(5)
             {
                 new("SUPPLIES", $"{ended.Banked} / {ended.Wanted}"),
             };
+
+            // What those supplies turn into at home. Left out when there are none, because a run
+            // that banked nothing has nothing to break down and the line would read as a bug.
+            string haul = ResourceNames.Line(ended.Haul);
+            if (haul.Length > 0)
+            {
+                rows.Add(new DebriefRow("INTO THE STORES", haul));
+            }
 
             if (ended.Lost > 0)
             {

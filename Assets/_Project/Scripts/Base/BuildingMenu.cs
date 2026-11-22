@@ -193,12 +193,6 @@ namespace ZombieGame.Base
             _ => "CANNOT PAY",
         };
 
-        private static string Short(ResourceKind kind) => kind switch
-        {
-            ResourceKind.Materials => "MAT",
-            ResourceKind.Food => "FOOD",
-            ResourceKind.Water => "WATER",
-            _ => "FUEL",
-        };
+        private static string Short(ResourceKind kind) => ResourceNames.Short(kind);
     }
 }

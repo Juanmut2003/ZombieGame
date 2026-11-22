@@ -181,9 +181,29 @@ namespace ZombieGame.Base
             // taken is how a colony ends up poorer with nothing to show for it.
             _stores?.TrySpend(Holding.Cost);
 
-            Raise(site, id);
+            Raise(id);
             _bus?.Publish(new BuildingPlacedEvent(id, cell, Holding));
             return true;
+        }
+
+        /// <summary>
+        /// Puts a body in the scene for a building that is already on the grid.
+        /// </summary>
+        /// <remarks>
+        /// Public because a colony coming home from a raid has a plot full of buildings and no
+        /// scene objects for any of them, and it must raise them the same way a click does.
+        /// Drawing them a second way is how a restored barracks ends up sorted in front of the
+        /// shed it is behind.
+        /// </remarks>
+        public void Raise(int id)
+        {
+            BuildSite? site = Site;
+            if (site is null)
+            {
+                return;
+            }
+
+            Raise(site, id);
         }
 
         /// <summary>

@@ -299,6 +299,43 @@ looking for their own people later.
 
 ---
 
+### 4.6 The run: the base, the day and the raid
+
+The base and the zones are one run, not two screens. A run begins in the main menu, lives on the
+plot, and leaves it one zone at a time.
+
+**What a run holds.** A run is the colony's whole state between scenes: the stores, the people, the
+buildings on the plot, how many days have been lived through, and which day the squad last went out
+on. It outlives a scene change, because a raid unloads the base scene and the colony has to still be
+there when the squad gets home. Starting a new run in the menu is what creates it; nothing else does.
+
+**Two buttons, two kinds of time.** The base is turn-shaped (§12): nothing moves until the player
+says the day is over. So the base has exactly two ways to spend a day.
+
+| | What it does | How often |
+|---|---|---|
+| **END DAY** | Resolves the day — power, work, fuel, meals — and rolls the calendar over. | Any time |
+| **RAID** | Takes the squad out to a zone. | **Once per day** |
+
+One raid a day is the whole reason a day is a decision. A squad that can go out again the moment it
+gets back turns the base into a shop, and the colony's day into something that happens in the
+background. One trip means the player has to choose what that trip is for, and then live with the
+rest of the day as it was built.
+
+**Leaving and coming home.** The base writes down where home is and that the squad is out, captures
+the colony, and loads the zone. The zone neither knows nor cares that it was reached from a base: it
+runs the mission of §8 as it always does, and extraction is still required. What it banks is what
+comes home, into the stores as salvage. A run that ends with the squad lost comes home with nothing,
+and the day is still spent — which is exactly the cost that makes leaving early a real option.
+
+**The opening objectives.** A new colony is given a short list rather than a tutorial: a barracks, a
+farm, somebody working, and one raid brought home. They are a checklist derived from the plot and the
+people, not a scripted sequence — a barracks torn down un-ticks its line. Together they are the
+smallest set that makes the player touch every system the base has: placement, cost, jobs, the day,
+and the way out.
+
+---
+
 ## 5. The Noise / Heat system
 
 A single visible meter in the base HUD, shown as a colour-coded gauge with a breakdown tooltip.
@@ -384,6 +421,23 @@ Missions are started from the world map, from the radio tower, or from faction c
 Each mission defines: objective(s), extraction point, zone heat profile, loot tables, zombie density,
 optional objectives, and a failure state. **Extraction is always required** — loot only counts once
 the squad is in the vehicle.
+
+**Loot is named, not generic.** A container does not hold "supplies" — it holds salvage, food,
+water or fuel, the same four stores the colony runs on (§4.3). What a run came home with therefore
+answers a question the base is already asking: a colony two days from going thirsty wants a zone
+with water in it, and a raid that comes back with forty salvage and no food has not solved the
+problem the player went out to solve.
+
+The **loot table** is the mission's, not the zone's. The map says where containers stand; the
+mission says what is in them, as a list of fills dealt round the containers in map order. Two
+consequences are deliberate. The same streets can be run twice for different things, which is what
+makes a handcrafted zone worth revisiting. And the kinds are spread across the zone rather than
+pooled in one room, so a run cannot be a single trip to the water cupboard — getting all four
+stores out of one town means crossing it.
+
+The **objective still counts in supplies**, totalled across kinds. What a run is sent for is a
+quantity of stuff, because that is the decision the player makes while standing in a zone with
+zombies in it; which stores it turns into is a thing they read on the debrief and act on back home.
 
 **Note on the campaign:** there is **no fixed story ending**. The game is an open-ended survival
 sandbox with layered mission chains and regional objectives; the long-term goal is building the

@@ -1,7 +1,9 @@
 #nullable enable
+using System.Collections.Generic;
 using UnityEngine;
 using ZombieGame.Core;
 using ZombieGame.Core.Events;
+using ZombieGame.Economy;
 using ZombieGame.Waves;
 
 namespace ZombieGame.Missions
@@ -20,10 +22,12 @@ namespace ZombieGame.Missions
     [DisallowMultipleComponent]
     public sealed class LootContainer : MonoBehaviour
     {
-        [Tooltip("What is inside, in supplies.")]
+        [Tooltip("What is inside, by store. The mission's loot table fills this in.")]
         [SerializeField]
-        [Min(0)]
-        private int _supplies = 2;
+        private ResourceAmount[] _contents =
+        {
+            new(ResourceKind.Materials, 2),
+        };
 
         [Tooltip("And in rounds of ammunition.")]
         [SerializeField]
@@ -50,6 +54,9 @@ namespace ZombieGame.Missions
 
         /// <summary>True once there is nothing left in it.</summary>
         public bool IsEmpty { get; private set; }
+
+        /// <summary>What is inside, by store.</summary>
+        public IReadOnlyList<ResourceAmount> Contents => _contents;
 
         /// <summary>What the display name of this container is, for the prompt.</summary>
         public string Label => IsEmpty ? "Empty" : "Search";
@@ -96,7 +103,7 @@ namespace ZombieGame.Missions
                 _renderer.sprite = _emptiedSprite;
             }
 
-            _bus?.Publish(new LootTakenEvent(transform.position, _supplies, _ammo));
+            _bus?.Publish(new LootTakenEvent(transform.position, _contents, _ammo));
 
             // Rummaging is heard. Not as far as a shot, but far enough that looting a shelf with
             // something standing on the other side of the wall is a decision.

@@ -1,5 +1,8 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using ZombieGame.Economy;
 
 namespace ZombieGame.Missions
 {
@@ -32,6 +35,20 @@ namespace ZombieGame.Missions
         [SerializeField]
         [Min(0f)]
         private float _extractionSeconds = 4f;
+
+        [Tooltip("What the containers hold, dealt round them in the order the map lists them.")]
+        [SerializeField]
+        private ResourceAmount[] _lootTable =
+        {
+            new(ResourceKind.Materials, 3),
+            new(ResourceKind.Food, 2),
+            new(ResourceKind.Materials, 2),
+            new(ResourceKind.Water, 3),
+            new(ResourceKind.Materials, 3),
+            new(ResourceKind.Fuel, 2),
+            new(ResourceKind.Food, 3),
+            new(ResourceKind.Water, 2),
+        };
 
         [Header("Zone")]
         [Tooltip("How many zombies the zone starts with.")]
@@ -69,6 +86,29 @@ namespace ZombieGame.Missions
 
         /// <summary>What this zone multiplies every noise by.</summary>
         public float NoiseFactor => _noiseFactor;
+
+        /// <summary>
+        /// What one container holds, counting round the table.
+        /// </summary>
+        /// <remarks>
+        /// The map says where containers stand and the mission says what is in them
+        /// (PROJECT.md §8), so the two meet here: container <c>n</c> gets entry <c>n</c> of the
+        /// table, wrapping round. Dealt rather than drawn at random, so that a zone plays the
+        /// same way twice and a designer can see what they have made by reading the list.
+        /// </remarks>
+        public ResourceAmount[] LootFor(int container)
+        {
+            if (_lootTable.Length == 0)
+            {
+                return Array.Empty<ResourceAmount>();
+            }
+
+            int index = ((container % _lootTable.Length) + _lootTable.Length) % _lootTable.Length;
+            return new[] { _lootTable[index] };
+        }
+
+        /// <summary>What the containers hold between them, one entry per container fill.</summary>
+        public IReadOnlyList<ResourceAmount> LootTable => _lootTable;
 
         /// <summary>Builds the run's rules from this asset.</summary>
         public MissionProgress CreateProgress() => new(_suppliesWanted, _extractionSeconds);

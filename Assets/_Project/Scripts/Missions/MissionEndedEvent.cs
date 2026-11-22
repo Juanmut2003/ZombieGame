@@ -1,5 +1,8 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using ZombieGame.Core.Events;
+using ZombieGame.Economy;
 using ZombieGame.Waves;
 
 namespace ZombieGame.Missions
@@ -21,8 +24,10 @@ namespace ZombieGame.Missions
             int wanted,
             float seconds,
             float heatAtEnd,
-            HeatStage stageAtEnd = HeatStage.Calm)
+            HeatStage stageAtEnd = HeatStage.Calm,
+            IReadOnlyList<ResourceAmount>? haul = null)
         {
+            Haul = haul ?? Array.Empty<ResourceAmount>();
             MissionName = missionName;
             Outcome = outcome;
             Banked = banked;
@@ -41,6 +46,16 @@ namespace ZombieGame.Missions
 
         /// <summary>What came home.</summary>
         public int Banked { get; }
+
+        /// <summary>
+        /// What came home, by store. Empty for a run that banked nothing.
+        /// </summary>
+        /// <remarks>
+        /// Alongside <see cref="Banked"/> rather than instead of it. The objective is a quantity
+        /// (PROJECT.md §8) and the stores are what the colony does with it; a debrief needs both
+        /// sentences, and neither is the other one summed.
+        /// </remarks>
+        public IReadOnlyList<ResourceAmount> Haul { get; }
 
         /// <summary>What was being carried and did not come home.</summary>
         public int Lost { get; }

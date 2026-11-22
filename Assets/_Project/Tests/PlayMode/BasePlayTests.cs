@@ -628,5 +628,41 @@ namespace ZombieGame.Tests.PlayMode
                 "nothing can tell whether a click landed on the HUD");
             Assert.That(pointer!.OverTheHud, Is.False, "the HUD claims a pointer that is nowhere");
         }
+
+        [UnityTest]
+        public IEnumerator TheBaseHasAWayOutAndItIsWiredToThePlot()
+        {
+            yield return null;
+
+            GameObject? launcherObject = GameObject.Find("Raid Launcher");
+            Assert.That(launcherObject, Is.Not.Null, "there is no way off the plot");
+
+            RaidLauncher launcher = launcherObject!.GetComponent<RaidLauncher>();
+            Assert.That(launcher.CanGo, Is.True, "the squad cannot leave on the first day");
+            Assert.That(launcher.Why, Is.Empty);
+
+            // Opened on its own there is no run yet, and that is the point: nothing is
+            // remembered about a base nobody started a game in.
+            Assert.That(launcher.Run, Is.Null, "a run started itself");
+        }
+
+        [UnityTest]
+        public IEnumerator TheOrdersPanelListsWhatTheColonyIsAskedFor()
+        {
+            yield return null;
+            yield return null;
+
+            GameObject? presenterObject = GameObject.Find("Colony Task Presenter");
+            Assert.That(presenterObject, Is.Not.Null, "the colony is given no orders");
+
+            ColonyTaskPresenter presenter = presenterObject!.GetComponent<ColonyTaskPresenter>();
+
+            Assert.That(presenter.ListText, Does.Contain("BARRACKS"));
+            Assert.That(presenter.ListText, Does.Contain("FARM"));
+            Assert.That(presenter.ListText, Does.Contain("WORK"));
+            Assert.That(presenter.ListText, Does.Contain("["), "nothing can be ticked off");
+            Assert.That(presenter.RaidOffered, Is.True, "the raid button is dead on day one");
+            Assert.That(presenter.RaidLabelText, Is.EqualTo("RAID TOWN"));
+        }
     }
 }

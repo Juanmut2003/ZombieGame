@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using ZombieGame.Core;
 using ZombieGame.Core.Clock;
@@ -27,6 +28,10 @@ namespace ZombieGame.Base
         [Tooltip("Where the day's numbers come from.")]
         [SerializeField]
         private BalanceConfig? _balance;
+
+        [Tooltip("The placer, which knows the catalogue and how to raise a building.")]
+        [SerializeField]
+        private BuildPlacer? _placer;
 
         [Tooltip("The people who took the site. They arrive whether or not there are beds.")]
         [SerializeField]
@@ -64,9 +69,18 @@ namespace ZombieGame.Base
             }
 
             Colony = new Colony(_siteView.Site);
-            foreach (string name in _founders)
+
+            ColonyRun? run = ColonyRuns.Current;
+            if (run is not null && run.HasSnapshot)
             {
-                Colony.AddFounder(name);
+                PutItBack(run);
+            }
+            else
+            {
+                foreach (string name in _founders)
+                {
+                    Colony.AddFounder(name);
+                }
             }
 
             GameServices.Replace(Colony);
@@ -108,6 +122,46 @@ namespace ZombieGame.Base
             _clock.ConfirmEndOfDay();
         }
 
+        /// <summary>
+        /// Puts the colony that went out on the raid back on the plot it left.
+        /// </summary>
+        /// <remarks>
+        /// The buildings first and the people after, because a survivor remembers the number of
+        /// the building they worked in and that number only means anything once the buildings
+        /// are standing again.
+        /// Each one needs its body in the scene as well as its square on the grid, and the
+        /// placer is what knows how to make one — the same code that raises a building when it
+        /// is first put down, so a restored barracks cannot end up drawn differently from a new
+        /// one.
+        /// </remarks>
+        private void PutItBack(ColonyRun run)
+        {
+            if (Colony is null || _siteView == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<BuildingDefinition> catalogue = _placer == null
+                ? Array.Empty<BuildingDefinition>()
+                : _placer.Catalogue;
+
+            if (catalogue.Count == 0 && run.Buildings.Count > 0)
+            {
+                Debug.LogWarning(
+                    "[Colony] no catalogue to look the buildings up in; the plot comes back bare.");
+            }
+
+            foreach (int id in run.Restore(_siteView.Site, Colony, catalogue))
+            {
+                if (_placer != null)
+                {
+                    _placer.Raise(id);
+                }
+            }
+
+            DaysLived = run.DaysLived;
+        }
+
         private void OnDayAdvanced(DayAdvancedEvent advanced) => Resolve();
 
         private void Resolve()
@@ -130,6 +184,15 @@ namespace ZombieGame.Base
                 _balance.WaterPerPersonPerDay);
 
             DaysLived++;
+
+            // The run counts days too, and it is the one that survives a raid. Told here rather
+            // than left to work it out, so that there is exactly one place a day is counted.
+            ColonyRun? run = ColonyRuns.Current;
+            if (run is not null)
+            {
+                run.DayPassed();
+            }
+
             DayResolved?.Invoke(LastReport);
         }
     }

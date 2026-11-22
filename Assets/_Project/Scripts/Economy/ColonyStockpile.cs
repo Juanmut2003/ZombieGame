@@ -34,11 +34,21 @@ namespace ZombieGame.Economy
                 _balance = BalanceConfig.CreateDefault();
             }
 
-            Stockpile = new Stockpile();
-            Stockpile.Set(ResourceKind.Materials, _balance.StartingMaterials);
-            Stockpile.Set(ResourceKind.Food, _balance.StartingFood);
-            Stockpile.Set(ResourceKind.Water, _balance.StartingWater);
-            Stockpile.Set(ResourceKind.Fuel, _balance.StartingFuel);
+            // A run already under way owns the ledger, and it is the same one the squad spent
+            // out of yesterday. Only a colony with no run behind it — the base scene opened on
+            // its own — gets a fresh set of stores.
+            ColonyLedger? run = GameServices.TryGet(out ColonyLedger? held) ? held : null;
+            bool opening = run is null || !run.Opened;
+            Stockpile = run is null ? new Stockpile() : run.Stores;
+
+            if (opening)
+            {
+                Stockpile.Set(ResourceKind.Materials, _balance.StartingMaterials);
+                Stockpile.Set(ResourceKind.Food, _balance.StartingFood);
+                Stockpile.Set(ResourceKind.Water, _balance.StartingWater);
+                Stockpile.Set(ResourceKind.Fuel, _balance.StartingFuel);
+                run?.Open();
+            }
 
             // Replace rather than Register: coming back to the base would otherwise find a
             // locator that already holds the stores from last time.

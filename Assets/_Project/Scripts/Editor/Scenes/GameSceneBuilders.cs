@@ -216,9 +216,10 @@ namespace ZombieGame.Editor.Scenes
                 serialized.FindProperty("_newRunButton").objectReferenceValue = newRun;
                 serialized.FindProperty("_quitButton").objectReferenceValue = quit;
 
-                // The town, not the sandbox. The sandbox is a workbench; pressing start in the
-                // menu is the player asking to play the game.
-                serialized.FindProperty("_firstRunScene").stringValue = GameScenes.MissionTown;
+                // The base, not a zone. A run starts at home and leaves from there one trip at
+                // a time, PROJECT.md 4.6 — starting in a zone was the stand-in for a base that
+                // had nothing in it to come back to.
+                serialized.FindProperty("_firstRunScene").stringValue = GameScenes.Base;
                 serialized.ApplyModifiedPropertiesWithoutUndo();
 
                 GameObject selectObject = SceneBuilder.CreateObject(scene, "Character Select");

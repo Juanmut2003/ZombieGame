@@ -4,7 +4,8 @@
     "references": [
         "ZombieGame.Core",
         "ZombieGame.Combat",
-        "ZombieGame.Waves"
+        "ZombieGame.Waves",
+        "ZombieGame.Economy"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,6 +1,8 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using ZombieGame.Economy;
 
 namespace ZombieGame.Missions
 {
@@ -17,6 +19,7 @@ namespace ZombieGame.Missions
     public sealed class MissionProgress
     {
         private readonly float _extractionSeconds;
+        private readonly int[] _carried = new int[Stockpile.Kinds];
 
         /// <param name="suppliesWanted">What the run was sent for. Zero means anything will do.</param>
         /// <param name="extractionSeconds">How long the squad has to hold the extraction point.</param>
@@ -62,15 +65,68 @@ namespace ZombieGame.Missions
 
         private float _held;
 
-        /// <summary>Picks something up.</summary>
-        public void Collect(int supplies)
+        /// <summary>
+        /// Picks something up, by store.
+        /// </summary>
+        /// <remarks>
+        /// Kept as a tally per store rather than as the list it arrived in: a run that opens
+        /// twenty containers would otherwise hold twenty entries, nineteen of which say the same
+        /// word, and every reader of them would have to add up before it could say anything.
+        /// </remarks>
+        public void Collect(IReadOnlyList<ResourceAmount>? contents)
         {
-            if (IsOver || supplies <= 0)
+            if (IsOver || contents is null)
             {
                 return;
             }
 
-            Carried += supplies;
+            foreach (ResourceAmount amount in contents)
+            {
+                if (amount.Amount <= 0)
+                {
+                    continue;
+                }
+
+                _carried[(int)amount.Kind] += amount.Amount;
+                Carried += amount.Amount;
+            }
+        }
+
+        /// <summary>Picks up salvage, for a test or a zone with no table behind it.</summary>
+        public void Collect(int supplies) =>
+            Collect(new[] { new ResourceAmount(ResourceKind.Materials, supplies) });
+
+        /// <summary>How much of one store is in the squad's hands.</summary>
+        public int CarriedOf(ResourceKind kind) => _carried[(int)kind];
+
+        /// <summary>
+        /// What came home, by store. Empty until the squad is out.
+        /// </summary>
+        /// <remarks>
+        /// Built on demand rather than kept, because the only moment it is asked for is the one
+        /// frame a run ends, and a list kept in step with four counters is four chances to be
+        /// wrong about what the colony is owed.
+        /// </remarks>
+        public IReadOnlyList<ResourceAmount> Haul
+        {
+            get
+            {
+                if (State != MissionState.Extracted)
+                {
+                    return Array.Empty<ResourceAmount>();
+                }
+
+                var haul = new List<ResourceAmount>(Stockpile.Kinds);
+                for (int kind = 0; kind < _carried.Length; kind++)
+                {
+                    if (_carried[kind] > 0)
+                    {
+                        haul.Add(new ResourceAmount((ResourceKind)kind, _carried[kind]));
+                    }
+                }
+
+                return haul;
+            }
         }
 
         /// <summary>

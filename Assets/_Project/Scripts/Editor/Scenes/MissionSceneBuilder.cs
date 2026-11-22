@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
 using ZombieGame.Core.Rendering;
+using ZombieGame.Economy;
 using ZombieGame.Missions;
 using ZombieGame.Waves;
 
@@ -114,7 +115,7 @@ namespace ZombieGame.Editor.Scenes
                 ZoneSceneParts.CreateSwingFlash(scene);
                 ZoneSceneParts.CreateHud(scene, camera, player);
 
-                CreateLoot(scene, map);
+                CreateLoot(scene, map, mission);
                 ExtractionPoint extraction = CreateExtraction(scene, map.Extraction, player);
                 CreateMissionRunner(scene, mission, extraction, heat, player);
                 SceneBuilder.CreateObject(scene, "Mission End").AddComponent<MissionEndFlow>();
@@ -129,7 +130,7 @@ namespace ZombieGame.Editor.Scenes
         /// reach: a physics overlap around whoever is holding the button, rather than a list that
         /// something has to keep up to date.
         /// </remarks>
-        private static void CreateLoot(Scene scene, ZoneMap map)
+        private static void CreateLoot(Scene scene, ZoneMap map, MissionDefinition mission)
         {
             Sprite? crate = CainosArt.Chest() ?? AssetDatabase.LoadAssetAtPath<Sprite>(CrateSprite);
             if (crate is null)
@@ -165,7 +166,27 @@ namespace ZombieGame.Editor.Scenes
                 reach.isTrigger = true;
                 reach.radius = 0.5f;
 
-                container.AddComponent<LootContainer>();
+                LootContainer held = container.AddComponent<LootContainer>();
+
+                // What is in it comes from the mission, not from the map and not from this
+                // builder: the same streets are worth running twice when the table changes.
+                ResourceAmount[] contents = mission.LootFor(i);
+                var serializedHeld = new SerializedObject(held);
+                SerializedProperty inside = serializedHeld.FindProperty("_contents");
+                inside.arraySize = contents.Length;
+                for (int line = 0; line < contents.Length; line++)
+                {
+                    SerializedProperty entry = inside.GetArrayElementAtIndex(line);
+                    entry.FindPropertyRelative("_kind").enumValueIndex = (int)contents[line].Kind;
+                    entry.FindPropertyRelative("_amount").intValue = contents[line].Amount;
+                }
+
+                serializedHeld.ApplyModifiedPropertiesWithoutUndo();
+                // Named after what is in it, so a zone can be checked by reading the hierarchy
+                // rather than by clicking twenty crates.
+                container.name = contents.Length == 0
+                    ? $"Empty Crate {i + 1}"
+                    : $"{ResourceNames.Long(contents[0].Kind)} {i + 1}";
             }
         }
 

@@ -169,6 +169,11 @@ namespace ZombieGame.Core.Config
         [Min(0)]
         private int _startingFuel = 20;
 
+        [Tooltip("How many supplies the colony's opening objectives ask a raid to bring home.")]
+        [SerializeField]
+        [Min(0)]
+        private int _firstRaidHaul = 10;
+
         [Tooltip("What one person eats in a day.")]
         [SerializeField]
         [Min(0)]
@@ -369,6 +374,16 @@ namespace ZombieGame.Core.Config
 
         /// <summary>Fuel a colony starts with.</summary>
         public int StartingFuel => _startingFuel;
+
+        /// <summary>
+        /// How many supplies the opening objectives ask a raid to bring home.
+        /// </summary>
+        /// <remarks>
+        /// The same number the town run asks for, kept here rather than read off the mission
+        /// asset: the base must not have to know which zone the squad went to in order to say
+        /// whether the colony has done what it was asked.
+        /// </remarks>
+        public int FirstRaidHaul => _firstRaidHaul;
 
         /// <summary>How much faster a zone cools while the squad is out of sight in scrub.</summary>
         public float HeatCoverDecayFactor => _heatCoverDecayFactor;

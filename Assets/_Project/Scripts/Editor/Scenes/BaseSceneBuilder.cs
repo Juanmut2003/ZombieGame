@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using ZombieGame.Base;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Rendering;
+using ZombieGame.Core.SceneFlow;
 using ZombieGame.Economy;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
@@ -314,6 +315,10 @@ namespace ZombieGame.Editor.Scenes
             var serializedColony = new SerializedObject(colony);
             serializedColony.FindProperty("_siteView").objectReferenceValue = site;
             serializedColony.FindProperty("_balance").objectReferenceValue = balance;
+
+            // So that a colony coming home from a raid can look its buildings up and raise them
+            // the same way a click does.
+            serializedColony.FindProperty("_placer").objectReferenceValue = placer;
             serializedColony.ApplyModifiedPropertiesWithoutUndo();
 
             GameObject actionsObject = SceneBuilder.CreateObject(scene, "Building Actions");
@@ -362,10 +367,10 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Colony Day",
                 "TAB  PICK      CLICK A BUILDING  PUT TO WORK      U  STOP",
-                // Shifted left and kept clear of the button, which says the same thing the
+                // Shifted left and kept clear of the two buttons, which say the same thing the
                 // missing hint used to.
-                anchoredPosition: new Vector2(-110f, -212f),
-                size: new Vector2(660f, 22f),
+                anchoredPosition: new Vector2(-170f, -212f),
+                size: new Vector2(540f, 22f),
                 fontSize: 13,
                 colour: HudInk);
 
@@ -391,6 +396,72 @@ namespace ZombieGame.Editor.Scenes
             serializedPresenter.ApplyModifiedPropertiesWithoutUndo();
 
             CreateBuildingWheel(scene, camera, canvas, site, actions);
+            CreateOrders(scene, canvas, colony, site, balance);
+        }
+
+        /// <summary>
+        /// The colony's orders, the way out, and what comes back in.
+        /// </summary>
+        /// <remarks>
+        /// PROJECT.md 4.6. The list is derived from the plot and the people every frame, so what
+        /// is written into the saved scene is only what an empty colony reads — which is also
+        /// exactly what the player sees a frame after a new run starts.
+        /// </remarks>
+        private static void CreateOrders(
+            Scene scene,
+            Canvas canvas,
+            ColonyRuntime colony,
+            BuildSiteView site,
+            BalanceConfig? balance)
+        {
+            GameObject launcherObject = SceneBuilder.CreateObject(scene, "Raid Launcher");
+            RaidLauncher launcher = launcherObject.AddComponent<RaidLauncher>();
+
+            var serializedLauncher = new SerializedObject(launcher);
+            serializedLauncher.FindProperty("_siteView").objectReferenceValue = site;
+            serializedLauncher.FindProperty("_colony").objectReferenceValue = colony;
+            serializedLauncher.FindProperty("_zoneScene").stringValue = GameScenes.MissionTown;
+            serializedLauncher.ApplyModifiedPropertiesWithoutUndo();
+
+            GameObject returnObject = SceneBuilder.CreateObject(scene, "Raid Return");
+            RaidReturn came = returnObject.AddComponent<RaidReturn>();
+
+            int wanted = balance == null ? 10 : balance.FirstRaidHaul;
+            Text list = UiSceneParts.CreateLabel(
+                canvas.transform,
+                "Colony Orders",
+                "ORDERS\n[ ] BUILD A BARRACKS\n[ ] BUILD A FARM\n"
+                + $"[ ] PUT SOMEBODY TO WORK\n[ ] RAID THE TOWN FOR {wanted} SUPPLIES   0 / {wanted}",
+                // Under the four store lines, which end at 172.
+                anchoredPosition: new Vector2(-340f, 100f),
+                size: new Vector2(320f, 140f),
+                fontSize: 13,
+                colour: HudInk,
+                alignment: TextAnchor.UpperLeft);
+
+            Button raid = UiSceneParts.CreateButton(
+                canvas.transform,
+                "Raid Button",
+                "RAID TOWN",
+                anchoredPosition: new Vector2(190f, -212f),
+                size: new Vector2(160f, 36f),
+                background: new Color(0.21f, 0.17f, 0.15f, 1f),
+                labelColour: HudInk);
+
+            GameObject presenterObject = SceneBuilder.CreateObject(scene, "Colony Task Presenter");
+            ColonyTaskPresenter presenter = presenterObject.AddComponent<ColonyTaskPresenter>();
+
+            var serialized = new SerializedObject(presenter);
+            serialized.FindProperty("_siteView").objectReferenceValue = site;
+            serialized.FindProperty("_colony").objectReferenceValue = colony;
+            serialized.FindProperty("_raid").objectReferenceValue = launcher;
+            serialized.FindProperty("_return").objectReferenceValue = came;
+            serialized.FindProperty("_balance").objectReferenceValue = balance;
+            serialized.FindProperty("_list").objectReferenceValue = list;
+            serialized.FindProperty("_raidButton").objectReferenceValue = raid;
+            serialized.FindProperty("_raidLabel").objectReferenceValue =
+                raid.GetComponentInChildren<Text>();
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

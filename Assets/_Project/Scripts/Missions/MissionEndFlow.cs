@@ -3,6 +3,7 @@ using UnityEngine;
 using ZombieGame.Core;
 using ZombieGame.Core.Events;
 using ZombieGame.Core.SceneFlow;
+using ZombieGame.Economy;
 
 namespace ZombieGame.Missions
 {
@@ -95,6 +96,13 @@ namespace ZombieGame.Missions
         {
             _over = true;
 
+            // Reported before anything is shown, so that the number the player reads on the
+            // debrief and the number that reaches the stores are the same number.
+            if (GameServices.TryGet(out RaidTrip? trip) && trip is not null)
+            {
+                trip.Report(ended.MissionName, ended.Haul);
+            }
+
             // Only when nothing is going to be put in front of the player. The debrief answers
             // the same event this does, and the bus hands it round in whatever order the two
             // subscribed — so this has to cope with the screen already being up as well as with
@@ -138,7 +146,20 @@ namespace ZombieGame.Missions
                 return;
             }
 
-            _loader.Load(_nextScene);
+            // A squad that was sent from a base goes back to that base. A zone played on its
+            // own — from the menu, or opened in the editor — has nobody waiting and falls back
+            // to the menu, which is what every zone did before bases could send anyone out.
+            _loader.Load(Home() ?? _nextScene);
+        }
+
+        private string? Home()
+        {
+            if (!GameServices.TryGet(out RaidTrip? trip) || trip is null || !trip.IsOut)
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(trip.HomeScene) ? null : trip.HomeScene;
         }
     }
 }

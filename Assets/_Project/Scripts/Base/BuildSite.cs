@@ -136,6 +136,38 @@ namespace ZombieGame.Base
         }
 
         /// <summary>
+        /// Puts a building back exactly as it stood, at the level it had reached.
+        /// </summary>
+        /// <remarks>
+        /// For a colony coming home from a raid, where the plot is built fresh and what was on
+        /// it has to go back on it. Separate from <see cref="TryPlace"/> because placing is
+        /// always level one and always costs: a barracks that had been improved twice would
+        /// otherwise come back as a hut, and the ladder would have to be climbed and paid for
+        /// again every time the squad went out.
+        /// The footprint handed in is the shape it had grown to, so the ground it claims is the
+        /// ground it was standing on rather than the ground it started on.
+        /// </remarks>
+        /// <returns>True when it went back up; <paramref name="id"/> is zero when it did not.</returns>
+        public bool TryRestore(
+            BuildingFootprint footprint,
+            Vector2Int cell,
+            BuildingDefinition? what,
+            int level,
+            out int id)
+        {
+            id = 0;
+            if (Check(footprint, cell) != PlacementVerdict.Ok)
+            {
+                return false;
+            }
+
+            id = _nextId++;
+            Fill(footprint, cell, id);
+            _buildings.Add(new PlacedBuilding(id, cell, footprint, what, level));
+            return true;
+        }
+
+        /// <summary>
         /// Whether a building could grow into the shape its next level needs.
         /// </summary>
         /// <remarks>
