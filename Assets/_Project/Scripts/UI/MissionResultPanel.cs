@@ -1,4 +1,6 @@
 #nullable enable
+using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using ZombieGame.Core;
@@ -8,15 +10,22 @@ using ZombieGame.Missions;
 namespace ZombieGame.UI
 {
     /// <summary>
-    /// The screen that comes up the moment a run ends.
+    /// The debrief: what the run came home with, the moment it ends.
     /// </summary>
     /// <remarks>
-    /// Before this, a lost run said one line at the top of the HUD and left the player standing
-    /// in a zone that no longer wanted anything from them, apparently still playing, for the few
-    /// seconds before the menu loaded. Dying has to look like dying at the instant it happens.
-    /// The panel is built hidden and shown by an event, rather than loaded as its own scene: a
+    /// Before this, a finished run said one line at the top of the HUD and left the player
+    /// standing in a zone that no longer wanted anything from them, apparently still playing,
+    /// until the menu loaded four seconds later. Dying has to look like dying at the instant it
+    /// happens, and a run worth doing has to be worth reading about afterwards.
+    /// The panel is built hidden and raised by an event rather than loaded as its own scene: a
     /// scene change would throw away the zone behind it, and seeing where you died is half of
     /// what a result screen is for.
+    /// It waits for the player. The countdown that used to pull the screen away belongs to
+    /// nobody who knows whether the player has finished reading, so this announces itself with
+    /// <see cref="DebriefOpenedEvent"/> and releases the zone with
+    /// <see cref="DebriefClosedEvent"/> when the button is pressed. The wording and the figures
+    /// are <see cref="MissionDebrief"/>'s, which is plain C# and can be tested without a scene;
+    /// this file only puts the strings into labels.
     /// </remarks>
     [DisallowMultipleComponent]
     public sealed class MissionResultPanel : MonoBehaviour
@@ -29,9 +38,21 @@ namespace ZombieGame.UI
         [SerializeField]
         private Text? _verdict;
 
-        [Tooltip("What came home, and how long it took.")]
+        [Tooltip("What kind of run it was, in words.")]
         [SerializeField]
-        private Text? _detail;
+        private Text? _summary;
+
+        [Tooltip("The left column of the debrief: what is being reported.")]
+        [SerializeField]
+        private Text? _labels;
+
+        [Tooltip("The right column: what each line came to.")]
+        [SerializeField]
+        private Text? _values;
+
+        [Tooltip("The button that leaves the zone. The run waits on it.")]
+        [SerializeField]
+        private Button? _continue;
 
         [Tooltip("Colour of a run that ended well.")]
         [SerializeField]
@@ -52,11 +73,24 @@ namespace ZombieGame.UI
 
             GameServices.TryGet(out _bus);
             _bus?.Subscribe<MissionEndedEvent>(OnEnded);
+
+            if (_continue != null)
+            {
+                _continue.onClick.AddListener(Dismiss);
+            }
         }
 
-        private void OnDestroy() => _bus?.Unsubscribe<MissionEndedEvent>(OnEnded);
+        private void OnDestroy()
+        {
+            _bus?.Unsubscribe<MissionEndedEvent>(OnEnded);
 
-        /// <summary>Puts the result up. Public for tests and for a debrief button later.</summary>
+            if (_continue != null)
+            {
+                _continue.onClick.RemoveListener(Dismiss);
+            }
+        }
+
+        /// <summary>Puts the debrief up. Public for tests and for a replay of the last run.</summary>
         public void Show(MissionEndedEvent ended)
         {
             IsShowing = true;
@@ -68,37 +102,74 @@ namespace ZombieGame.UI
 
             if (_verdict != null)
             {
-                _verdict.text = ended.Outcome switch
-                {
-                    MissionOutcome.Extracted => "EXTRACTED",
-                    MissionOutcome.ExtractedShort => "OUT, BUT SHORT",
-                    MissionOutcome.SquadLost => "SQUAD LOST",
-                    _ => "RUN OVER",
-                };
-
+                _verdict.text = MissionDebrief.Verdict(ended.Outcome);
                 _verdict.color = ended.Extracted ? _wonColour : _lostColour;
             }
 
-            if (_detail == null)
+            if (_summary != null)
+            {
+                _summary.text = MissionDebrief.Summary(ended);
+            }
+
+            Fill(MissionDebrief.Rows(ended));
+
+            // Said after the screen is filled, not before: whoever is listening may well act on
+            // it in the same frame, and a debrief announced while still blank is a flicker.
+            _bus?.Publish(new DebriefOpenedEvent());
+        }
+
+        /// <summary>Takes it down again and lets the zone move on.</summary>
+        public void Dismiss()
+        {
+            if (!IsShowing)
             {
                 return;
             }
 
-            int minutes = Mathf.FloorToInt(ended.Seconds / 60f);
-            int seconds = Mathf.FloorToInt(ended.Seconds - (minutes * 60f));
-
-            _detail.text = ended.Outcome == MissionOutcome.SquadLost
-                ? $"LOST {ended.Lost} OF {ended.Wanted} SUPPLIES   {minutes}:{seconds:00}"
-                : $"BANKED {ended.Banked} OF {ended.Wanted} SUPPLIES   {minutes}:{seconds:00}";
+            Hide();
+            _bus?.Publish(new DebriefClosedEvent());
         }
 
-        /// <summary>Takes it down again.</summary>
+        /// <summary>Takes it down without telling anyone. For building and for tests.</summary>
         public void Hide()
         {
             IsShowing = false;
             if (_panel != null)
             {
                 _panel.SetActive(false);
+            }
+        }
+
+        private void Fill(IReadOnlyList<DebriefRow> rows)
+        {
+            if (_labels == null && _values == null)
+            {
+                return;
+            }
+
+            var labels = new StringBuilder();
+            var values = new StringBuilder();
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                if (i > 0)
+                {
+                    labels.Append('\n');
+                    values.Append('\n');
+                }
+
+                labels.Append(rows[i].Label);
+                values.Append(rows[i].Value);
+            }
+
+            if (_labels != null)
+            {
+                _labels.text = labels.ToString();
+            }
+
+            if (_values != null)
+            {
+                _values.text = values.ToString();
             }
         }
 

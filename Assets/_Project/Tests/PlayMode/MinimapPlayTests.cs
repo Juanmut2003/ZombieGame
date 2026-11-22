@@ -41,7 +41,7 @@ namespace ZombieGame.Tests.PlayMode
         public IEnumerator TheZoneCanTakeAClickAtAll()
         {
             Assert.That(
-                Object.FindFirstObjectByType<EventSystem>(),
+                Object.FindAnyObjectByType<EventSystem>(),
                 Is.Not.Null,
                 "without an event system every button in the zone is a picture of a button");
 

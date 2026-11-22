@@ -16,6 +16,7 @@ using ZombieGame.Core;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Physics;
 using ZombieGame.Core.Rendering;
+using ZombieGame.Core.Roster;
 using ZombieGame.Editor.Art;
 using ZombieGame.Editor.Content;
 using ZombieGame.Editor.Input;
@@ -47,7 +48,7 @@ namespace ZombieGame.Editor.Scenes
             "Assets/_Project/Art/Sprites/Tiles/placeholder_pavement.png";
         private const string TreeSprite = "Assets/_Project/Art/Sprites/Tiles/placeholder_tree.png";
         private const string PlayerSprite =
-            "Assets/_Project/Art/Sprites/Characters/archer_front_walk.png";
+            "Assets/_Project/Art/Sprites/Characters/soldier_front_walk.png";
         private const string SwingArcSprite = "Assets/_Project/Art/Sprites/FX/swing_arc.png";
 
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
@@ -55,13 +56,11 @@ namespace ZombieGame.Editor.Scenes
         private const string PistolWeaponPath = "Assets/_Project/Data/Weapons/Pistol.asset";
         private const string BulletSprite = "Assets/_Project/Art/Sprites/FX/bullet.png";
 
-        private const string PlayerLeftSprite =
-            "Assets/_Project/Art/Sprites/Characters/archer_side_left_walk.png";
-        private const string PlayerRightSprite =
-            "Assets/_Project/Art/Sprites/Characters/archer_side_right_walk.png";
-
         // The array is sized for a real horde whatever the zone puts down to start with.
         private const int HordeCapacity = 300;
+
+        /// <summary>The child of an actor that holds its sprite, and nothing else.</summary>
+        internal const string ActorSpriteName = "Body";
 
         /// <summary>
         /// The kinds of zombie the sandbox puts out, by asset name.
@@ -224,25 +223,63 @@ namespace ZombieGame.Editor.Scenes
             // not changing scene.
             Image shade = panelObject.AddComponent<Image>();
             shade.color = new Color(0.03f, 0.04f, 0.04f, 0.82f);
-            shade.raycastTarget = false;
+
+            // It does take clicks, so that a stray press on the zone behind it does nothing
+            // while the debrief is up. The button sits in front and is hit first.
+            shade.raycastTarget = true;
 
             Text verdict = UiSceneParts.CreateLabel(
                 panelObject.transform,
                 "Verdict",
                 string.Empty,
-                anchoredPosition: new Vector2(0f, 24f),
+                anchoredPosition: new Vector2(0f, 96f),
                 size: new Vector2(600f, 48f),
                 fontSize: 34,
                 colour: HudMuted);
 
-            Text detail = UiSceneParts.CreateLabel(
+            // One sentence of plain language under the shouting. The figures below say what
+            // happened; this says what it was.
+            Text summary = UiSceneParts.CreateLabel(
                 panelObject.transform,
-                "Detail",
+                "Summary",
                 string.Empty,
-                anchoredPosition: new Vector2(0f, -20f),
-                size: new Vector2(600f, 26f),
-                fontSize: 14,
+                anchoredPosition: new Vector2(0f, 56f),
+                size: new Vector2(620f, 24f),
+                fontSize: 13,
                 colour: HudMuted);
+
+            // Two columns rather than one padded line: the pack's font is not monospaced, so a
+            // line spaced out with blanks lines up in the source and nowhere else.
+            Text labels = UiSceneParts.CreateLabel(
+                panelObject.transform,
+                "Debrief Labels",
+                string.Empty,
+                anchoredPosition: new Vector2(-90f, 0f),
+                size: new Vector2(160f, 92f),
+                fontSize: 14,
+                colour: HudMuted,
+                alignment: TextAnchor.UpperRight);
+
+            Text values = UiSceneParts.CreateLabel(
+                panelObject.transform,
+                "Debrief Values",
+                string.Empty,
+                anchoredPosition: new Vector2(80f, 0f),
+                size: new Vector2(160f, 92f),
+                fontSize: 14,
+                colour: HudAmmo,
+                alignment: TextAnchor.UpperLeft);
+
+            // The run waits here. Nothing leaves the zone until this is pressed, which is why
+            // the zone needs an event system — see CreateMinimap, which first needed one.
+            Button carryOn = UiSceneParts.CreateButton(
+                panelObject.transform,
+                "Debrief Continue",
+                "CARRY ON",
+                anchoredPosition: new Vector2(0f, -96f),
+                size: new Vector2(240f, 44f),
+                background: HudButton,
+                labelColour: HudButtonText);
 
             var presenterObject = new GameObject("Mission Result Presenter", typeof(RectTransform));
             presenterObject.transform.SetParent(canvas.transform, worldPositionStays: false);
@@ -251,8 +288,16 @@ namespace ZombieGame.Editor.Scenes
             var serialized = new SerializedObject(presenter);
             serialized.FindProperty("_panel").objectReferenceValue = panelObject;
             serialized.FindProperty("_verdict").objectReferenceValue = verdict;
-            serialized.FindProperty("_detail").objectReferenceValue = detail;
+            serialized.FindProperty("_summary").objectReferenceValue = summary;
+            serialized.FindProperty("_labels").objectReferenceValue = labels;
+            serialized.FindProperty("_values").objectReferenceValue = values;
+            serialized.FindProperty("_continue").objectReferenceValue = carryOn;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // The debrief is the second thing in a zone that can be clicked, and the first one
+            // that the run cannot finish without. Asked for here too rather than relied upon
+            // from the minimap: a zone built without a map would otherwise never let go.
+            UiSceneParts.CreateEventSystem(canvas.gameObject.scene);
 
             panelObject.SetActive(false);
         }
@@ -1180,6 +1225,31 @@ namespace ZombieGame.Editor.Scenes
 
         internal static Sprite? LoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
 
+        /// <summary>
+        /// Writes a run of sprites into a serialized array, skipping the ones that are missing.
+        /// </summary>
+        /// <remarks>
+        /// A hole in a walk cycle would be drawn as nothing at all for a sixth of every stride,
+        /// which reads as the character blinking out rather than as a missing file.
+        /// </remarks>
+        internal static void FillSprites(SerializedProperty array, IReadOnlyList<Sprite?> sprites)
+        {
+            var found = new List<Sprite>(sprites.Count);
+            foreach (Sprite? sprite in sprites)
+            {
+                if (sprite != null)
+                {
+                    found.Add(sprite);
+                }
+            }
+
+            array.arraySize = found.Count;
+            for (int i = 0; i < found.Count; i++)
+            {
+                array.GetArrayElementAtIndex(i).objectReferenceValue = found[i];
+            }
+        }
+
         internal static Tilemap CreateTilemapLayer(Transform parent, string name, int sortingOrder)
         {
             var layer = new GameObject(name);
@@ -1194,6 +1264,12 @@ namespace ZombieGame.Editor.Scenes
         /// <summary>Places the stand-in actors and returns the player, for the camera to follow.</summary>
         internal static Transform? CreateActors(Scene scene, Vector2 at)
         {
+            // The MC's poses are made from the archer pack's rather than shipped, so a clone
+            // that has never run the art menu still gets a figure instead of a warning. The
+            // roster that points at those poses is built on the same terms.
+            SurvivorArt.EnsureAll();
+            CharacterRosterBuilder.EnsureAll();
+
             Transform? player = AddActor(
                 scene, "MC", PlayerSprite, new Vector3(at.x, at.y, 0f));
             if (player is not null)
@@ -1282,15 +1358,61 @@ namespace ZombieGame.Editor.Scenes
             serializedMovement.FindProperty("_stance").objectReferenceValue = stance;
             serializedMovement.ApplyModifiedPropertiesWithoutUndo();
 
-            // Three poses, picked from the direction of travel. Not a walk cycle — the packs ship
-            // one frame per direction, so there is nothing to animate yet.
+            // The child that carries the picture. Everything visual is pointed at it by hand
+            // rather than searched for, so that anything parented to the MC later — a torch, a
+            // carried crate — cannot quietly become the thing that gets animated.
+            Transform? sprite = player.transform.Find(ActorSpriteName);
+            SpriteRenderer? spriteRenderer =
+                sprite == null ? null : sprite.GetComponent<SpriteRenderer>();
+
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[Sandbox] {player.name} has no '{ActorSpriteName}' child.");
+            }
+
+            // What stops the MC sliding about like a counter on a board: the sprite rises and
+            // rocks on the beat of the footsteps below, from the same timing. Added before the
+            // facing, which reads its phase to decide which drawing of the walk to show.
+            CharacterGait gait = player.AddComponent<CharacterGait>();
+            var serializedGait = new SerializedObject(gait);
+            serializedGait.FindProperty("_balance").objectReferenceValue = balance;
+            serializedGait.FindProperty("_input").objectReferenceValue = input;
+            serializedGait.FindProperty("_stance").objectReferenceValue = stance;
+            serializedGait.FindProperty("_sprite").objectReferenceValue = sprite;
+            serializedGait.ApplyModifiedPropertiesWithoutUndo();
+
+            // Four views, picked from the direction of travel, each with as many drawings as
+            // the character's own asset carries. The frames come from the roster rather than
+            // from paths here, so a new character is an asset and nothing else.
+            var cast = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.SoldierPath);
+
             CharacterFacing facing = player.AddComponent<CharacterFacing>();
             var serializedFacing = new SerializedObject(facing);
-            serializedFacing.FindProperty("_front").objectReferenceValue = LoadSprite(PlayerSprite);
-            serializedFacing.FindProperty("_left").objectReferenceValue = LoadSprite(PlayerLeftSprite);
-            serializedFacing.FindProperty("_right").objectReferenceValue =
-                LoadSprite(PlayerRightSprite);
+            serializedFacing.FindProperty("_spriteRenderer").objectReferenceValue = spriteRenderer;
+            serializedFacing.FindProperty("_gait").objectReferenceValue = gait;
+            if (cast != null)
+            {
+                FillSprites(serializedFacing.FindProperty("_front"), cast.Front);
+                FillSprites(serializedFacing.FindProperty("_back"), cast.Back);
+                FillSprites(serializedFacing.FindProperty("_left"), cast.Left);
+                FillSprites(serializedFacing.FindProperty("_right"), cast.Right);
+            }
+            else
+            {
+                Debug.LogWarning("[Sandbox] no character roster; the MC will show one pose.");
+                FillSprites(
+                    serializedFacing.FindProperty("_front"), new[] { LoadSprite(PlayerSprite)! });
+            }
+
             serializedFacing.ApplyModifiedPropertiesWithoutUndo();
+
+            // Who the player picked in the menu, if they came that way. The zone is built with
+            // somebody in it either way, so the scene is worth opening on its own.
+            CharacterOutfit outfit = player.AddComponent<CharacterOutfit>();
+            var serializedOutfit = new SerializedObject(outfit);
+            serializedOutfit.FindProperty("_fallback").objectReferenceValue = cast;
+            serializedOutfit.ApplyModifiedPropertiesWithoutUndo();
 
             // Walking is quiet, sprinting is not. The whole stealth half of the game hangs off
             // this component being on the thing the player steers.
@@ -1353,7 +1475,13 @@ namespace ZombieGame.Editor.Scenes
             GameObject actor = SceneBuilder.CreateObject(scene, name);
             actor.transform.position = position;
 
-            SpriteRenderer renderer = actor.AddComponent<SpriteRenderer>();
+            // The picture hangs off the actor instead of sitting on it. The collider is a small
+            // patch at the figure's feet and must stay put, while the sprite is lifted a couple
+            // of pixels on every footfall — see CharacterGait. One object cannot do both.
+            var spriteObject = new GameObject(ActorSpriteName, typeof(SpriteRenderer));
+            spriteObject.transform.SetParent(actor.transform, worldPositionStays: false);
+
+            SpriteRenderer renderer = spriteObject.GetComponent<SpriteRenderer>();
             renderer.sprite = sprite;
 
             // Everything that stands on the floor sorts by how far down the screen it is, so a
@@ -1361,7 +1489,14 @@ namespace ZombieGame.Editor.Scenes
             // it walks, inside the same band the horde sorts in — otherwise the player and the
             // zombie standing next to them would be sorted by two different rules.
             renderer.sortingOrder = SortingBands.ForGround(position.y);
-            actor.AddComponent<GroundSorting>();
+
+            // Sorting sits on the actor and is pointed at the child, so the order follows the
+            // feet rather than the bobbing sprite. Sorting by the sprite would let two figures
+            // standing side by side swap places in time with their own footsteps.
+            GroundSorting sorting = actor.AddComponent<GroundSorting>();
+            var serializedSorting = new SerializedObject(sorting);
+            serializedSorting.FindProperty("_renderer").objectReferenceValue = renderer;
+            serializedSorting.ApplyModifiedPropertiesWithoutUndo();
 
             return actor.transform;
         }

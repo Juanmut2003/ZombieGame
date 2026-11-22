@@ -1,5 +1,6 @@
 #nullable enable
 using ZombieGame.Core.Events;
+using ZombieGame.Waves;
 
 namespace ZombieGame.Missions
 {
@@ -19,7 +20,8 @@ namespace ZombieGame.Missions
             int lost,
             int wanted,
             float seconds,
-            float heatAtEnd)
+            float heatAtEnd,
+            HeatStage stageAtEnd = HeatStage.Calm)
         {
             MissionName = missionName;
             Outcome = outcome;
@@ -28,6 +30,7 @@ namespace ZombieGame.Missions
             Wanted = wanted;
             Seconds = seconds;
             HeatAtEnd = heatAtEnd;
+            StageAtEnd = stageAtEnd;
         }
 
         /// <summary>Which run it was.</summary>
@@ -50,6 +53,17 @@ namespace ZombieGame.Missions
 
         /// <summary>How hot the zone was when it ended, 0 to 1.</summary>
         public float HeatAtEnd { get; }
+
+        /// <summary>
+        /// What that heat amounted to: calm, stirred, or hunting.
+        /// </summary>
+        /// <remarks>
+        /// Carried rather than worked out from <see cref="HeatAtEnd"/>, because where the
+        /// thresholds sit is a tuning decision that lives in the balance asset. A debrief that
+        /// recomputed the stage would be a second copy of those numbers, written in C#, quietly
+        /// disagreeing with the meter the player was watching a second earlier.
+        /// </remarks>
+        public HeatStage StageAtEnd { get; }
 
         /// <summary>True when the squad got out.</summary>
         public bool Extracted =>

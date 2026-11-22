@@ -181,7 +181,8 @@ namespace ZombieGame.Missions
                 lost,
                 _progress.SuppliesWanted,
                 _elapsed,
-                _heat is not null ? _heat.Value : 0f));
+                _heat is not null ? _heat.Value : 0f,
+                _heat is not null ? _heat.Stage : HeatStage.Calm));
 
         private void OnLootTaken(LootTakenEvent loot)
         {

@@ -72,8 +72,22 @@ namespace ZombieGame.Editor.Scenes
         /// project runs on the new Input System only, and the old module would silently do
         /// nothing.
         /// </remarks>
+        /// <remarks>
+        /// Gives back the one the scene already has rather than adding a second. Two event
+        /// systems in a scene is not an error Unity raises; it is one that shows up as clicks
+        /// landing roughly half the time, and more than one thing in a zone needs clicking now.
+        /// </remarks>
         public static EventSystem CreateEventSystem(Scene scene)
         {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                EventSystem existing = root.GetComponentInChildren<EventSystem>(includeInactive: true);
+                if (existing != null)
+                {
+                    return existing;
+                }
+            }
+
             GameObject eventSystemObject = SceneBuilder.CreateObject(scene, "EventSystem");
             EventSystem eventSystem = eventSystemObject.AddComponent<EventSystem>();
             eventSystemObject.AddComponent<InputSystemUIInputModule>();

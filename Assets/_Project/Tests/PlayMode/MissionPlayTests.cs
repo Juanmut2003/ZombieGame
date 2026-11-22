@@ -10,6 +10,7 @@ using ZombieGame.Characters;
 using ZombieGame.Combat;
 using ZombieGame.Core;
 using ZombieGame.Core.Physics;
+using ZombieGame.Core.SceneFlow;
 using ZombieGame.Missions;
 
 namespace ZombieGame.Tests.PlayMode
@@ -183,9 +184,42 @@ namespace ZombieGame.Tests.PlayMode
             _player.position = _extraction.transform.position;
             yield return new WaitForSeconds(5f);
 
-            // The result stays up for a moment and then the zone is left; without this the
-            // player stood in a finished zone reading a line that said they were done.
-            Assert.That(flow.IsLeaving, Is.True);
+            // The zone leads somewhere, but it is the debrief that decides when. Five seconds
+            // is comfortably past the countdown this used to run on, and the run is still here
+            // because nobody has read the screen yet.
+            Assert.That(
+                flow.IsLeaving,
+                Is.False,
+                "the zone counted down over the top of the debrief");
+
+            Assert.That(
+                flow.IsWaitingOnTheDebrief,
+                Is.True,
+                "a finished run has to lead somewhere");
+
+            // And pressing the button is what actually sends the squad home.
+            GameObject? buttonObject = GameObject.Find("Debrief Continue");
+            Assert.That(buttonObject, Is.Not.Null);
+            buttonObject!.GetComponent<Button>().onClick.Invoke();
+            yield return null;
+
+            Assert.That(GameServices.TryGet(out SceneLoader? loader), Is.True);
+            Assert.That(
+                loader!.PendingScene,
+                Is.EqualTo(GameScenes.MainMenu),
+                "the squad was left standing in a zone that was over");
+
+            // Let the load land inside this test rather than halfway through the next one's
+            // setup, where it would tear the zone down around whatever is running.
+            for (int frame = 0; frame < 300; frame++)
+            {
+                if (SceneManager.GetActiveScene().name == GameScenes.MainMenu)
+                {
+                    break;
+                }
+
+                yield return null;
+            }
         }
 
         [UnityTest]
