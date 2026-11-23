@@ -212,7 +212,7 @@ namespace ZombieGame.Editor.Scenes
         /// The size a button's label is set at.
         /// </summary>
         /// <remarks>
-        /// Three times Neonbyte's seven-pixel body, so the face lands on whole screen pixels.
+        /// Three times a seven-pixel body, so the face lands on whole screen pixels.
         /// Four times reads as a headline rather than a control beside a HUD set at twice.
         /// </remarks>
         private const int ButtonText = 21;

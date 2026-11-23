@@ -36,9 +36,23 @@ namespace ZombieGame.Characters
         private Rigidbody2D _body = null!;
         private MovementSettings _settings;
         private float _sprintCostPerSecond;
+        private Vector2 _drive;
 
         /// <summary>How fast the character is actually going.</summary>
         public Vector2 Velocity => _body.linearVelocity;
+
+        /// <summary>
+        /// Steers a character nobody is holding the keys for, in the same −1..1 shape the player
+        /// input has. Shorter than one unit walks slower, which is how a colonist strolls.
+        /// </summary>
+        /// <remarks>
+        /// The legs are the legs whoever is doing the thinking: a survivor pottering about the
+        /// base is stopped by the same walls and drawn by the same gait as the MC, and writing a
+        /// second mover for them would be the one duplication CLAUDE.md 7.7 names.
+        /// Ignored while a <see cref="PlayerInputReader"/> is wired up, so the player can never
+        /// be driven about by something else.
+        /// </remarks>
+        public void Steer(Vector2 move) => _drive = move;
 
         private void Awake()
         {
@@ -59,7 +73,7 @@ namespace ZombieGame.Characters
 
         private void FixedUpdate()
         {
-            Vector2 input = _input is null ? Vector2.zero : _input.MoveInput;
+            Vector2 input = _input is null ? _drive : _input.MoveInput;
             bool wantsToSprint = _input is not null && _input.SprintHeld && input != Vector2.zero;
 
             // Sprinting is only sprinting while it is being paid for. Running out mid-stride drops

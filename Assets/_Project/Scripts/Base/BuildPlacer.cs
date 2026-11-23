@@ -48,7 +48,6 @@ namespace ZombieGame.Base
         private EventBus? _bus;
         private Stockpile? _stores;
         private PointerFocus? _pointer;
-        private bool _turned;
 
         /// <summary>What is being held, or null while the hands are empty.</summary>
         public BuildingDefinition? Holding { get; private set; }
@@ -56,11 +55,18 @@ namespace ZombieGame.Base
         /// <summary>What the site last said about where the building is being held.</summary>
         public PlacementVerdict LastVerdict { get; private set; } = PlacementVerdict.OutsideTheSite;
 
-        /// <summary>How much ground what is being held would take, as it is turned now.</summary>
+        /// <summary>
+        /// How much ground what is being held would take.
+        /// </summary>
+        /// <remarks>
+        /// Always the way it is drawn. Buildings used to turn a quarter turn with <c>R</c>,
+        /// which turned the ground they stood on and left the picture where it was: once the
+        /// walls became real, a turned farm had its fence across the middle of its own fields
+        /// and open air where the gate was drawn. The art is a room seen one way round — roof at
+        /// the top, steps at the bottom — so the building does not turn. See PROJECT.md 4.2.
+        /// </remarks>
         public BuildingFootprint HeldFootprint =>
-            Holding == null
-                ? new BuildingFootprint(1, 1)
-                : _turned ? Holding.Footprint.Rotated() : Holding.Footprint;
+            Holding == null ? new BuildingFootprint(1, 1) : Holding.Footprint;
 
         /// <summary>What can be built, in the order the number keys pick them.</summary>
         public BuildingDefinition[] Catalogue => _catalogue;
@@ -136,7 +142,6 @@ namespace ZombieGame.Base
         public void Hold(BuildingDefinition? what)
         {
             Holding = what;
-            _turned = false;
 
             if (what == null)
             {
@@ -147,9 +152,6 @@ namespace ZombieGame.Base
         /// <summary>Picks the nth thing in the catalogue, counting from zero.</summary>
         public void Hold(int index) =>
             Hold((uint)index < (uint)_catalogue.Length ? _catalogue[index] : null);
-
-        /// <summary>Turns what is being held a quarter turn.</summary>
-        public void Rotate() => _turned = !_turned;
 
         /// <summary>
         /// Puts what is being held down, with its middle as near this point as the grid allows.
@@ -245,11 +247,6 @@ namespace ZombieGame.Base
                 return;
             }
 
-            if (keyboard.rKey.wasPressedThisFrame)
-            {
-                Rotate();
-            }
-
             // The first six of the catalogue on the number keys. A real build menu replaces
             // this; until there is one, something has to be able to pick a building.
             if (keyboard.digit1Key.wasPressedThisFrame)
@@ -300,7 +297,13 @@ namespace ZombieGame.Base
                 return;
             }
 
-            var built = new GameObject("Building", typeof(SpriteRenderer));
+            // The picture hangs off the building rather than sitting on it. Building sprites
+            // pivot at the bottom of the drawing — they stand on the ground, like a character —
+            // while the walls and the posts are measured from the middle of the footprint. One
+            // object cannot be both, and the child is the half that moves.
+            var built = new GameObject("Building");
+            var body = new GameObject(BuildingView.BodyName, typeof(SpriteRenderer));
+            body.transform.SetParent(built.transform, worldPositionStays: false);
             built.transform.SetParent(
                 _builtParent == null ? transform : _builtParent, worldPositionStays: true);
 

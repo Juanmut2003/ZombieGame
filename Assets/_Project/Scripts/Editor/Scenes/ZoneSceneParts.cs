@@ -1280,10 +1280,70 @@ namespace ZombieGame.Editor.Scenes
             return player;
         }
 
+        /// <summary>Who a figure turns out to be once a run is under way.</summary>
+        internal enum Dressing
+        {
+            /// <summary>Whoever the player picked in the menu. The MC.</summary>
+            ThePick = 0,
+
+            /// <summary>Whoever the player did not pick. The colony's first survivor.</summary>
+            TheSpare = 1,
+
+            /// <summary>Nobody else: they stay as the scene was built. The rest of the colony.</summary>
+            AsBuilt = 2,
+        }
+
         /// <summary>
-        /// Turns the MC placeholder into something that can be steered and that walls can stop.
+        /// The pieces of a walking character that anything else needs a reference to.
         /// </summary>
-        internal static void MakePlayable(GameObject player)
+        /// <remarks>
+        /// Handed back rather than searched for again: the combat half is wired to the same
+        /// input reader and the same stamina as the legs, and a second <c>GetComponent</c> is a
+        /// second chance to wire up a different one.
+        /// </remarks>
+        internal readonly struct Walker
+        {
+            public Walker(PlayerInputReader? input, CharacterStamina stamina, CharacterStance stance)
+            {
+                Input = input;
+                Stamina = stamina;
+                Stance = stance;
+            }
+
+            /// <summary>What the player is pressing, or null for somebody nobody steers.</summary>
+            public PlayerInputReader? Input { get; }
+
+            /// <summary>What is left in their legs.</summary>
+            public CharacterStamina Stamina { get; }
+
+            /// <summary>Standing or keeping low.</summary>
+            public CharacterStance Stance { get; }
+        }
+
+        /// <summary>
+        /// Turns a placeholder into somebody who walks: steered, stopped by walls, and drawn
+        /// facing the way they are going.
+        /// </summary>
+        /// <remarks>
+        /// The half of a character that is true wherever they are standing. A zone adds a belt
+        /// and a weapon on top of this; the colony scene does not, because there is nothing on
+        /// the plot to shoot and the mouse button there is already spoken for by building.
+        /// Written once for both, which is the whole of CLAUDE.md 7.7: a second copy of the
+        /// wiring is a second place for the collider to be the wrong size.
+        /// </remarks>
+        /// <param name="player">The actor, with its sprite child already on it.</param>
+        /// <param name="cast">Who they are. Null draws them as whatever sprite they were made with.</param>
+        /// <param name="steered">
+        /// Whether the keys drive them. False leaves the input reader off altogether, so that
+        /// something else can steer the legs — two readers in one scene would read the same keys
+        /// and walk both figures about together.
+        /// </param>
+        /// <param name="dressing">Who they turn out to be once a run is under way.</param>
+        internal static Walker MakeWalkable(
+            GameObject player,
+            PlayableCharacter? cast,
+            bool steered = true,
+            Dressing dressing = Dressing.ThePick)
         {
             var body = player.AddComponent<Rigidbody2D>();
 
@@ -1305,18 +1365,23 @@ namespace ZombieGame.Editor.Scenes
             collider.size = new Vector2(0.35f, 0.2f);
             collider.offset = new Vector2(0f, 0.1f);
 
-            PlayerInputReader input = player.AddComponent<PlayerInputReader>();
-            var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(
-                InputActionsGenerator.AssetPath);
-            if (actions is null)
+            PlayerInputReader? input = null;
+            if (steered)
             {
-                Debug.LogWarning("[Sandbox] no input actions asset; the MC will not move.");
-            }
+                input = player.AddComponent<PlayerInputReader>();
+                var actions = AssetDatabase.LoadAssetAtPath<InputActionAsset>(
+                    InputActionsGenerator.AssetPath);
+                if (actions is null)
+                {
+                    Debug.LogWarning("[Sandbox] no input actions asset; the MC will not move.");
+                }
 
-            var serializedInput = new SerializedObject(input);
-            serializedInput.FindProperty("_actions").objectReferenceValue = actions;
-            serializedInput.FindProperty("_mapName").stringValue = InputActionsGenerator.GameplayMap;
-            serializedInput.ApplyModifiedPropertiesWithoutUndo();
+                var serializedInput = new SerializedObject(input);
+                serializedInput.FindProperty("_actions").objectReferenceValue = actions;
+                serializedInput.FindProperty("_mapName").stringValue =
+                    InputActionsGenerator.GameplayMap;
+                serializedInput.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             var balance = AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
 
@@ -1337,18 +1402,6 @@ namespace ZombieGame.Editor.Scenes
             serializedStance.FindProperty("_balance").objectReferenceValue = balance;
             serializedStance.FindProperty("_input").objectReferenceValue = input;
             serializedStance.ApplyModifiedPropertiesWithoutUndo();
-
-            SquadStandDown standDown = player.AddComponent<SquadStandDown>();
-            var serializedStandDown = new SerializedObject(standDown);
-            serializedStandDown.FindProperty("_input").objectReferenceValue = input;
-            serializedStandDown.ApplyModifiedPropertiesWithoutUndo();
-
-            PlayerTakedown takedown = player.AddComponent<PlayerTakedown>();
-            var serializedTakedown = new SerializedObject(takedown);
-            serializedTakedown.FindProperty("_balance").objectReferenceValue = balance;
-            serializedTakedown.FindProperty("_input").objectReferenceValue = input;
-            serializedTakedown.FindProperty("_stamina").objectReferenceValue = stamina;
-            serializedTakedown.ApplyModifiedPropertiesWithoutUndo();
 
             CharacterMovement movement = player.AddComponent<CharacterMovement>();
             var serializedMovement = new SerializedObject(movement);
@@ -1384,9 +1437,6 @@ namespace ZombieGame.Editor.Scenes
             // Four views, picked from the direction of travel, each with as many drawings as
             // the character's own asset carries. The frames come from the roster rather than
             // from paths here, so a new character is an asset and nothing else.
-            var cast = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
-                CharacterRosterBuilder.SoldierPath);
-
             CharacterFacing facing = player.AddComponent<CharacterFacing>();
             var serializedFacing = new SerializedObject(facing);
             serializedFacing.FindProperty("_spriteRenderer").objectReferenceValue = spriteRenderer;
@@ -1407,12 +1457,22 @@ namespace ZombieGame.Editor.Scenes
 
             serializedFacing.ApplyModifiedPropertiesWithoutUndo();
 
-            // Who the player picked in the menu, if they came that way. The zone is built with
-            // somebody in it either way, so the scene is worth opening on its own.
-            CharacterOutfit outfit = player.AddComponent<CharacterOutfit>();
-            var serializedOutfit = new SerializedObject(outfit);
-            serializedOutfit.FindProperty("_fallback").objectReferenceValue = cast;
-            serializedOutfit.ApplyModifiedPropertiesWithoutUndo();
+            // Who the player picked in the menu, if they came that way. The scene is built with
+            // somebody in it either way, so it is worth opening on its own.
+            if (dressing == Dressing.ThePick)
+            {
+                CharacterOutfit outfit = player.AddComponent<CharacterOutfit>();
+                var serializedOutfit = new SerializedObject(outfit);
+                serializedOutfit.FindProperty("_fallback").objectReferenceValue = cast;
+                serializedOutfit.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else if (dressing == Dressing.TheSpare)
+            {
+                SpareOutfit spare = player.AddComponent<SpareOutfit>();
+                var serializedSpare = new SerializedObject(spare);
+                FillRoster(serializedSpare.FindProperty("_roster"));
+                serializedSpare.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             // Walking is quiet, sprinting is not. The whole stealth half of the game hangs off
             // this component being on the thing the player steers.
@@ -1422,6 +1482,45 @@ namespace ZombieGame.Editor.Scenes
             serializedSteps.FindProperty("_input").objectReferenceValue = input;
             serializedSteps.FindProperty("_stance").objectReferenceValue = stance;
             serializedSteps.ApplyModifiedPropertiesWithoutUndo();
+
+            return new Walker(input, stamina, stance);
+        }
+
+        /// <summary>
+        /// Turns the MC placeholder into something that can be steered, that walls can stop, and
+        /// that is carrying something to fight with.
+        /// </summary>
+        internal static void MakePlayable(GameObject player)
+        {
+            var cast = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.SoldierPath);
+
+            Walker walker = MakeWalkable(player, cast);
+
+            // Never null here: the MC is steered, so MakeWalkable put a reader on them. Said
+            // out loud rather than assumed, because the one who is not steered shares this code.
+            PlayerInputReader? input = walker.Input;
+            if (input == null)
+            {
+                Debug.LogWarning($"[Sandbox] {player.name} has no input reader; no belt wired.");
+                return;
+            }
+
+            CharacterStamina stamina = walker.Stamina;
+
+            var balance = AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
+
+            SquadStandDown standDown = player.AddComponent<SquadStandDown>();
+            var serializedStandDown = new SerializedObject(standDown);
+            serializedStandDown.FindProperty("_input").objectReferenceValue = input;
+            serializedStandDown.ApplyModifiedPropertiesWithoutUndo();
+
+            PlayerTakedown takedown = player.AddComponent<PlayerTakedown>();
+            var serializedTakedown = new SerializedObject(takedown);
+            serializedTakedown.FindProperty("_balance").objectReferenceValue = balance;
+            serializedTakedown.FindProperty("_input").objectReferenceValue = input;
+            serializedTakedown.FindProperty("_stamina").objectReferenceValue = stamina;
+            serializedTakedown.ApplyModifiedPropertiesWithoutUndo();
 
             // Where the player points. Its camera is filled in once the rig exists.
             PlayerAim aim = player.AddComponent<PlayerAim>();
@@ -1460,6 +1559,70 @@ namespace ZombieGame.Editor.Scenes
             serializedMelee.FindProperty("_stamina").objectReferenceValue = stamina;
             serializedMelee.FindProperty("_aim").objectReferenceValue = aim;
             serializedMelee.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Turns a placeholder into a survivor who walks a patch of ground on their own.
+        /// </summary>
+        /// <remarks>
+        /// The same body as the MC without the keys and without the belt: stopped by the same
+        /// walls, drawn by the same gait, dressed as whoever the player left on the menu.
+        /// </remarks>
+        /// <param name="colonist">The actor, with its sprite child already on it.</param>
+        /// <param name="area">The ground they keep to, in world units.</param>
+        /// <param name="cast">
+        /// Who they are drawn as in the saved scene, so that it is worth opening on its own.
+        /// Who they turn out to be in a run is settled by <see cref="SpareOutfit"/>, from
+        /// whoever the player did not pick.
+        /// </param>
+        /// <param name="insteadOf">
+        /// Who the MC beside them is dressed as when nobody has picked, so the pair are never
+        /// the same person. Never worn by this figure, and only read when they are the spare.
+        /// </param>
+        /// <param name="dressing">
+        /// <see cref="Dressing.TheSpare"/> for the first survivor, who is whoever the player
+        /// turned down. <see cref="Dressing.AsBuilt"/> for everybody after them, who are nobody
+        /// in particular and stay as the scene drew them.
+        /// </param>
+        internal static void MakeStroller(
+            GameObject colonist,
+            Rect area,
+            PlayableCharacter? cast,
+            PlayableCharacter? insteadOf,
+            Dressing dressing = Dressing.TheSpare)
+        {
+            CharacterRosterBuilder.EnsureAll();
+
+            MakeWalkable(colonist, cast, steered: false, dressing: dressing);
+
+            if (dressing == Dressing.TheSpare)
+            {
+                SpareOutfit spare = colonist.GetComponent<SpareOutfit>();
+                var serializedSpare = new SerializedObject(spare);
+                serializedSpare.FindProperty("_insteadOf").objectReferenceValue = insteadOf;
+                serializedSpare.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            var balance = AssetDatabase.LoadAssetAtPath<BalanceConfig>(BalanceConfigPath);
+            CharacterMovement movement = colonist.GetComponent<CharacterMovement>();
+
+            CharacterStroll stroll = colonist.AddComponent<CharacterStroll>();
+            var serializedStroll = new SerializedObject(stroll);
+            serializedStroll.FindProperty("_balance").objectReferenceValue = balance;
+            serializedStroll.FindProperty("_movement").objectReferenceValue = movement;
+            serializedStroll.FindProperty("_area").rectValue = area;
+            serializedStroll.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>Fills a serialized array with everybody on the roster, in menu order.</summary>
+        private static void FillRoster(SerializedProperty array)
+        {
+            PlayableCharacter[] everybody = CharacterRosterBuilder.LoadAll();
+            array.arraySize = everybody.Length;
+            for (int i = 0; i < everybody.Length; i++)
+            {
+                array.GetArrayElementAtIndex(i).objectReferenceValue = everybody[i];
+            }
         }
 
         internal static Transform? AddActor(

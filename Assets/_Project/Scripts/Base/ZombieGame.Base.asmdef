@@ -3,6 +3,7 @@
     "rootNamespace": "ZombieGame.Base",
     "references": [
         "ZombieGame.Core",
+        "ZombieGame.Characters",
         "ZombieGame.Economy",
         "Unity.InputSystem"
     ],

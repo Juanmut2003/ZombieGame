@@ -182,18 +182,19 @@ namespace ZombieGame.Editor.Scenes
                     18,
                     Muted);
 
-                var roster = new[]
-                {
-                    AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
-                        CharacterRosterBuilder.SoldierPath),
-                    AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
-                        CharacterRosterBuilder.ArcherPath),
-                };
+                // The drifter first, because the first one who can be picked is the one the menu
+                // starts on, and they are who the colony scene is built around.
+                PlayableCharacter[] roster = CharacterRosterBuilder.LoadAll();
+
+                // Spread from the middle rather than from a fixed left edge, so that adding
+                // somebody to the roster moves the row instead of running it off the screen.
+                const float CardPitch = 250f;
+                float firstCard = -CardPitch * (roster.Length - 1) * 0.5f;
 
                 var cards = new CharacterCardView[roster.Length];
                 for (int i = 0; i < roster.Length; i++)
                 {
-                    float x = -125f + (i * 250f);
+                    float x = firstCard + (i * CardPitch);
                     cards[i] = CreateCharacterCard(
                         root, $"Character Card {i}", new Vector2(x, 20f), roster[i]);
                 }

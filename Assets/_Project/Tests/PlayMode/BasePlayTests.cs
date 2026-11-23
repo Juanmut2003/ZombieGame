@@ -146,16 +146,45 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TurningWhatIsHeldSwapsItsSides()
+        public IEnumerator EveryBuildingStandsOnExactlyTheGroundItIsDrawnOn()
         {
-            BuildingDefinition armory = Armory();
-            _placer.Hold(armory);
+            // The invariant the walls rest on, and the one that broke when a building could be
+            // turned: the ground a building takes is the size of its own picture. A drawing and
+            // a footprint that disagree put the fence across the middle of the fields and open
+            // air where the gate is.
+            foreach (BuildingDefinition what in _placer.Catalogue)
+            {
+                if (what == null)
+                {
+                    continue;
+                }
 
-            BuildingFootprint upright = _placer.HeldFootprint;
-            _placer.Rotate();
+                for (int level = 1; level <= what.TopLevel; level++)
+                {
+                    BuildingLevel? rung = what.Level(level);
+                    if (rung?.Sprite == null)
+                    {
+                        continue;
+                    }
 
-            Assert.That(_placer.HeldFootprint, Is.EqualTo(upright.Rotated()));
-            Assert.That(_placer.HeldFootprint, Is.Not.EqualTo(upright), "the armory is square");
+                    Vector2 drawn = rung.Sprite.rect.size / rung.Sprite.pixelsPerUnit;
+
+                    Assert.That(
+                        drawn.x,
+                        Is.EqualTo((float)rung.Footprint.Width).Within(0.001f),
+                        $"{what.DisplayName} L{level} is drawn {drawn.x} cells wide "
+                        + $"and stands on {rung.Footprint.Width}");
+                    Assert.That(
+                        drawn.y,
+                        Is.EqualTo((float)rung.Footprint.Height).Within(0.001f),
+                        $"{what.DisplayName} L{level} is drawn {drawn.y} cells deep "
+                        + $"and stands on {rung.Footprint.Height}");
+                }
+            }
+
+            // And what the placer offers is the way it is drawn, never turned.
+            _placer.Hold(Armory());
+            Assert.That(_placer.HeldFootprint, Is.EqualTo(Armory().Footprint));
 
             yield return null;
         }
@@ -627,6 +656,518 @@ namespace ZombieGame.Tests.PlayMode
                 Is.True,
                 "nothing can tell whether a click landed on the HUD");
             Assert.That(pointer!.OverTheHud, Is.False, "the HUD claims a pointer that is nowhere");
+        }
+
+        [UnityTest]
+        public IEnumerator SomebodyIsStandingOnThePlotAndCanBeWalkedAbout()
+        {
+            yield return null;
+            yield return null;
+
+            GameObject? mc = GameObject.Find("MC");
+            Assert.That(mc, Is.Not.Null, "the plot is a diagram, not a place");
+
+            Assert.That(
+                mc!.GetComponent<ZombieGame.Characters.CharacterMovement>(),
+                Is.Not.Null,
+                "nobody can be steered");
+            Assert.That(
+                mc.GetComponent<Rigidbody2D>(), Is.Not.Null, "walls will not stop them");
+            Assert.That(
+                mc.GetComponent<ZombieGame.Characters.CharacterFacing>(),
+                Is.Not.Null,
+                "they will face one way for ever");
+
+            // PROJECT.md 4.6: no belt on the plot. The mouse button is building, and a weapon
+            // that can only ever hit your own farm is worse than none.
+            Assert.That(
+                mc.GetComponent<ZombieGame.Characters.PlayerGun>(),
+                Is.Null,
+                "the colonist is armed on their own farm");
+            Assert.That(mc.GetComponent<ZombieGame.Characters.PlayerMelee>(), Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator TheOneOnThePlotIsTheDrifter()
+        {
+            yield return null;
+            yield return null;
+
+            GameObject? mc = GameObject.Find("MC");
+            Assert.That(mc, Is.Not.Null);
+
+            var outfit = mc!.GetComponent<ZombieGame.Characters.CharacterOutfit>();
+            Assert.That(outfit, Is.Not.Null, "nobody decides who they are");
+            Assert.That(outfit.Wearing, Is.Not.Null, "the base was built with nobody in it");
+            Assert.That(outfit.Wearing!.DisplayName, Is.EqualTo("Drifter"));
+
+            // Four views and a walk with real frames in it, which is what the sheet was cut for.
+            Assert.That(outfit.Wearing.Front, Has.Length.GreaterThan(1), "one standing pose");
+            Assert.That(outfit.Wearing.Back, Is.Not.Empty, "they turn round when walking up");
+            Assert.That(outfit.Wearing.Left, Has.Length.GreaterThan(4));
+            Assert.That(outfit.Wearing.Right, Has.Length.GreaterThan(4));
+        }
+
+        [UnityTest]
+        public IEnumerator ABuildingIsARoomWithWallsAndOneDoorway()
+        {
+            _placer.Hold(OfCategory(BuildingCategory.Barracks));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(5f, 5f)), Is.True, "the barracks would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            BuildingView[] built =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude);
+            Assert.That(built, Has.Length.EqualTo(1));
+
+            BoxCollider2D[] walls = built[0].GetComponents<BoxCollider2D>();
+            Assert.That(walls, Is.Not.Empty, "the barracks is a picture on the floor");
+
+            BuildingFootprint footprint = _placer.Site!.Find(built[0].Id)!.Value.Footprint;
+            Assert.That(
+                built[0].Footprint, Is.EqualTo(footprint), "the view forgot what it stands on");
+
+            foreach (BoxCollider2D wall in walls)
+            {
+                Assert.That(wall.isTrigger, Is.False, "walking through it is still free");
+            }
+
+            // The doorway is a hole in the wall and not a thinner bit of it: a figure standing on
+            // the steps has to be inside nothing at all, or there is no way in.
+            Rect door = BuildingWalls.Doorway(footprint);
+            Vector2 steps = (Vector2)built[0].transform.position + door.center;
+
+            foreach (BoxCollider2D wall in walls)
+            {
+                Assert.That(
+                    wall.enabled && wall.OverlapPoint(steps),
+                    Is.False,
+                    $"the doorway is walled up by {wall.offset} {wall.size}");
+            }
+
+            // And the walls really are there: the middle of the back wall is solid.
+            WallSegment back = BuildingWalls.Segment(footprint, 0);
+            Vector2 roof = (Vector2)built[0].transform.position + back.Offset;
+            bool solid = false;
+            foreach (BoxCollider2D wall in walls)
+            {
+                solid |= wall.enabled && wall.OverlapPoint(roof);
+            }
+
+            Assert.That(solid, Is.True, "the back wall is open ground");
+        }
+
+        [UnityTest]
+        public IEnumerator TheDrawingSitsOnTheGroundTheBuildingStandsOn()
+        {
+            // The one the eye catches and no other test did: the walls were on the cells and the
+            // picture was half a building further up the plot, so the farm's fence stood in open
+            // ground and you were stopped by nothing you could see. Building sprites pivot at
+            // the bottom of the drawing; the room is measured from the middle of the footprint.
+            foreach (BuildingCategory category in
+                     new[] { BuildingCategory.Farm, BuildingCategory.Barracks })
+            {
+                _placer.Hold(OfCategory(category));
+                Assert.That(_placer.PlaceAt(new Vector2(6f, 4f)), Is.True, $"no {category}");
+                _placer.Hold(null);
+                yield return null;
+
+                BuildingView[] built =
+                    Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude);
+                BuildingView view = built[built.Length - 1];
+
+                var renderer = view.GetComponentInChildren<SpriteRenderer>();
+                Assert.That(renderer, Is.Not.Null, $"the {category} is invisible");
+                Assert.That(renderer.sprite, Is.Not.Null);
+
+                Bounds drawn = renderer.bounds;
+                Vector2 ground = view.transform.position;
+
+                Assert.That(
+                    drawn.center.x,
+                    Is.EqualTo(ground.x).Within(0.01f),
+                    $"the {category} is drawn sideways off its own ground");
+                Assert.That(
+                    drawn.center.y,
+                    Is.EqualTo(ground.y).Within(0.01f),
+                    $"the {category} is drawn {drawn.center.y - ground.y} cells off its ground");
+
+                Assert.That(drawn.size.x, Is.EqualTo((float)view.Footprint.Width).Within(0.01f));
+                Assert.That(drawn.size.y, Is.EqualTo((float)view.Footprint.Height).Within(0.01f));
+
+                // And the wall really is under the wall: the back of the drawing is solid.
+                WallSegment back = BuildingWalls.Segment(view.Footprint, 0);
+                Vector2 roof = ground + back.Offset;
+                bool solid = false;
+                foreach (BoxCollider2D box in view.GetComponents<BoxCollider2D>())
+                {
+                    solid |= box.enabled && box.OverlapPoint(roof);
+                }
+
+                Assert.That(solid, Is.True, $"the {category}'s back wall is not where it is drawn");
+
+                _placer.Site!.Remove(view.Id);
+                Object.DestroyImmediate(view.gameObject);
+                yield return null;
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator WalkingIntoAWallStopsYou()
+        {
+            // Put up a barracks and walk the MC at its side wall. Before the walls existed, the
+            // MC crossed the whole room as if it were painted on the ground.
+            _placer.Hold(OfCategory(BuildingCategory.Barracks));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(6f, 4f)), Is.True, "the barracks would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            GameObject? mc = GameObject.Find("MC");
+            Assert.That(mc, Is.Not.Null);
+
+            BuildingView[] built =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude);
+            Vector2 wall = built[0].transform.position;
+
+            // Measured off the footprint rather than off a collider: the walls are five boxes
+            // now, and the left one is a quarter of a cell thick.
+            float halfWide = built[0].Footprint.Width * 0.5f;
+
+            // Lined up with the middle of the building and one clear cell to its left, measured
+            // off the building rather than guessed: a barracks that grows a cell wider one day
+            // would otherwise start this test inside the wall.
+            mc!.transform.position = new Vector3(wall.x - halfWide - 1f, wall.y, 0f);
+            var input = mc.GetComponent<ZombieGame.Characters.PlayerInputReader>();
+            input.SetInputOverride(Vector2.right, sprint: false);
+
+            // Counted in physics steps: a batch run with nothing to draw gets through hundreds
+            // of frames in a fraction of a second of game time.
+            float nearest = float.MaxValue;
+            for (int step = 0; step < 300; step++)
+            {
+                yield return new WaitForFixedUpdate();
+                nearest = Mathf.Min(nearest, wall.x - mc.transform.position.x);
+            }
+
+            input.ClearInputOverride();
+
+            float stoppedAt = wall.x - mc.transform.position.x;
+            Assert.That(
+                nearest,
+                Is.LessThan(halfWide + 0.9f),
+                "the MC never set off towards the barracks");
+
+            // Stopped outside its half-width, give or take the skin the solver leaves. Walking
+            // through would have put them the far side of it, which is a negative gap.
+            Assert.That(
+                stoppedAt,
+                Is.GreaterThan(halfWide - 0.1f),
+                $"the MC walked into the barracks and came out at {mc.transform.position}");
+        }
+
+        [UnityTest]
+        public IEnumerator AWorkerWalksInAndStandsAtTheirPost()
+        {
+            // The farm, because a barracks is beds and has no work in it at all.
+            _placer.Hold(OfCategory(BuildingCategory.Farm));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(6f, 4f)), Is.True, "the farm would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            GameObject? colonist = GameObject.Find("First Survivor");
+            Assert.That(colonist, Is.Not.Null);
+            var body = colonist!.GetComponent<SurvivorBody>();
+            var stroll = colonist.GetComponent<ZombieGame.Characters.CharacterStroll>();
+            Assert.That(body, Is.Not.Null, "nothing ties the figure to the colony");
+
+            var colony = GameObject.Find("Colony")!.GetComponent<ColonyRuntime>();
+            Assert.That(colony.Colony, Is.Not.Null);
+
+            BuildingView farm =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude)[0];
+            Vector2 middle = farm.transform.position;
+
+            // Started square in front of the gate: getting in through a one-cell gap is the
+            // thing being tested here, and the way across the plot to it is the test below.
+            Rect door = BuildingWalls.Doorway(farm.Footprint);
+            colonist.transform.position =
+                middle + new Vector2(door.center.x, door.yMin - 1.5f);
+
+            Survivor first = colony.Colony!.People[0];
+            Assert.That(
+                colony.Colony.Assign(first.Id, farm.Id), Is.True, "nobody could be put to work");
+
+            // Up to half a minute of game time: a walk across the yard, in through the gate and
+            // over to the bench, with the pauses that come of bumping a gatepost on the way.
+            for (int step = 0; step < 1500 && !stroll.AtWork; step++)
+            {
+                yield return new WaitForFixedUpdate();
+            }
+
+            Assert.That(
+                stroll.AtWork,
+                Is.True,
+                $"the worker never got to their post; they are at {colonist.transform.position}");
+
+            Assert.That(body.Workplace, Is.EqualTo(farm.Id));
+            Assert.That(
+                ((Vector2)colonist.transform.position - body.Post).magnitude,
+                Is.LessThan(0.6f),
+                "they stopped somewhere that is not their post");
+
+            // And it is a post inside the room, not a spot in the yard outside it.
+            Rect room = BuildingWalls.Room(farm.Footprint);
+            Vector2 local = (Vector2)colonist.transform.position - middle;
+            Assert.That(
+                room.xMin - 0.3f <= local.x && local.x <= room.xMax + 0.3f,
+                Is.True,
+                $"the worker is standing outside the farm at {local}");
+            Assert.That(
+                room.yMin - 0.3f <= local.y && local.y <= room.yMax + 0.3f,
+                Is.True,
+                $"the worker is standing outside the farm at {local}");
+        }
+
+        [UnityTest]
+        public IEnumerator AWorkerGetsToTheirPostFromWhereverTheyWereStanding()
+        {
+            // The same journey as the test above, but starting where the scene actually puts
+            // people instead of two steps in front of the gate. This is the one the player sees:
+            // somebody is told to work and has to cross the plot, round the building, and find
+            // the door — and a figure that steers straight at the bench leans on the back wall
+            // for the rest of the day.
+            _placer.Hold(OfCategory(BuildingCategory.Farm));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(3f, 5f)), Is.True, "the farm would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            var colony = GameObject.Find("Colony")!.GetComponent<ColonyRuntime>();
+            BuildingView farm =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude)[0];
+
+            Survivor first = colony.Colony!.People[0];
+            Assert.That(colony.Colony.Assign(first.Id, farm.Id), Is.True);
+
+            SurvivorBody body = TheBodyOf(first.Id);
+            var stroll = body.GetComponent<ZombieGame.Characters.CharacterStroll>();
+            Vector2 from = body.transform.position;
+
+            for (int step = 0; step < 2400 && !stroll.AtWork; step++)
+            {
+                yield return new WaitForFixedUpdate();
+            }
+
+            Assert.That(
+                stroll.AtWork,
+                Is.True,
+                $"set off from {from} and got no further than {body.transform.position}");
+        }
+
+        private SurvivorBody TheBodyOf(int survivorId)
+        {
+            foreach (SurvivorBody body in
+                     Object.FindObjectsByType<SurvivorBody>(FindObjectsInactive.Exclude))
+            {
+                if (body.Answers == survivorId)
+                {
+                    return body;
+                }
+            }
+
+            Assert.Fail($"nobody on the plot stands in for survivor {survivorId}");
+            return null!;
+        }
+
+        [UnityTest]
+        public IEnumerator SendingAWorkerHomeGivesThemThePlotBack()
+        {
+            _placer.Hold(OfCategory(BuildingCategory.Farm));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(6f, 4f)), Is.True, "the farm would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            GameObject? colonist = GameObject.Find("First Survivor");
+            var stroll = colonist!.GetComponent<ZombieGame.Characters.CharacterStroll>();
+            var colony = GameObject.Find("Colony")!.GetComponent<ColonyRuntime>();
+            BuildingView farm =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude)[0];
+
+            Survivor first = colony.Colony!.People[0];
+            Assert.That(colony.Colony.Assign(first.Id, farm.Id), Is.True);
+            yield return null;
+            yield return null;
+
+            Assert.That(stroll.HasAJob, Is.True, "being put to work told the figure nothing");
+
+            colony.Colony.Unassign(first.Id);
+            yield return null;
+            yield return null;
+
+            Assert.That(stroll.HasAJob, Is.False, "they are still standing at the bench");
+            Assert.That(stroll.AtWork, Is.False);
+        }
+
+        [UnityTest]
+        public IEnumerator EverybodyInTheColonyHasABodyAndNoTwoShareOne()
+        {
+            yield return null;
+            yield return null;
+
+            var colony = GameObject.Find("Colony")!.GetComponent<ColonyRuntime>();
+            Assert.That(colony.Colony, Is.Not.Null);
+
+            SurvivorBody[] bodies =
+                Object.FindObjectsByType<SurvivorBody>(FindObjectsInactive.Exclude);
+
+            // One figure per person. The founders are built into the scene and the bodies are
+            // placed by hand beside them, so the two lists drifting apart is the fault to catch:
+            // a colony of four with three figures is a name nobody can see.
+            Assert.That(
+                bodies,
+                Has.Length.EqualTo(colony.Colony!.Count),
+                "the plot and the roster disagree about how many people live here");
+
+            var seen = new System.Collections.Generic.HashSet<int>();
+            foreach (SurvivorBody body in bodies)
+            {
+                var who = body.GetComponent<ZombieGame.Characters.CharacterStroll>();
+                Assert.That(who, Is.Not.Null, $"{body.name} has no legs");
+                Assert.That(
+                    seen.Add(body.Answers),
+                    Is.True,
+                    $"two figures are both standing in for survivor {body.Answers}");
+                Assert.That(colony.Colony.Find(body.Answers), Is.Not.Null, "a body with no name");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator PuttingOnePersonToWorkMovesOnlyTheirFigure()
+        {
+            _placer.Hold(OfCategory(BuildingCategory.Farm));
+            Assert.That(
+                _placer.PlaceAt(new Vector2(6f, 4f)), Is.True, "the farm would not go down");
+            _placer.Hold(null);
+            yield return null;
+
+            var colony = GameObject.Find("Colony")!.GetComponent<ColonyRuntime>();
+            BuildingView farm =
+                Object.FindObjectsByType<BuildingView>(FindObjectsInactive.Exclude)[0];
+
+            Survivor first = colony.Colony!.People[0];
+            Assert.That(colony.Colony.Assign(first.Id, farm.Id), Is.True);
+            yield return null;
+            yield return null;
+
+            foreach (SurvivorBody body in
+                     Object.FindObjectsByType<SurvivorBody>(FindObjectsInactive.Exclude))
+            {
+                var stroll = body.GetComponent<ZombieGame.Characters.CharacterStroll>();
+                bool theirs = body.Answers == first.Id;
+
+                Assert.That(
+                    stroll.HasAJob,
+                    Is.EqualTo(theirs),
+                    theirs
+                        ? "the one put to work was never told"
+                        : $"{body.name} went to work in somebody else's place");
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator TheColonyHasAFirstSurvivorWithABodyOnThePlot()
+        {
+            yield return null;
+            yield return null;
+
+            GameObject? colonist = GameObject.Find("First Survivor");
+            Assert.That(colonist, Is.Not.Null, "the colony is a list of names again");
+
+            Assert.That(
+                colonist!.GetComponent<ZombieGame.Characters.CharacterStroll>(),
+                Is.Not.Null,
+                "they will stand on one spot all game");
+            Assert.That(
+                colonist.GetComponent<Rigidbody2D>(), Is.Not.Null, "walls will not stop them");
+
+            // No keys and no belt. A second input reader in the scene would read the same keys
+            // as the MC, and the pair would cross the plot in step like a parade.
+            Assert.That(
+                colonist.GetComponent<ZombieGame.Characters.PlayerInputReader>(),
+                Is.Null,
+                "the survivor is steered by the player's keys");
+            Assert.That(colonist.GetComponent<ZombieGame.Characters.PlayerGun>(), Is.Null);
+            Assert.That(colonist.GetComponent<ZombieGame.Characters.PlayerMelee>(), Is.Null);
+        }
+
+        [UnityTest]
+        public IEnumerator TheFirstSurvivorIsNotWhoeverThePlayerIs()
+        {
+            yield return null;
+            yield return null;
+
+            GameObject? mc = GameObject.Find("MC");
+            GameObject? colonist = GameObject.Find("First Survivor");
+            Assert.That(mc, Is.Not.Null);
+            Assert.That(colonist, Is.Not.Null);
+
+            var worn = mc!.GetComponent<ZombieGame.Characters.CharacterOutfit>();
+            var spare = colonist!.GetComponent<ZombieGame.Characters.SpareOutfit>();
+            Assert.That(spare, Is.Not.Null, "nobody decides who the survivor is");
+            Assert.That(spare.Wearing, Is.Not.Null, "the plot was built with a nameless figure");
+
+            // Compared against whoever is actually being played rather than against one name:
+            // the point is that the base never shows the player twice, whichever card was
+            // pressed on the way in.
+            Assert.That(
+                spare.Wearing!.DisplayName,
+                Is.Not.EqualTo(worn.Wearing!.DisplayName),
+                "the player is standing next to a copy of themselves");
+
+            Assert.That(spare.Wearing.CanBeDrawn, Is.True, "the survivor has no walk");
+        }
+
+        [UnityTest]
+        public IEnumerator TheFirstSurvivorWalksOffOnTheirOwnAndStaysOnThePlot()
+        {
+            yield return null;
+
+            GameObject? colonist = GameObject.Find("First Survivor");
+            Assert.That(colonist, Is.Not.Null);
+
+            var stroll = colonist!.GetComponent<ZombieGame.Characters.CharacterStroll>();
+            Vector2 started = colonist.transform.position;
+            float furthest = 0f;
+
+            // Counted in physics steps, not rendered frames. Walking happens in FixedUpdate, and
+            // a batch run with nothing to draw rattles through hundreds of frames in a fraction
+            // of a second of game time — in frames, this test watched for half a second and
+            // concluded the survivor was scenery.
+            // Twelve seconds: long enough for the first pause, a walk, and a stop.
+            for (int step = 0; step < 600; step++)
+            {
+                yield return new WaitForFixedUpdate();
+
+                Vector2 here = colonist.transform.position;
+                furthest = Mathf.Max(furthest, (here - started).magnitude);
+
+                // A little slack on the edges, because stopping takes a step and the spot they
+                // are heading for is the last cell rather than the fence.
+                Assert.That(
+                    stroll.Area.xMin - 1.5f <= here.x && here.x <= stroll.Area.xMax + 1.5f,
+                    Is.True,
+                    $"the survivor walked off the plot at {here}");
+                Assert.That(
+                    stroll.Area.yMin - 1.5f <= here.y && here.y <= stroll.Area.yMax + 1.5f,
+                    Is.True,
+                    $"the survivor walked off the plot at {here}");
+            }
+
+            Assert.That(furthest, Is.GreaterThan(0.25f), "the survivor never left their spot");
         }
 
         [UnityTest]

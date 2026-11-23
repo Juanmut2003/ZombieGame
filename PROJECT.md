@@ -239,7 +239,38 @@ figure handed out for free: a site with no barracks houses nobody, however large
 - The generator and the well now have sheets of their own and the same four-level treatment.
   Storage and defence structures still have none.
 
-#### 4.2.2 The building menu
+**Buildings do not turn.** Each one is drawn one way round — roof at the top, steps at the bottom
+— so a quarter turn would need a second drawing of every building at every level, and until there
+is one, turning only ever moved the ground out from under the picture: a turned farm had its fence
+across the middle of its own fields and open air where the gate was. A building goes down the way
+it is drawn, and fitting it on the plot is part of the puzzle.
+
+#### 4.2.2 Buildings are rooms you walk into
+
+A building is **a room with its roof cut away**, which is how the art draws it: beds and a table
+inside, shelves along the walls, a low fence across the front and steps up to a doorway in the
+middle of it. The footprints match that drawing cell for cell. So:
+
+- **The walls are solid, the floor is not.** A building blocks its four edges — the back wall is
+  the roof strip, three quarters of a cell deep; the sides and front are a quarter — and leaves
+  **one cell of doorway** in the middle of the front wall, where the steps are. Nobody walks
+  through a wall and everybody can walk in.
+- **Buildings draw below every figure**, in a band of their own above the ground and under the
+  actors. Sorting a building with the actors put the floor of the barracks on top of whoever had
+  walked in, which read as the survivor being swallowed by their own bed.
+- Turning a building round and improving it into a bigger one **rebuild the room**: walls,
+  doorway and posts all move with it.
+
+**A survivor at work stands at their post.** Each level has as many posts as it has work posts,
+spread along the back of the room where the furniture is drawn. Put somebody to work and the
+figure walks to the doorstep, in through the door, and stands at their bench until the job is
+taken away; send them home and they go back to wandering the plot. Two workers in one building
+stand at two different posts. Going to the door first and the post second is deliberate: it is
+what a person does, and it is the whole of the pathfinding a one-cell doorway needs.
+
+The colony panel still decides **who** works where (§4.3). The plot only shows the answer.
+
+#### 4.2.3 The building menu
 
 Clicking a standing building opens a **ring of four options around it**, rather than putting a
 line of keys at the bottom of the screen: improve (upper left, with the price), put somebody to
@@ -333,6 +364,39 @@ farm, somebody working, and one raid brought home. They are a checklist derived 
 people, not a scripted sequence — a barracks torn down un-ticks its line. Together they are the
 smallest set that makes the player touch every system the base has: placement, cost, jobs, the day,
 and the way out.
+
+**The MC stands on the plot.** The base is not a map screen with a cursor on it: the character the
+player controls everywhere else is down there among the buildings, and is walked about with the same
+keys as a zone. That is what §6 assumes when it says the defence is played in real time at the base
+— a wave cannot be fought by something that is not there — and it is what makes the plot a place
+rather than a diagram.
+
+A walking character and a turn-shaped base are not in conflict, because **the clock is not a
+movement clock**. Time of day in the base only moves when the player ends the day (§12); walking
+about, like turning a building round or reading a panel, costs nothing and takes as long as it
+takes. What the player spends by acting is a **day**, not a second.
+
+Because the person on the plot is the MC, they are **whoever was picked in the menu** — the base
+does not have a cast of its own. The roster's default is therefore the character the colony scene is
+built around, so that pressing START and walking about are the same person without the player having
+to choose correctly first.
+
+**The one not picked is already living there.** The menu offers a choice between people, so the
+roster character the player turns down is the colony's **first survivor**, with a body on the plot
+that walks about on its own. Whichever card is pressed, the base holds two figures and never the
+same figure twice: the colony reads as somebody else's home the MC has walked into, rather than an
+empty plot with a list of names attached to it.
+
+That survivor is a **body, not a worker**. They keep to the plot, carry nothing and are wired to no
+system: who does which job is still decided in the colony panel (§4.4), an assigned survivor does
+not walk to their farm, and the panel does not care where this one is standing. Strolling is the
+same legs as the MC's — the same walls stop them and the same gait draws them — driven by a spot on
+the plot and a pause, with the pace, the pauses and the patience in the `BalanceConfig`. When the
+colony grows bodies for everybody, it grows them from this.
+
+The MC on the plot **carries no weapon**. There is nothing there to shoot, the mouse button is
+already spoken for by building, and a gun that only ever hits your own farm is worse than no gun.
+They get one back when something arrives worth shooting at.
 
 ---
 
@@ -540,10 +604,11 @@ Named groups with territory, demands and attitudes. Reputation per faction (−1
   muzzle flashes, floodlights, window glow. Lighting is a gameplay system, not decoration.
 - **UI:** diegetic where possible — a clipboard for base management, a paper map for travel, a radio
   for faction comms.
-- **HUD type:** the whole interface is set in **Neonbyte**, a 5×7 monospaced pixel face generated
-  from bitmaps rather than imported as a font file. Its glyphs are drawn **white**, so a label's
-  colour is the text's entire appearance and never a tint fighting something baked in. The HUD is
-  written in **dark blue**, light enough to hold against the grass it is read over.
+- **HUD type:** the whole interface is set in one **pixel face**, never a smooth system font — a
+  HUD drawn at 64 pixels to the tile and labelled in a smooth face reads as two games at once.
+  Glyphs are drawn **white** and tinted by the label, so a label's colour is the text's entire
+  appearance and never a tint fighting something baked in. The HUD is written in **dark blue**,
+  light enough to hold against the grass it is read over.
   **A line that does not apply washes out towards grey — it never turns red.** An option that cannot
   be taken goes pale and recedes; alarm colours are reserved for the world, not the readout.
   Sizes are whole multiples of the seven-pixel body (14 for body text, 21 for buttons); anything

@@ -30,6 +30,15 @@ namespace ZombieGame.Core.Rendering
         /// <summary>Scrub, which stands on the ground and is walked through.</summary>
         public const int Scrub = 3;
 
+        /// <summary>The lowest a building can sort.</summary>
+        public const int StructureLowest = 10;
+
+        /// <summary>Where the building band is centred.</summary>
+        public const int StructureMiddle = 50;
+
+        /// <summary>The highest a building can sort. Still below every actor.</summary>
+        public const int StructureHighest = 90;
+
         /// <summary>Where the actor band is centred.</summary>
         public const int ActorMiddle = 500;
 
@@ -52,6 +61,22 @@ namespace ZombieGame.Core.Rendering
         /// end of the band would otherwise start sorting its far corners into the floor again,
         /// and that is precisely the fault this class exists to make impossible.
         /// </remarks>
+        /// <summary>
+        /// Where a building standing at <paramref name="y"/> draws: in its own band, below
+        /// every actor and above the ground.
+        /// </summary>
+        /// <remarks>
+        /// A band of its own because a building at the base is a room with its roof cut away,
+        /// and the figures inside it have to be seen. Sorting buildings with the actors put the
+        /// floor of the barracks on top of anybody who had walked in, which looked like the
+        /// survivor had been swallowed by their own bed.
+        /// Two steps per world unit, which is enough to keep two buildings in order on a plot
+        /// eight cells deep and leaves the band room to spare.
+        /// </remarks>
+        public static int ForStructure(float y) =>
+            Mathf.Clamp(
+                StructureMiddle - Mathf.RoundToInt(y * 2f), StructureLowest, StructureHighest);
+
         public static int ForGround(float y) =>
             Mathf.Clamp(
                 ActorMiddle - Mathf.RoundToInt(y * 10f), ActorLowest, ActorHighest);

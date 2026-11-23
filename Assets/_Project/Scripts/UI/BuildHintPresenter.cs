@@ -24,8 +24,8 @@ namespace ZombieGame.UI
         [SerializeField]
         private Text? _line;
 
-        // Neonbyte's glyphs are white, so these are the line's whole appearance rather than a
-        // tint over one. They are the HUD's dark blue at three strengths: a refusal washes out
+        // A label's glyphs are drawn white and multiplied by one vertex colour, so these are the
+        // line's whole appearance. They are the HUD's dark blue at three strengths: a refusal washes out
         // towards grey instead of turning red, which is the direction the rest of the interface
         // is headed — an option that cannot be taken goes pale, not alarming.
         // Full strength is the same blue as BaseSceneBuilder's HudInk.
@@ -64,7 +64,7 @@ namespace ZombieGame.UI
                 if (!ShowSelected())
                 {
                     _line.text =
-                        "1-6  BUILD    R  TURN    ESC  PUT DOWN    CLICK A BUILDING  ITS MENU";
+                        "WASD  WALK    1-6  BUILD    ESC  DROP    CLICK A BUILDING  ITS MENU";
                     _line.color = _idle;
                 }
 

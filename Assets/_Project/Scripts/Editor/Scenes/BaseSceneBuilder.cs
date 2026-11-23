@@ -5,8 +5,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 using ZombieGame.Base;
+using ZombieGame.Characters;
 using ZombieGame.Core.Config;
 using ZombieGame.Core.Rendering;
+using ZombieGame.Core.Roster;
 using ZombieGame.Core.SceneFlow;
 using ZombieGame.Economy;
 using ZombieGame.Editor.Art;
@@ -71,6 +73,9 @@ namespace ZombieGame.Editor.Scenes
         /// <summary>Where the wheel's pieces are kept.</summary>
         private const string UiSprites = "Assets/_Project/Art/Sprites/UI";
 
+        /// <summary>Where the people are drawn.</summary>
+        private const string CharacterSprites = "Assets/_Project/Art/Sprites/Characters";
+
         /// <summary>Where the colony's starting amounts come from.</summary>
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
 
@@ -78,8 +83,8 @@ namespace ZombieGame.Editor.Scenes
         /// What the HUD's text is written in.
         /// </summary>
         /// <remarks>
-        /// Dark blue. Neonbyte's glyphs are white, so this colour is the whole appearance of the
-        /// text rather than a tint over it. Kept light enough to hold its own against the grass
+        /// Dark blue. A label's glyphs are drawn white and multiplied by one vertex colour, so
+        /// this is the whole appearance of the text. Kept light enough to hold its own against the grass
         /// it is read over — a true navy disappears into the darker tiles.
         /// </remarks>
         private static readonly Color HudInk = new(0.15f, 0.23f, 0.56f, 1f);
@@ -88,20 +93,20 @@ namespace ZombieGame.Editor.Scenes
         /// The size the HUD's body text is set at.
         /// </summary>
         /// <remarks>
-        /// Twice Neonbyte's seven-pixel body, so every pixel of the face lands on exactly four
-        /// screen pixels. A size that is not a whole multiple gives some columns of a letter one
-        /// pixel and others two, which on a five-pixel-wide glyph is the difference between an E
-        /// and an F.
+        /// Twice a seven-pixel body, so a pixel of the face lands on a whole number of screen
+        /// pixels. A size that is not a whole multiple gives some columns of a letter one pixel
+        /// and others two, which on a five-pixel-wide glyph is the difference between an E and
+        /// an F.
         /// </remarks>
         private const int BodyText = 14;
 
         /// <summary>
-        /// How wide one character of <see cref="BodyText"/> is.
+        /// How wide one character of <see cref="BodyText"/> is taken to be.
         /// </summary>
         /// <remarks>
-        /// Neonbyte is monospaced — five pixels and a gap, at twice scale — so the width of a
-        /// line is its length times this, exactly. Every rect below is measured that way rather
-        /// than guessed, which is what the old proportional face forced.
+        /// The widest character, not the average: the face is proportional, so a rect measured
+        /// as length times this is roomy for most lines and too small for none. A rect that
+        /// fits the average line clips the one line that matters.
         /// </remarks>
         private const float BodyAdvance = 12f;
 
@@ -140,7 +145,10 @@ namespace ZombieGame.Editor.Scenes
                 (BuildPlacer placer, BuildSiteView site, Transform built) =
                     CreatePlacement(scene, camera);
                 Canvas canvas = CreateStoresHud(scene, camera, placer);
-                CreateColony(scene, camera, canvas, placer, site, built);
+                ColonyRuntime colony =
+                    CreateColony(scene, camera, canvas, placer, site, built);
+                CreateWalker(scene);
+                CreateSurvivors(scene, colony, site, built);
             });
 
             Debug.Log($"[Scenes] built {ProjectScenes.Base}");
@@ -314,12 +322,12 @@ namespace ZombieGame.Editor.Scenes
             Text hint = UiSceneParts.CreateLabel(
                 canvas.transform,
                 "Build Hint",
-                "1-6  BUILD    R  TURN    ESC  PUT DOWN    CLICK A BUILDING  ITS MENU",
-                // The lowest of the three bottom rows. Sixty-eight characters at twelve pixels
-                // is 816 wide, which is most of the frame — it gets a row to itself. Twenty-two
+                "WASD  WALK    1-6  BUILD    ESC  DROP    CLICK A BUILDING  ITS MENU",
+                // The lowest of the three bottom rows. Seventy-eight characters at twelve pixels
+                // is 936 wide, which is all but the margins — it gets a row to itself. Twenty-two
                 // pixels of clearance under it: the frame ends at 270 and the row is 20 tall.
                 anchoredPosition: new Vector2(0f, -248f),
-                size: new Vector2(68f * BodyAdvance, BodyLine),
+                size: new Vector2(78f * BodyAdvance, BodyLine),
                 fontSize: BodyText,
                 colour: HudInk);
 
@@ -350,7 +358,7 @@ namespace ZombieGame.Editor.Scenes
         /// day is over. That is what makes the base turn-shaped against the zones' real time,
         /// and it means there has to be a button for it or the colony never eats.
         /// </remarks>
-        private static void CreateColony(
+        private static ColonyRuntime CreateColony(
             Scene scene,
             Camera camera,
             Canvas canvas,
@@ -455,6 +463,125 @@ namespace ZombieGame.Editor.Scenes
 
             CreateBuildingWheel(scene, camera, canvas, site, actions);
             CreateOrders(scene, canvas, colony, site, balance);
+            return colony;
+        }
+
+        /// <summary>
+        /// The character the player steers, standing on the plot.
+        /// </summary>
+        /// <remarks>
+        /// PROJECT.md 4.6. The same wiring a zone's MC gets minus the belt: there is nothing on
+        /// the plot to shoot, the mouse button is already building, and a weapon that can only
+        /// ever hit your own farm is worse than none.
+        /// They start on the forecourt — the road in, the one patch of the plot nothing can be
+        /// built on — so that a colony whose every cell is spoken for still has somebody at the
+        /// gate rather than inside a barracks.
+        /// The camera stays parked. A plot that fits on one screen needs no following, and a
+        /// camera that follows is a camera that has to be told where the edges of the world are.
+        /// </remarks>
+        private static void CreateWalker(Scene scene)
+        {
+            CharacterRosterBuilder.EnsureAll();
+
+            var who = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.DrifterPath);
+            if (who == null)
+            {
+                Debug.LogWarning("[Base] no drifter on the roster; nobody walks the plot.");
+            }
+
+            Transform? walker = ZoneSceneParts.AddActor(
+                scene,
+                "MC",
+                $"{CharacterSprites}/drifter_front_walk_0.png",
+                new Vector3(SiteOrigin.x + 1.5f, SiteOrigin.y + 0.5f, 0f));
+
+            if (walker is null)
+            {
+                return;
+            }
+
+            ZoneSceneParts.MakeWalkable(walker.gameObject, who);
+        }
+
+        /// <summary>Where each of the founders is standing when a run opens.</summary>
+        /// <remarks>
+        /// Spread across the plot and clear of the gate, so that nobody starts the first frame
+        /// standing inside anybody else. They walk off from here within a few seconds anyway.
+        /// </remarks>
+        private static readonly Vector2[] FounderSpots =
+        {
+            new Vector2(7.5f, 4.5f),
+            new Vector2(10.5f, 2.5f),
+            new Vector2(4.5f, 6.5f),
+        };
+
+        /// <summary>
+        /// The colony's people: a body on the plot for each of them, walking about on their own.
+        /// </summary>
+        /// <remarks>
+        /// PROJECT.md 4.6. The first of them is whoever the player did not pick in the menu — the
+        /// roster offers a choice between people, and the one left behind was already here when
+        /// the MC arrived. Everybody after them is nobody in particular and wears the colonist
+        /// art, so a colony of three reads as three people rather than as one person and a list.
+        /// Each body is tied to its own name on the roster (§4.2.2): put that person to work and
+        /// their figure walks in through the building's door to a post, and nobody else moves.
+        /// </remarks>
+        private static void CreateSurvivors(
+            Scene scene, ColonyRuntime colony, BuildSiteView site, Transform built)
+        {
+            CharacterRosterBuilder.EnsureAll();
+
+            // The soldier for the first one in the saved scene, because the MC is built as the
+            // drifter: opening the colony from the editor should show a pair, not one person
+            // beside a copy of themselves. In a run, both are dressed again from the menu.
+            var spare = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.SoldierPath);
+            var nobody = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.ColonistPath);
+            var drifter = AssetDatabase.LoadAssetAtPath<PlayableCharacter>(
+                CharacterRosterBuilder.DrifterPath);
+
+            var plot = new Rect(
+                SiteOrigin.x + 0.5f, SiteOrigin.y + 0.5f, SiteWidth - 1f, SiteHeight - 1f);
+
+            for (int i = 0; i < FounderSpots.Length; i++)
+            {
+                bool first = i == 0;
+                string sprite = first ? "soldier_front_walk" : "survivor_front_walk";
+
+                var spot = new Vector3(
+                    SiteOrigin.x + FounderSpots[i].x, SiteOrigin.y + FounderSpots[i].y, 0f);
+
+                Transform? colonist = ZoneSceneParts.AddActor(
+                    scene,
+                    first ? "First Survivor" : $"Survivor {i + 1}",
+                    $"{CharacterSprites}/{sprite}.png",
+                    spot);
+
+                if (colonist is null)
+                {
+                    continue;
+                }
+
+                ZoneSceneParts.MakeStroller(
+                    colonist.gameObject,
+                    plot,
+                    first ? spare : nobody,
+                    drifter,
+                    first ? ZoneSceneParts.Dressing.TheSpare : ZoneSceneParts.Dressing.AsBuilt);
+
+                // The thread between one name on the colony's roster and this figure.
+                SurvivorBody body = colonist.gameObject.AddComponent<SurvivorBody>();
+                var serializedBody = new SerializedObject(body);
+                serializedBody.FindProperty("_colony").objectReferenceValue = colony;
+                serializedBody.FindProperty("_siteView").objectReferenceValue = site;
+                serializedBody.FindProperty("_built").objectReferenceValue = built;
+                serializedBody.FindProperty("_stroll").objectReferenceValue =
+                    colonist.GetComponent<CharacterStroll>();
+                serializedBody.FindProperty("_survivorId").intValue = i + 1;
+                serializedBody.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         /// <summary>

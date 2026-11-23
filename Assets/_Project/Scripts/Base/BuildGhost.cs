@@ -63,7 +63,12 @@ namespace ZombieGame.Base
                 _renderer.sprite = sprite;
             }
 
-            transform.position = new Vector3(centre.x, centre.y, 0f);
+            // Shifted by where the drawing sits relative to its pivot: building sprites pivot at
+            // the bottom, so a ghost put straight onto the middle of the cells hovers half a
+            // building up the plot — and the player places by the ghost, so the building would
+            // land somewhere they were never shown.
+            Vector3 drawn = sprite.bounds.center;
+            transform.position = new Vector3(centre.x - drawn.x, centre.y - drawn.y, 0f);
 
             // Above anything already standing, so the thing being placed is never hidden behind
             // the thing it is being placed next to.

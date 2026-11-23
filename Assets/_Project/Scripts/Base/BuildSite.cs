@@ -46,6 +46,9 @@ namespace ZombieGame.Base
         /// <summary>The world position of the bottom-left corner.</summary>
         public Vector2 Origin { get; }
 
+        /// <summary>The whole plot as a rectangle in world units, for measuring against.</summary>
+        public Rect Ground => new Rect(Origin.x, Origin.y, Width, Height);
+
         /// <summary>How many cells across.</summary>
         public int Width { get; }
 

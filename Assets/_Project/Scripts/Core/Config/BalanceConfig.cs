@@ -43,6 +43,26 @@ namespace ZombieGame.Core.Config
         [Min(1f)]
         private float _acceleration = 40f;
 
+        [Tooltip("What somebody pottering about with nothing to do multiplies walking speed by.")]
+        [SerializeField]
+        [Range(0.1f, 1f)]
+        private float _strollSpeedFactor = 0.45f;
+
+        [Tooltip("How long they stand about between two short walks, in seconds.")]
+        [SerializeField]
+        [Min(0f)]
+        private float _strollPauseSeconds = 2.5f;
+
+        [Tooltip("How long they keep heading for one spot before giving up on it, in seconds.")]
+        [SerializeField]
+        [Min(0.5f)]
+        private float _strollPatienceSeconds = 6f;
+
+        [Tooltip("How close to a spot counts as having got there, in world units.")]
+        [SerializeField]
+        [Min(0.05f)]
+        private float _strollArriveDistance = 0.25f;
+
         [Header("Health")]
         [Tooltip("Full health for the squad. Roughly a dozen bites, so being surrounded is fatal and one mistake is not.")]
         [SerializeField]
@@ -249,6 +269,18 @@ namespace ZombieGame.Core.Config
 
         /// <summary>How quickly a character reaches full speed.</summary>
         public float Acceleration => _acceleration;
+
+        /// <summary>What pottering about multiplies walking speed by.</summary>
+        public float StrollSpeedFactor => _strollSpeedFactor;
+
+        /// <summary>How long somebody stands about between two short walks.</summary>
+        public float StrollPauseSeconds => _strollPauseSeconds;
+
+        /// <summary>How long they keep heading for one spot before giving up on it.</summary>
+        public float StrollPatienceSeconds => _strollPatienceSeconds;
+
+        /// <summary>How close to a spot counts as having got there.</summary>
+        public float StrollArriveDistance => _strollArriveDistance;
 
         /// <summary>How hard crowded zombies push each other apart.</summary>
         public float ZombieSeparationStrength => _zombieSeparationStrength;
