@@ -53,13 +53,15 @@ namespace ZombieGame.UI
         [SerializeField]
         private Text? _raidLabel;
 
-        [Tooltip("Colour of a line that is still outstanding.")]
+        // The HUD's dark blue, and a washed-out version of it. See BuildHintPresenter: the glyphs
+        // are white, so these are the text's whole appearance rather than a tint over it.
+        [Tooltip("Colour of a list that is still outstanding.")]
         [SerializeField]
-        private Color _open = new(0.86f, 0.86f, 0.82f, 1f);
+        private Color _open = new(0.15f, 0.23f, 0.56f, 1f);
 
-        [Tooltip("Colour of a line that is done.")]
+        [Tooltip("Colour of a list that is done, which recedes rather than changing hue.")]
         [SerializeField]
-        private Color _done = new(0.55f, 0.72f, 0.44f, 1f);
+        private Color _done = new(0.42f, 0.45f, 0.55f, 1f);
 
         private readonly StringBuilder _text = new();
 

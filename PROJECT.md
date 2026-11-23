@@ -539,7 +539,17 @@ Named groups with territory, demands and attitudes. Reputation per faction (−1
 - **Lighting:** URP 2D lights — day/night global light ramp, flashlights with cone shadows, fire,
   muzzle flashes, floodlights, window glow. Lighting is a gameplay system, not decoration.
 - **UI:** diegetic where possible — a clipboard for base management, a paper map for travel, a radio
-  for faction comms. Pixel font with a clean fallback for readability.
+  for faction comms.
+- **HUD type:** the whole interface is set in **Neonbyte**, a 5×7 monospaced pixel face generated
+  from bitmaps rather than imported as a font file. Its glyphs are drawn **white**, so a label's
+  colour is the text's entire appearance and never a tint fighting something baked in. The HUD is
+  written in **dark blue**, light enough to hold against the grass it is read over.
+  **A line that does not apply washes out towards grey — it never turns red.** An option that cannot
+  be taken goes pale and recedes; alarm colours are reserved for the world, not the readout.
+  Sizes are whole multiples of the seven-pixel body (14 for body text, 21 for buttons); anything
+  else lands a five-pixel-wide letter on fractional screen pixels and changes its shape. Being
+  monospaced, a line's width is its length times the advance exactly — lay HUD rects out by counting
+  characters, not by eye.
 - **Audio:** sparse ambient wind and distant moans; music only on waves, discoveries and death.
   Occlusion-aware positional SFX — hearing matters as much for the player as for the zombies.
 

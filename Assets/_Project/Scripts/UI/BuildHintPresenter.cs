@@ -24,17 +24,22 @@ namespace ZombieGame.UI
         [SerializeField]
         private Text? _line;
 
+        // Neonbyte's glyphs are white, so these are the line's whole appearance rather than a
+        // tint over one. They are the HUD's dark blue at three strengths: a refusal washes out
+        // towards grey instead of turning red, which is the direction the rest of the interface
+        // is headed — an option that cannot be taken goes pale, not alarming.
+        // Full strength is the same blue as BaseSceneBuilder's HudInk.
         [Tooltip("Colour while the spot will take it.")]
         [SerializeField]
-        private Color _allowed = new(0.62f, 0.81f, 0.54f, 1f);
+        private Color _allowed = new(0.15f, 0.23f, 0.56f, 1f);
 
-        [Tooltip("Colour while it will not.")]
+        [Tooltip("Colour while it will not. Pale, rather than a warning of its own.")]
         [SerializeField]
-        private Color _refused = new(0.84f, 0.33f, 0.3f, 1f);
+        private Color _refused = new(0.42f, 0.45f, 0.55f, 1f);
 
         [Tooltip("Colour while nothing is being held.")]
         [SerializeField]
-        private Color _idle = new(0.6f, 0.62f, 0.59f, 1f);
+        private Color _idle = new(0.28f, 0.33f, 0.52f, 1f);
 
         /// <summary>What the line currently says. For tests.</summary>
         public string Text => _line == null ? string.Empty : _line.text;

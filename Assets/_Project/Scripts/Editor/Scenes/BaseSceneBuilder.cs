@@ -49,8 +49,24 @@ namespace ZombieGame.Editor.Scenes
         /// </remarks>
         private static readonly Vector2 SiteOrigin = new(-0.5f, -0.5f);
 
-        /// <summary>How far the grass runs past the plot, in cells.</summary>
-        private const int Margin = 4;
+        /// <summary>How far the grass runs past the plot to each side, in cells.</summary>
+        /// <remarks>
+        /// Wide enough that the ground still reaches the sides of the window on an ultrawide
+        /// monitor. The camera shows one tile per 64 screen pixels while the pixel-perfect zoom is
+        /// one, which it is for every window under 1080 tall — so a 3840-wide window looks at 60
+        /// cells, and ground painted any narrower ends partway across the screen with the camera's
+        /// background colour beyond it. The HUD is anchored to the window rather than to the
+        /// ground, so that gap is where its edge lines end up sitting.
+        /// </remarks>
+        private const int MarginX = 24;
+
+        /// <summary>How far the grass runs past the plot above and below, in cells.</summary>
+        /// <remarks>
+        /// Smaller than <see cref="MarginX"/> because height is what the zoom is computed from:
+        /// a window tall enough to need more than this has already stepped up to zoom two, which
+        /// halves the cells on screen again.
+        /// </remarks>
+        private const int MarginY = 8;
 
         /// <summary>Where the wheel's pieces are kept.</summary>
         private const string UiSprites = "Assets/_Project/Art/Sprites/UI";
@@ -58,8 +74,39 @@ namespace ZombieGame.Editor.Scenes
         /// <summary>Where the colony's starting amounts come from.</summary>
         private const string BalanceConfigPath = "Assets/_Project/Data/BalanceConfig.asset";
 
-        /// <summary>The colour the readout and the hint are written in.</summary>
-        private static readonly Color HudInk = new(0.86f, 0.86f, 0.82f, 1f);
+        /// <summary>
+        /// What the HUD's text is written in.
+        /// </summary>
+        /// <remarks>
+        /// Dark blue. Neonbyte's glyphs are white, so this colour is the whole appearance of the
+        /// text rather than a tint over it. Kept light enough to hold its own against the grass
+        /// it is read over — a true navy disappears into the darker tiles.
+        /// </remarks>
+        private static readonly Color HudInk = new(0.15f, 0.23f, 0.56f, 1f);
+
+        /// <summary>
+        /// The size the HUD's body text is set at.
+        /// </summary>
+        /// <remarks>
+        /// Twice Neonbyte's seven-pixel body, so every pixel of the face lands on exactly four
+        /// screen pixels. A size that is not a whole multiple gives some columns of a letter one
+        /// pixel and others two, which on a five-pixel-wide glyph is the difference between an E
+        /// and an F.
+        /// </remarks>
+        private const int BodyText = 14;
+
+        /// <summary>
+        /// How wide one character of <see cref="BodyText"/> is.
+        /// </summary>
+        /// <remarks>
+        /// Neonbyte is monospaced — five pixels and a gap, at twice scale — so the width of a
+        /// line is its length times this, exactly. Every rect below is measured that way rather
+        /// than guessed, which is what the old proportional face forced.
+        /// </remarks>
+        private const float BodyAdvance = 12f;
+
+        /// <summary>Baseline to baseline for <see cref="BodyText"/>, from the font's line spacing.</summary>
+        private const float BodyLine = 20f;
 
         /// <summary>
         /// Ground nothing may be built on: the forecourt where the road comes in.
@@ -123,9 +170,9 @@ namespace ZombieGame.Editor.Scenes
             Tilemap floor = ZoneSceneParts.CreateTilemapLayer(
                 gridObject.transform, "Tilemap_Floor", SortingBands.Floor);
 
-            for (int row = -Margin; row < SiteHeight + Margin; row++)
+            for (int row = -MarginY; row < SiteHeight + MarginY; row++)
             {
-                for (int column = -Margin; column < SiteWidth + Margin; column++)
+                for (int column = -MarginX; column < SiteWidth + MarginX; column++)
                 {
                     bool onPlot = (uint)column < (uint)SiteWidth && (uint)row < (uint)SiteHeight;
                     Tile[] set = onPlot
@@ -244,9 +291,10 @@ namespace ZombieGame.Editor.Scenes
                     opening[i],
                     // Far enough in that the first letter clears the edge of the screen: the
                     // label is anchored at its middle and reaches half its width to the left.
-                    anchoredPosition: new Vector2(-340f, 238f - (i * 22f)),
-                    size: new Vector2(200f, 20f),
-                    fontSize: 14,
+                    // Spaced by the font's own line height, so the four read as one block.
+                    anchoredPosition: new Vector2(-340f, 238f - (i * BodyLine)),
+                    size: new Vector2(200f, BodyLine),
+                    fontSize: BodyText,
                     colour: HudInk,
                     alignment: TextAnchor.MiddleLeft);
             }
@@ -267,9 +315,12 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Build Hint",
                 "1-6  BUILD    R  TURN    ESC  PUT DOWN    CLICK A BUILDING  ITS MENU",
-                anchoredPosition: new Vector2(0f, -238f),
-                size: new Vector2(900f, 24f),
-                fontSize: 14,
+                // The lowest of the three bottom rows. Sixty-eight characters at twelve pixels
+                // is 816 wide, which is most of the frame — it gets a row to itself. Twenty-two
+                // pixels of clearance under it: the frame ends at 270 and the row is 20 tall.
+                anchoredPosition: new Vector2(0f, -248f),
+                size: new Vector2(68f * BodyAdvance, BodyLine),
+                fontSize: BodyText,
                 colour: HudInk);
 
             GameObject hintPresenterObject = SceneBuilder.CreateObject(scene, "Build Hint Presenter");
@@ -355,33 +406,40 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Colony Roster",
                 "COLONY",
-                // Far enough down that the first line clears the top of the screen: the label is
-                // anchored at its middle and reaches half its height upwards.
-                anchoredPosition: new Vector2(330f, 160f),
-                size: new Vector2(240f, 160f),
-                fontSize: 13,
+                // Set against the right edge rather than from a left margin, so a long line —
+                // a full name beside a building and its level — grows inwards across the plot
+                // instead of off the side of the frame. The longest it can reach is about forty
+                // characters, which is why the box is as wide as it is.
+                anchoredPosition: new Vector2(229f, 150f),
+                size: new Vector2(470f, 200f),
+                fontSize: BodyText,
                 colour: HudInk,
-                alignment: TextAnchor.UpperLeft);
+                alignment: TextAnchor.UpperRight);
 
             Text day = UiSceneParts.CreateLabel(
                 canvas.transform,
                 "Colony Day",
                 "TAB  PICK      CLICK A BUILDING  PUT TO WORK      U  STOP",
-                // Shifted left and kept clear of the two buttons, which say the same thing the
-                // missing hint used to.
-                anchoredPosition: new Vector2(-170f, -212f),
-                size: new Vector2(540f, 22f),
-                fontSize: 13,
-                colour: HudInk);
+                // Written from the left edge rather than out from the middle. A day with all
+                // three of its troubles to report runs to about seventy characters — the longest
+                // line the HUD can produce — so it gets its own row above the hint, clear of the
+                // buttons rather than squeezed in beside them.
+                anchoredPosition: new Vector2(-29f, -222f),
+                size: new Vector2(870f, BodyLine),
+                fontSize: BodyText,
+                colour: HudInk,
+                alignment: TextAnchor.MiddleLeft);
 
             Button endDay = UiSceneParts.CreateButton(
                 canvas.transform,
                 "End Day Button",
                 "END DAY",
-                anchoredPosition: new Vector2(366f, -212f),
-                size: new Vector2(180f, 36f),
+                // Pinned by its right edge, a margin in from the side of the frame.
+                anchoredPosition: new Vector2(464f, -184f),
+                size: new Vector2(180f, 40f),
                 background: new Color(0.17f, 0.19f, 0.19f, 1f),
-                labelColour: HudInk);
+                labelColour: HudInk,
+                pivot: new Vector2(1f, 0.5f));
 
             GameObject presenterObject = SceneBuilder.CreateObject(scene, "Colony Presenter");
             ColonyPresenter presenter = presenterObject.AddComponent<ColonyPresenter>();
@@ -432,10 +490,13 @@ namespace ZombieGame.Editor.Scenes
                 "Colony Orders",
                 "ORDERS\n[ ] BUILD A BARRACKS\n[ ] BUILD A FARM\n"
                 + $"[ ] PUT SOMEBODY TO WORK\n[ ] RAID THE TOWN FOR {wanted} SUPPLIES   0 / {wanted}",
-                // Under the four store lines, which end at 172.
-                anchoredPosition: new Vector2(-340f, 100f),
-                size: new Vector2(320f, 140f),
-                fontSize: 13,
+                // Under the four store lines and flush with their left edge. The longest order
+                // runs to about forty-five characters, and the squad's haul is added underneath
+                // it, so the box is both wider and taller than the list that fits an empty
+                // colony — what is written into the saved scene is the short version.
+                anchoredPosition: new Vector2(-160f, 55f),
+                size: new Vector2(560f, 190f),
+                fontSize: BodyText,
                 colour: HudInk,
                 alignment: TextAnchor.UpperLeft);
 
@@ -443,10 +504,14 @@ namespace ZombieGame.Editor.Scenes
                 canvas.transform,
                 "Raid Button",
                 "RAID TOWN",
-                anchoredPosition: new Vector2(190f, -212f),
-                size: new Vector2(160f, 36f),
+                // Pinned by its right edge to the left of the end-day button, so the wider label
+                // it carries once the squad has been out grows into the gap rather than over it.
+                anchoredPosition: new Vector2(268f, -184f),
+                size: new Vector2(160f, 40f),
                 background: new Color(0.21f, 0.17f, 0.15f, 1f),
-                labelColour: HudInk);
+                labelColour: HudInk,
+                widestLabel: "BACK TOMORROW",
+                pivot: new Vector2(1f, 0.5f));
 
             GameObject presenterObject = SceneBuilder.CreateObject(scene, "Colony Task Presenter");
             ColonyTaskPresenter presenter = presenterObject.AddComponent<ColonyTaskPresenter>();

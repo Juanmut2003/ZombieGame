@@ -205,7 +205,32 @@ namespace ZombieGame.Editor.Scenes
             return fill;
         }
 
+        /// <summary>Space kept between a button's label and its edge, on each side.</summary>
+        private const float ButtonPadding = 14f;
+
+        /// <summary>
+        /// The size a button's label is set at.
+        /// </summary>
+        /// <remarks>
+        /// Three times Neonbyte's seven-pixel body, so the face lands on whole screen pixels.
+        /// Four times reads as a headline rather than a control beside a HUD set at twice.
+        /// </remarks>
+        private const int ButtonText = 21;
+
         /// <summary>Creates a button with a centred label and returns it.</summary>
+        /// <param name="size">
+        /// The button's smallest size. It is widened if the label does not fit, never narrowed.
+        /// </param>
+        /// <param name="widestLabel">
+        /// The longest text this button will ever show, when that is not <paramref name="label"/>.
+        /// A button measured against the text it starts with is the wrong width for every other
+        /// text a presenter puts on it later.
+        /// </param>
+        /// <param name="pivot">
+        /// Which point of the button <paramref name="anchoredPosition"/> places. The default
+        /// centres it; a pivot on an edge pins that edge, so a button that has to grow grows away
+        /// from it rather than over whatever sits on that side.
+        /// </param>
         public static Button CreateButton(
             Transform parent,
             string name,
@@ -213,7 +238,9 @@ namespace ZombieGame.Editor.Scenes
             Vector2 anchoredPosition,
             Vector2 size,
             Color background,
-            Color labelColour)
+            Color labelColour,
+            string? widestLabel = null,
+            Vector2? pivot = null)
         {
             var buttonObject = new GameObject(name, typeof(RectTransform));
             buttonObject.transform.SetParent(parent, worldPositionStays: false);
@@ -221,7 +248,7 @@ namespace ZombieGame.Editor.Scenes
             var rect = (RectTransform)buttonObject.transform;
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.pivot = pivot ?? new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = anchoredPosition;
             rect.sizeDelta = size;
 
@@ -237,11 +264,40 @@ namespace ZombieGame.Editor.Scenes
                 label,
                 Vector2.zero,
                 size,
-                28,
+                ButtonText,
                 labelColour);
             text.raycastTarget = false;
 
+            // The background is sized to the text rather than the text fitted into the
+            // background: labels here overflow instead of wrapping, so a button narrower than its
+            // label does not clip the ends, it lets them run out over the HUD on both sides.
+            var grown = new Vector2(
+                Mathf.Max(size.x, WidthNeededFor(text, widestLabel ?? label)),
+                size.y);
+
+            rect.sizeDelta = grown;
+            ((RectTransform)text.transform).sizeDelta = grown;
+
             return button;
+        }
+
+        /// <summary>
+        /// How wide a button has to be for <paramref name="content"/> to sit inside it.
+        /// </summary>
+        /// <remarks>
+        /// Measured from the font the label actually uses rather than estimated from the character
+        /// count, which is only right for a fixed-width face. Returns zero when the text generator
+        /// has nothing to say — an empty label, or a font that failed to load — leaving the caller
+        /// with the width it asked for.
+        /// </remarks>
+        private static float WidthNeededFor(Text label, string content)
+        {
+            string shown = label.text;
+            label.text = content;
+            float preferred = label.preferredWidth;
+            label.text = shown;
+
+            return preferred <= 0f ? 0f : preferred + (ButtonPadding * 2f);
         }
     }
 }
