@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28ee90e14c438d44fb33488af4087b11, type: 3}
+  m_Name: Drifter
+  m_EditorClassIdentifier: ZombieGame.Core::ZombieGame.Core.Roster.PlayableCharacter
+  _displayName: Drifter
+  _blurb: Walked in off the road and never said where from.
+  _available: 1
+  _portrait: {fileID: 21300000, guid: b6347d2557223d048b997cd4406415f0, type: 3}
+  _front:
+  - {fileID: 21300000, guid: b6347d2557223d048b997cd4406415f0, type: 3}
+  - {fileID: 21300000, guid: 7d1d8b57fccbdc1419f79d8b44c1f95d, type: 3}
+  - {fileID: 21300000, guid: 8d60ba02cab6ed049b0d728276b9cd33, type: 3}
+  - {fileID: 21300000, guid: 5b828e5d9e68aed4bb4f203784fd80ca, type: 3}
+  _back:
+  - {fileID: 21300000, guid: 5522073117bfb9b4fb5baa3c9efdff4f, type: 3}
+  _left:
+  - {fileID: 21300000, guid: a492e6f27beee804ab7d7abd2430445b, type: 3}
+  - {fileID: 21300000, guid: 0a72b26965593eb4a8df69beae2c66b0, type: 3}
+  - {fileID: 21300000, guid: a8b24c8cb617a7b4f86a0b4916a935df, type: 3}
+  - {fileID: 21300000, guid: d4da8d733bade2e49a7f11ad38f4bc40, type: 3}
+  - {fileID: 21300000, guid: d6911b96625f3f9449e4517dfc45cf96, type: 3}
+  - {fileID: 21300000, guid: cbd0560ac8638494889c834342769f81, type: 3}
+  - {fileID: 21300000, guid: f982710b8634c654783437c21caad021, type: 3}
+  - {fileID: 21300000, guid: ad539dfcf7b373a41888df764a529421, type: 3}
+  _right:
+  - {fileID: 21300000, guid: 9a24a5e46d9920344a06653f402a6b7d, type: 3}
+  - {fileID: 21300000, guid: 744f522ed346e764aa3dc5058b99ecf6, type: 3}
+  - {fileID: 21300000, guid: 1ef392cd197a3a94fa9f214da40f02e0, type: 3}
+  - {fileID: 21300000, guid: c23128bdd6632914e878ce1613715886, type: 3}
+  - {fileID: 21300000, guid: 41faf453bf0dc3b46b1abe644e2d6053, type: 3}
+  - {fileID: 21300000, guid: 28d03ca6aef07854fbdceed4cb364be8, type: 3}
+  - {fileID: 21300000, guid: 6ffaa3f811f48c544863604f208a1330, type: 3}
+  - {fileID: 21300000, guid: d521879160259714db7d4dd88be3f233, type: 3}

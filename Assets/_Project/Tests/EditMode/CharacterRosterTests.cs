@@ -116,5 +116,77 @@ namespace ZombieGame.Tests.EditMode
             selection.Clear();
             Assert.That(selection.HasChoice, Is.False);
         }
+
+        [Test]
+        public void TheDrifterIsTheMostFinishedPersonOnTheRoster()
+        {
+            PlayableCharacter drifter = Load("Drifter");
+
+            Assert.That(drifter.Available, Is.True);
+            Assert.That(drifter.CanBeDrawn, Is.True);
+            Assert.That(drifter.Portrait, Is.Not.Null, "no face on the card");
+
+            // The colony scene is built around them and the player looks at them standing still
+            // for a whole day at a time, so the standing pose has to be more than one drawing.
+            Assert.That(drifter.Front.Length, Is.GreaterThan(1), "they stand like a statue");
+            Assert.That(drifter.Back, Is.Not.Empty, "they turn round when walking up");
+            Assert.That(drifter.Left.Length, Is.EqualTo(8), "the walk lost frames");
+            Assert.That(drifter.Right.Length, Is.EqualTo(drifter.Left.Length), "lopsided walk");
+        }
+
+        [Test]
+        public void WhoeverWasNotPickedIsSomebodyElse()
+        {
+            PlayableCharacter drifter = Load("Drifter");
+            PlayableCharacter soldier = Load("Soldier");
+            var roster = new[] { drifter, soldier, Load("Archer") };
+
+            // What the colony puts on the plot as its first survivor. Picking either card has to
+            // leave the other person behind, or the player meets themselves in their own base.
+            Assert.That(RosterChoice.SomebodyElse(roster, drifter), Is.EqualTo(soldier));
+            Assert.That(RosterChoice.SomebodyElse(roster, soldier), Is.EqualTo(drifter));
+        }
+
+        [Test]
+        public void TheUnfinishedOneIsNeverTheOneLeftBehind()
+        {
+            PlayableCharacter archer = Load("Archer");
+            var roster = new[] { Load("Drifter"), archer };
+
+            // Standing somebody with no walk in the base is worse than an empty plot, so the
+            // colony would rather have nobody than have them.
+            Assert.That(RosterChoice.SomebodyElse(roster, Load("Drifter")), Is.Null);
+            Assert.That(RosterChoice.SomebodyElse(roster, archer), Is.EqualTo(Load("Drifter")));
+        }
+
+        [Test]
+        public void AnEmptyRosterLeavesNobodyBehind()
+        {
+            Assert.That(RosterChoice.SomebodyElse(null, null), Is.Null);
+            Assert.That(
+                RosterChoice.SomebodyElse(new PlayableCharacter?[] { null }, null), Is.Null);
+        }
+
+        [Test]
+        public void EverybodyOnTheRosterStandsTheSameHeight()
+        {
+            // Measured off the drawings rather than trusted: two characters cut from two sheets
+            // at two scales look fine on their own and absurd beside each other, and nothing in
+            // a code review would catch it.
+            foreach (string name in new[] { "Drifter", "Soldier" })
+            {
+                PlayableCharacter who = Load(name);
+                Sprite pose = who.Front[0];
+
+                Assert.That(
+                    pose.rect.height,
+                    Is.EqualTo(64f),
+                    $"{name} is not drawn on the project's canvas");
+                Assert.That(
+                    pose.pixelsPerUnit,
+                    Is.EqualTo(64f),
+                    $"{name} would stand a different size on the same ground");
+            }
+        }
     }
 }

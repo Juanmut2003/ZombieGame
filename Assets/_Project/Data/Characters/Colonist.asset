@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28ee90e14c438d44fb33488af4087b11, type: 3}
+  m_Name: Colonist
+  m_EditorClassIdentifier: ZombieGame.Core::ZombieGame.Core.Roster.PlayableCharacter
+  _displayName: Colonist
+  _blurb: One of the people who were here before you.
+  _available: 0
+  _portrait: {fileID: 21300000, guid: 15054faed6061d84ab524c28aaa68760, type: 3}
+  _front:
+  - {fileID: 21300000, guid: 15054faed6061d84ab524c28aaa68760, type: 3}
+  _back: []
+  _left:
+  - {fileID: 21300000, guid: edb3870a21a42b54da6c840c8270b595, type: 3}
+  _right:
+  - {fileID: 21300000, guid: 3ab46740adf7e344b91026932c3c28b3, type: 3}

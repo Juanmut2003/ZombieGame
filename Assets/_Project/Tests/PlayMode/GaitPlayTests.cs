@@ -58,18 +58,22 @@ namespace ZombieGame.Tests.PlayMode
         }
 
         [UnityTest]
-        public IEnumerator TheMcIsTheSoldier()
+        public IEnumerator TheMcIsDrawnAsWhoeverIsBeingWorn()
         {
-            var renderer = _sprite.GetComponent<SpriteRenderer>();
-            Assert.That(renderer.sprite, Is.Not.Null, "the MC is invisible");
-            Assert.That(
-                renderer.sprite.name,
-                Does.StartWith("soldier"),
-                "the MC is wearing the fantasy pack again");
-
             var outfit = _player.GetComponent<CharacterOutfit>();
             Assert.That(outfit, Is.Not.Null, "the zone ignores who the player picked");
-            Assert.That(outfit.Wearing, Is.Not.Null);
+            Assert.That(outfit.Wearing, Is.Not.Null, "the zone was built with nobody in it");
+
+            var renderer = _sprite.GetComponent<SpriteRenderer>();
+            Assert.That(renderer.sprite, Is.Not.Null, "the MC is invisible");
+
+            // Against whoever is actually being worn rather than against one name. Naming the
+            // character made this test depend on which other test had run first and left a
+            // choice behind — it passed for years by agreeing with the leak.
+            Assert.That(
+                renderer.sprite.name,
+                Does.StartWith(outfit.Wearing!.DisplayName.ToLowerInvariant()),
+                "the MC is wearing the fantasy pack again");
 
             yield return null;
         }
