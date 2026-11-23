@@ -254,7 +254,10 @@ namespace ZombieGame.AI
         /// <summary>
         /// Resolves a swing against the horde. The attacker never touches the array itself.
         /// </summary>
-        private void OnMeleeSwung(MeleeSwungEvent swing) => _manager.ApplySwing(swing);
+        // Through the same walls the horde cannot see through. Without this the bat reaches into
+        // the next room, and the player learns to fight the building instead of the zombies.
+        private void OnMeleeSwung(MeleeSwungEvent swing) =>
+            _manager.ApplySwing(swing, _lineOfSight);
 
         private void Start()
         {

@@ -395,9 +395,17 @@ namespace ZombieGame.AI
         /// Walked backwards because a killed zombie is replaced by the one from the end of the
         /// array: going down means the slot that gets overwritten has already been considered.
         /// </remarks>
+        /// <param name="swing">The swing, as it was announced.</param>
+        /// <param name="through">
+        /// What a swing cannot reach through. Null means nothing does, which is right for a bare
+        /// arena and wrong everywhere else: a bat has the reach of a bat, and a wall between the
+        /// two of you is the reason to go round rather than a detail of the rendering. Walls are
+        /// what the zombies cannot see through either, so it is the same line of sight.
+        /// </param>
         /// <returns>How many were hit.</returns>
-        public int ApplySwing(in MeleeSwungEvent swing)
+        public int ApplySwing(in MeleeSwungEvent swing, ILineOfSight? through = null)
         {
+            ILineOfSight reach = through ?? OpenLineOfSight.Instance;
             int hits = 0;
 
             for (int i = Count - 1; i >= 0 && hits < swing.MaxTargets; i--)
@@ -409,6 +417,14 @@ namespace ZombieGame.AI
                         _states[i].Radius,
                         swing.Range,
                         swing.HalfAngleDegrees))
+                {
+                    continue;
+                }
+
+                // Checked after the arc and not before: the arc is cheap maths on an array, and
+                // the line of sight is a physics query. Nothing is cast at a zombie the swing
+                // was never going to reach anyway.
+                if (!reach.IsClear(swing.Origin, _states[i].Position))
                 {
                     continue;
                 }
