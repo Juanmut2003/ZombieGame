@@ -19,7 +19,7 @@ namespace ZombieGame.Editor.Art
     {
         private const string Sheet = "Assets/Plugins/Undead Survivor/Sprites/UI.png";
 
-        /// <summary>The pack's own face, which stands in until the generated one is built.</summary>
+        /// <summary>The face the HUD is set in: the pack's own pixel font.</summary>
         private const string PackFontPath = "Assets/Plugins/Undead Survivor/Fonts/neodgm.ttf";
 
         /// <summary>How many pixels of the sheet make up one unit. Its nine-slice borders are in these.</summary>
@@ -38,18 +38,16 @@ namespace ZombieGame.Editor.Art
         internal static Sprite? Icon(int index) => Named($"Select {index}");
 
         /// <summary>
-        /// The face the whole HUD is set in: Neonbyte, a 5x7 monospaced pixel font.
+        /// The face the whole HUD is set in.
         /// </summary>
         /// <remarks>
-        /// Falls back to the pack's font while Neonbyte has not been generated yet — see
-        /// <see cref="NeonbyteFont"/> and the menu item that builds it. The fallback is
-        /// proportional where Neonbyte is monospaced, so a HUD laid out for one is loose or
-        /// crowded in the other; it is there so a fresh checkout has readable text, not so the
-        /// two can be swapped freely.
+        /// Returns null when the pack is not installed, and every caller falls back to a system
+        /// face so that a checkout without the pack still has readable text. It is a fallback
+        /// and not an option: a HUD drawn at 64 pixels to the tile and labelled in a smooth
+        /// face reads as two games at once.
         /// </remarks>
         internal static Font? PixelFont() =>
-            AssetDatabase.LoadAssetAtPath<Font>(NeonbyteFont.FontPath)
-            ?? AssetDatabase.LoadAssetAtPath<Font>(PackFontPath);
+            AssetDatabase.LoadAssetAtPath<Font>(PackFontPath);
 
         private static Sprite? Named(string spriteName)
         {
